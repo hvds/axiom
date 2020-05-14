@@ -1,5 +1,5 @@
 Conditional proof, induction
-Substitution of variable
+clean() to collapse most const numeric calculations
 Rules to act on sums
 - prove E(a, 1)
 Nice to have: find a way to apply a substitution recursively n times,

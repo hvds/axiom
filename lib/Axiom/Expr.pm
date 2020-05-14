@@ -235,6 +235,17 @@ sub substitute {
     return ref($self)->new({ type => $self->type, args => \@copy });
 }
 
+sub subst_var {
+    my($self, $var, $replace) = @_;
+    my $vi = $var->binding->index;
+    return $self->copy_with(sub {
+        my($other) = @_;
+        return $replace->copy if $other->type eq 'var'
+                && $other->binding->index == $vi;
+        return undef;
+    });
+}
+
 sub parse {
     my($class, $dict, $text, $debug) = @_;
     local $DICT = $dict;
