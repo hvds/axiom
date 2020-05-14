@@ -109,12 +109,12 @@ sub apply_directive {
         print $self->dict->str;
         return;
     } elsif ($line =~ /^\*save\s+(\S.+)\z/) {
-        my $file = $1;
+        my $file = $1 . '.aa';
         open(my $f, '>', $file) or die "$file: $!\n";
         $quiet or print $f $_->[0], "\n" for @{ $self->{lines} };
         close $f;
     } elsif ($line =~ /^\*load\s*(\S.+)\z/) {
-        my $file = $1;
+        my $file = $1 . '.aa';
         open(my $f, '<', $file) or die "$file: $!\n";
         $self->reset;
         while (<$f>) {

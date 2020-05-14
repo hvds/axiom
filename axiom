@@ -13,7 +13,10 @@ use Axiom::Symbol;
 my $term = Term::ReadLine->new('axiom');
 $term->ornaments(0);
 my $hs = Axiom::Symbol->new;
-$hs->add($_) for @ARGV;
+for my $arg (@ARGV) {
+    $arg = "*load $arg" if $arg !~ /^\*/;
+    $hs->add($arg);
+}
 while (1) {
     my $line = $term->readline($hs->next . '> ') // last;
     eval { $hs->add($line) };
