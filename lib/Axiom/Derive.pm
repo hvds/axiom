@@ -45,7 +45,7 @@ sub str {
 }
 sub line {
     my($self, $index) = @_;
-    return +($index eq '0'
+    return +($index eq ''
         ? $self->working
         : $self->context->expr($index)
     ) // die sprintf "Cannot specify line %s, we have only %s lines\n",
@@ -125,7 +125,7 @@ sub _rulere {
             \$ <args=(?: -? \d+ )> :
             | <args=rulename> :
                 (?{ $MATCH{args} = $MATCH{args}{args} })
-            | <args=(?{ 0 })>
+            | <args=(?{ '' })>
         <token: rulename> <args=(?:[A-Z]\w*(?!\w))>
         <token: location> <[args=arg]>+ % \.
         <token: arg> \d+
@@ -204,7 +204,7 @@ sub _div {
 
 sub _linename {
     my($line) = @_;
-    return '' unless defined $line;
+    return '' unless defined $line && length $line;
     $line = "\$$line" if $line =~ /^[-\d]/;
     return "$line:";
 }
