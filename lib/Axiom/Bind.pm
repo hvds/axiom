@@ -12,9 +12,12 @@ sub new {
     }, $class;
 }
 sub name { shift->{name} }
+sub index { shift->{'index'} }
 sub typeclass {
     return state $typeclass = {
-        map +($_->type => $_), qw{ Axiom::Bind::Var Axiom::Bind::Func Axiom::Bind::Local }
+        map +($_->type => $_), qw{
+            Axiom::Bind::Var Axiom::Bind::Func Axiom::Bind::Local
+        }
     };
 }
 
