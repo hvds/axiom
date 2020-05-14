@@ -31,7 +31,7 @@ sub type { shift->{type} }
 sub atom { 0 }
 sub const { 0 }
 
-sub clean {
+sub maybe_clean {
     my($self) = @_;
     return if $self->atom;
     my $prev = 0;
@@ -39,7 +39,7 @@ sub clean {
     while (1) {
         my $improve = $prev;
         for (0 .. $#$args) {
-            my $new = $args->[$_]->clean or next;
+            my $new = $args->[$_]->maybe_clean or next;
             $args->[$_] = $new;
             ++$improve;
         }
@@ -168,6 +168,11 @@ sub clean {
         },
     }->{$type};
     return $sub && $sub->();
+}
+
+sub clean {
+    my($self) = @_;
+    return $self->maybe_clean // $self;
 }
 
 sub str {

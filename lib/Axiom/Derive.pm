@@ -366,7 +366,7 @@ sub _linename {
             my($type, $args) = @$rule;
             return unless $validation{$type}->($self, $args);
             next unless $self->working;
-            my $clean = $self->working->clean or next;
+            my $clean = $self->working->maybe_clean or next;
             $self->working($clean);
         }
         my $diff = $self->expr->diff($self->working);
