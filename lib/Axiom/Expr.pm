@@ -267,7 +267,7 @@ sub diff {
     for my $i (0 .. $#$sa) {
         my $_diff = $sa->[$i]->diff($oa->[$i], $map) // next;
         return [] if $diff;
-        $diff = [ $i, @{ $_diff } ];
+        $diff = [ $i + 1, @{ $_diff } ];
     }
     return $diff;
 }
@@ -290,7 +290,7 @@ package Axiom::Expr::Const {
     sub str { sprintf '%s', shift->args->[0] }
     sub diff {
         my($self, $other, $map) = @_;
-        return [ $self, $other ] unless $self->type eq $other->type
+        return [] unless $self->type eq $other->type
                 && $self->args->[0] == $other->args->[0];
         return undef;
     }
@@ -320,7 +320,7 @@ package Axiom::Expr::Name {
     }
     sub diff {
         my($self, $other, $map) = @_;
-        return [ $self, $other ] unless $self->type eq $other->type
+        return [] unless $self->type eq $other->type
                 && $self->bindtype eq $other->bindtype
 # FIXME: use the map
                 && $self->name eq $other->name;
