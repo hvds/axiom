@@ -204,9 +204,14 @@ sub locate {
 
 sub copy {
     my($self) = @_;
-    return ref($self)->new({
+    return $self->copy_with(sub { undef });
+}
+
+sub copy_with {
+    my($self, $with) = @_;
+    return $with->($self) // ref($self)->new({
         type => $self->type,
-        args => [ map $_->copy, @{ $self->args } ],
+        args => [ map $_->copy_with($with), @{ $self->args } ],
     });
 }
 
@@ -263,9 +268,9 @@ package Axiom::Expr::Const {
     }
     sub const { 1 }
     sub atom { 1 }
-    sub copy {
-        my($self) = @_;
-        return ref($self)->new({
+    sub copy_with {
+        my($self, $with) = @_;
+        return $with->($self) // ref($self)->new({
             type => $self->type,
             args => [ @{ $self->args } ],
         });
@@ -286,14 +291,16 @@ package Axiom::Expr::Name {
         return bless { type => 'name', args => $hash->{args} }, $class;
     }
     sub atom { 1 }
-    sub copy {
-        my($self) = @_;
-        my $other = ref($self)->new({
-            type => $self->type,
-            args => [ @{ $self->args } ],
-        });
-        $other->bind($self->binding);
-        return $other;
+    sub copy_with {
+        my($self, $with) = @_;
+        return $with->($self) // do {
+            my $other = ref($self)->new({
+                type => $self->type,
+                args => [ @{ $self->args } ],
+            });
+            $other->bind($self->binding);
+            $other;
+        };
     }
     sub str {
         my($self) = @_;
