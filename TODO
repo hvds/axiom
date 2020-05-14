@@ -1,0 +1,22 @@
+Conditional proof, induction
+Substitution of variable
+Rules to act on sums
+- prove E(a, 1)
+Nice to have: find a way to apply a substitution recursively n times,
+to get the sums directly instead of by induction.
+
+Stabilise enough to write tests
+
+Reduce explicit rules to just the rule name, discover the rest.
+Remove explicit rules entirely, discover them.
+Discover rules even when we take multiple steps.
+
+Sets, type checking.
+
+Abstract out knowledge of operators:
+- arg number and types, return type
+- rules
+- constructing the grammar will be hard
+
+Optionally: assume default .aa extension.
+Load axioms/theorems from library (eg sum identities)

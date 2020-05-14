@@ -1,0 +1,22 @@
+#!/opt/axiom-d/bin/perl
+use strict;
+use warnings;
+
+use Term::ReadLine;
+use Data::Dumper;
+$Data::Dumper::Indent = 1;
+$Data::Dumper::Sortkeys = 1;
+
+use lib 'lib';
+use Axiom::Symbol;
+
+my $term = Term::ReadLine->new('axiom');
+$term->ornaments(0);
+my $hs = Axiom::Symbol->new;
+$hs->add($_) for @ARGV;
+while (1) {
+    my $line = $term->readline($hs->next . '> ') // last;
+    eval { $hs->add($line) };
+    warn $@ if $@;
+}
+print "\n";    # get past the last prompt
