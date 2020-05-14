@@ -81,6 +81,7 @@ sub _rulere {
         <rule: rule> (?:
             <axiom>
             | <theorem>
+            | <identity>
             | <distrib>
             | <unarydistrib>
             | <add>
@@ -95,6 +96,7 @@ sub _rulere {
         )
         <rule: theorem> theorem (?: <[args=rulename]> | <args=(?{ [] })> )
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
+        <rule: identity> identity \( <[args=Expr]> \)
         <rule: distrib>
             distrib \(
                 <[args=lineref]> <[args=location]> , <[args=arg]> , <[args=arg]>
@@ -227,6 +229,16 @@ sub _linename {
             } else {
                 push @{ $self->rules }, 'theorem';
             }
+            return 1;
+        },
+        identity => sub {
+            my($self, $args) = @_;
+            my $expr = $args->[0];
+            $self->working(Axiom::Expr->new({
+                type => 'equals',
+                args => [ $expr->copy, $expr->copy ],
+            }));
+            push @{ $self->rules }, sprintf 'identity(%s)', $expr->{''};
             return 1;
         },
         distrib => sub {
