@@ -29,6 +29,7 @@ sub new {
 sub args { shift->{args} }
 sub type { shift->{type} }
 sub atom { 0 }
+sub const { 0 }
 
 sub clean {
     my($self) = @_;
@@ -255,6 +256,7 @@ package Axiom::Expr::Const {
         my($class, $hash) = @_;
         return bless { type => 'integer', args => $hash->{args} }, $class;
     }
+    sub const { 1 }
     sub atom { 1 }
     sub copy {
         my($self) = @_;
