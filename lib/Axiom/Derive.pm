@@ -357,6 +357,7 @@ sub _linename {
             $self->working($starting->substitute($loc, $repl));
             push @{ $self->rules }, sprintf 'factor(%s%s, %s)',
                     _linename($line), join('.', @$loc), $expr->{''};
+            return 1;
         },
     );
     sub validate {
