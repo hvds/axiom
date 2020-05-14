@@ -167,6 +167,15 @@ sub maybe_clean {
             }
             return undef;
         },
+        rational => sub {
+            if ($args->[1] eq '1') {
+                return Axiom::Expr::Const->new({
+                    type => 'integer',
+                    args => [ $args->[0] ],
+                });
+            }
+            return undef;
+        }
     }->{$type};
     return $sub && $sub->();
 }
@@ -276,7 +285,9 @@ package Axiom::Expr::Const {
     our @ISA = qw{Axiom::Expr};
     sub new {
         my($class, $hash) = @_;
-        return bless { type => 'integer', args => $hash->{args} }, $class;
+        my $type = (@{ $hash->{args} } > 1 && $hash->{args}[1] != 1)
+                ? 'rational' : 'integer';
+        return bless { type => $type, args => $hash->{args} }, $class;
     }
     sub const { 1 }
     sub atom { 1 }
@@ -287,11 +298,16 @@ package Axiom::Expr::Const {
             args => [ @{ $self->args } ],
         });
     }
-    sub str { sprintf '%s', shift->args->[0] }
+    sub str { join '/', @{ shift->args } }
     sub diff {
         my($self, $other, $map) = @_;
-        return [] unless $self->type eq $other->type
-                && $self->args->[0] == $other->args->[0];
+        my $type = $self->type;
+        return [] unless $type eq $other->type;
+        my $argc = { integer => 1, rational => 2 }->{$type}
+                // die "I don't know how many args a $type has";
+        my($sa, $oa) = ($self->args, $other->args);
+        ($sa->[$_] == $oa->[$_]) or return []
+                for (0 .. $argc - 1);
         return undef;
     }
 };
