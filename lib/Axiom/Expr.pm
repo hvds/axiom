@@ -400,11 +400,14 @@ sub _grammar {
         <objrule: Axiom::Expr=Sum>
             <.SumToken> <[args=SumStart]> <[args=SumEnd]>
             (?{
-                # split the SumStart into variable and start value
+                # split SumStart into variable and start value, extract SumEnd
                 splice @{ $MATCH{args} }, 0, 1, @{ $MATCH{args}[0]{args} };
+                $MATCH{args}[2] = $MATCH{args}[2]{args}[0];
+
+                # introduce the local variable into the dictionary for the
+                # duration of the subexpression
                 my $var = $MATCH{args}[0];
                 local $Axiom::Expr::DICT->dict->{$var->name} = $var->binding;
-                1;    
             })
             <[args=BraceExpr]>
             (?{
