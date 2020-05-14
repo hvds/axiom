@@ -30,6 +30,7 @@ sub args { shift->{args} }
 sub type { shift->{type} }
 sub atom { 0 }
 sub const { 0 }
+sub iter { 0 }
 
 sub maybe_clean {
     my($self) = @_;
@@ -335,6 +336,44 @@ package Axiom::Expr::Name {
     sub bindtype { shift->binding->type }
 };
 
+package Axiom::Expr::Iter {
+    our @ISA = qw{Axiom::Expr};
+    sub iter { 1 }
+    sub range {
+        my($self) = @_;
+        my($from, $to) = @{ $self->args }[1, 2];
+        my $diff = Axiom::Expr->new({
+            type => 'pluslist',
+            args => [
+                $to->copy,
+                Axiom::Expr->new({
+                    type => 'negate',
+                    args => [ $from->copy ],
+                }),
+            ],
+        })->clean;
+        die sprintf(
+            "Cannot expand non-constant range: %s .. %s is not constant\n",
+            $from->{''}, $to->{''},
+        ) unless $diff->const;
+        return [ map Axiom::Expr->new({
+            type => 'pluslist',
+            args => [
+                $from->copy,
+                Axiom::Expr::Const->new({
+                    type => 'integer',
+                    args => [ "$_" ],
+                }),
+            ],
+        })->clean, 0 .. $diff->args->[0] ];
+    }
+    sub value_at {
+        my($self, $expr) = @_;
+        my($var, $targ) = @{ $self->args }[0, 3];
+        return $targ->subst_var($var, $expr)->clean;
+    }
+};
+
 sub _grammar {
     use Regexp::Grammars;
     state $grammar = qr{
@@ -422,7 +461,7 @@ sub _grammar {
                         map @{ $_->{args} }, @{ $MATCH{args} } ];
             })
             <type=(?{ 'function' })>
-        <objrule: Axiom::Expr=Sum>
+        <objrule: Axiom::Expr::Iter=Sum>
             <.SumToken> <[args=SumStart]> <[args=SumEnd]>
             (?{
                 # split SumStart into variable and start value, extract SumEnd

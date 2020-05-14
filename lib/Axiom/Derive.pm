@@ -87,6 +87,7 @@ sub _rulere {
             | <add>
             | <multiply>
             | <factor>
+            | <iterexpand>
         )
         <rule: axiom> axiom (?:
             <[args=rulename]>
@@ -115,6 +116,9 @@ sub _rulere {
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
         <rule: factor>
             factor \( <[args=lineref]> <[args=location]> , <[args=Expr]> \)
+            (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
+        <rule: iterexpand>
+            iterexpand \( <[args=lineref]> <[args=location]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
 
         <token: lineref>
@@ -357,6 +361,27 @@ sub _linename {
             $self->working($starting->substitute($loc, $repl));
             push @{ $self->rules }, sprintf 'factor(%s%s, %s)',
                     _linename($line), join('.', @$loc), $expr->{''};
+            return 1;
+        },
+        iterexpand => sub {
+            my($self, $args) = @_;
+            my($line, $loc) = @$args;
+            my $starting = $self->line($line);
+            my $iter = $starting->locate($loc);
+            my $repl;
+            die "Cannot iterate over a %s\n", $iter->type
+                    unless $iter->iter;
+            if ($iter->type eq 'sum') {
+                $repl = Axiom::Expr->new({
+                    type => 'pluslist',
+                    args => [ map $iter->value_at($_), @{ $iter->range } ],
+                });
+            } else {
+                die sprintf "don't know how to expand a %s\n", $iter->type;
+            }
+            $self->working($starting->substitute($loc, $repl));
+            push @{ $self->rules }, sprintf 'iterexpand(%s%s)',
+                    _linename($line), join('.', @$loc);
             return 1;
         },
     );
