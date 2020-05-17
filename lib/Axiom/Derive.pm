@@ -93,6 +93,7 @@ sub _rulere {
             | <multiply>
             | <factor>
             | <iterexpand>
+            | <iterextend>
         )
         <rule: axiom> axiom (?:
             <[args=rulename]>
@@ -125,6 +126,9 @@ sub _rulere {
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
         <rule: iterexpand>
             iterexpand \( <[args=lineref]> <[args=location]> \)
+            (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
+        <rule: iterextend>
+            iterextend \( <[args=lineref]> <[args=location]> , <[args=arg]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
 
         <token: lineref>
@@ -394,6 +398,58 @@ sub _linename {
             $self->working($starting->substitute($loc, $repl));
             push @{ $self->rules }, sprintf 'iterexpand(%s%s)',
                     _linename($line), join('.', @$loc);
+            return 1;
+        },
+        iterextend => sub {
+            my($self, $args) = @_;
+            my($line, $loc, $dir) = @$args;
+            my $starting = $self->line($line);
+            my $iter = $starting->locate($loc);
+            my $repl;
+            if ($iter->type eq 'sum') {
+                my($var, $from, $to, $expr) = @{ $iter->args };
+                my($base, $add);
+                if ($dir == 0) {
+                    $base = $from;
+                    $add = '-1';
+                } else {
+                    $base = $to;
+                    $add = '1';
+                }
+                my $var_at = Axiom::Expr->new({
+                    type => 'pluslist',
+                    args => [
+                        $base->copy,
+                        Axiom::Expr::Const->new({
+                            type => 'integer',
+                            args => [ $add ],
+                        }),
+                    ],
+                });
+                $repl = Axiom::Expr->new({
+                    type => 'pluslist',
+                    args => [
+                        Axiom::Expr::Iter->new({
+                            type => 'sum',
+                            args => [
+                                $var->copy,
+                                ($base == $from) ? $var_at : $from->copy,
+                                ($base == $to) ? $var_at : $to->copy,
+                                $expr->copy,
+                            ],
+                        }),
+                        Axiom::Expr->new({
+                            type => 'negate',
+                            args => [ $iter->value_at($var_at) ],
+                        }),
+                    ],
+                });
+            } else {
+                die sprintf "Don't know how to extend a %s\n", $iter->type;
+            }
+            $self->working($starting->substitute($loc, $repl));
+            push @{ $self->rules }, sprintf 'iterextend(%s%s, %s)',
+                    _linename($line), join('.', @$loc), $dir;
             return 1;
         },
     );
