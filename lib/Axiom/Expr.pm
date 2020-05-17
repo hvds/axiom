@@ -339,7 +339,7 @@ sub subst_var {
     my $vi = $var->binding->index;
     return $self->copy_with(sub {
         my($other) = @_;
-        return $replace->copy if $other->type eq 'var'
+        return $replace->copy if $other->type eq 'name'
                 && $other->binding->index == $vi;
         return undef;
     });
