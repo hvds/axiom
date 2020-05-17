@@ -289,7 +289,7 @@ sub locate {
     my $next;
     for my $i (0 .. $#$location) {
         $next = $cur->args->[$location->[$i] - 1];
-        $cur = $next, next if defined $next;
+        $cur = $next, next if defined $next && ref $next;
         die sprintf(
             "Invalid location: %s has only %s arguments for %s in %s\n",
             join('.', $i ? @$location[0 .. $i - 1] : 0),
