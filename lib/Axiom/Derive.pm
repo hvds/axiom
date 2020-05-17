@@ -13,8 +13,9 @@ sub new {
         context => $context,
         dict => $context->dict->copy,
         rules => [],
-        working => $context->expr(-1),
+        working => $context->last_expr,
         working_name => [],
+        scope => 0,
     };
     weaken $self->{context};
     return $self;
@@ -45,11 +46,14 @@ sub str {
 }
 sub line {
     my($self, $index) = @_;
-    return +($index eq ''
+    return $index eq ''
         ? $self->working
-        : $self->context->expr($index)
-    ) // die sprintf "Cannot specify line %s, we have only %s lines\n",
-            ($index ? '$'.$index : '$$'), scalar @{ $self->context->lines };
+        : $self->context->expr($index);
+}
+sub scope {
+    my($self, $new) = @_;
+    $self->{scope} = $new if @_ > 1;
+    return $self->{scope};
 }
 
 sub derive {
@@ -122,7 +126,7 @@ sub _rulere {
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
 
         <token: lineref>
-            \$ <args=(?: -? \d+ )> :
+            <args=(?: \d+ (?: \. \d+ )* )> :
             | <args=rulename> :
                 (?{ $MATCH{args} = $MATCH{args}{args} })
             | <args=(?{ '' })>
@@ -205,7 +209,6 @@ sub _div {
 sub _linename {
     my($line) = @_;
     return '' unless defined $line && length $line;
-    $line = "\$$line" if $line =~ /^[-\d]/;
     return "$line:";
 }
 

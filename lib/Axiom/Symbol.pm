@@ -21,26 +21,75 @@ sub new {
 sub lines { shift->{lines} }
 sub named { shift->{named} }
 sub dict { shift->{dict} }
+sub curline { shift->{curline} }
+sub curlines {
+    my($self) = @_;
+    return $self->lines->{$self->curline} //= [];
+}
+sub curindex {
+    my($self) = @_;
+    return join '.', grep length, $self->curline, 0 + @{ $self->curlines };
+}
 sub reset {
     my($self) = @_;
-    $self->{lines} = [];
+    $self->{lines} = { '' => [] };
     $self->{named} = {};
     $self->{dict} = Axiom::Dict->new;
+    $self->{curline} = '';
     return;
 }
 
-sub next { 1 + @{ shift->{lines} } }
-sub expr {
+sub last_expr {
+    my($self) = @_;
+    my $lines = $self->lines->{$self->curline};
+    return undef unless @$lines;
+    # Find last line with a derivation (hence a theorem)
+    for (my $i = $#$lines; $i >= 0; --$i) {
+        return $lines->[$i][1]->expr if $lines->[$i][1];
+    }
+    return undef;
+}
+sub line {
     my($self, $index) = @_;
     my $lines = $self->lines;
     my $named = $self->named;
-    $index = $named->{$index} if defined $named->{$index};
-    die "Unknown theorem name '$index'\n" if $index !~ /^-?\d+$/;
-    $index = @$lines + $index if $index < 0;
-    $index >= 0 or return undef;
-    my $line = $lines->[$index] or return undef;
-    my $derived = $line->[1] or return undef;
+    my $i = $index;
+    $i = $named->{$i} if defined $named->{$i};
+    $i =~ /^\d+(\.\d+)*$/
+            or die "Unknown theorem name '$index' ($i)\n";
+    my @parts = split /\./, $i;
+    my $where = join '.', @parts[0 .. $#parts - 1];
+    my $wlines = $lines->{$where}
+            or die "Unknown prefix '$where' for $index\n";
+    my $line = $wlines->[$parts[-1]]
+            or die "Unknown line $i for $index\n";
+    return $line;
+}
+sub expr {
+    my($self, $index) = @_;
+    my $line = $self->line($index);
+    my $derived = $line->[1]
+            or die "Line $index is not a theorem\n";
     return $derived->expr;
+}
+sub add_line {
+    my($self, $entry) = @_;
+    my $curindex = $self->curindex;
+    push @{ $self->curlines }, $entry;
+    return $curindex;
+}
+
+sub enter_scope {
+    my($self, $entry) = @_;
+    $self->{curline} = $self->curindex;
+    return $self->add_line($entry);
+}
+
+sub leave_scope {
+    my($self, $entry) = @_;
+    $self->{curline} =~ s{(?:^|\.)\d+\z}{}
+            or die "Cannot leave_scope: no scope at $self->{curline}\n";
+    return $self->add_line($entry);
 }
 
 sub add {
@@ -50,13 +99,37 @@ sub add {
         return;
     }
     my $derive = Axiom::Derive->derive($line, $self, $DEBUG) or return;
-    push @{ $self->lines }, [ $line, $derive ];
+    my $struct = [ $line, $derive ];
+    my $where = $derive->scope;
+    my $curindex;
+    if ($where > 0) {
+        $curindex = $self->enter_scope($struct);
+    } elsif ($where < 0) {
+        $curindex = $self->leave_scope($struct);
+    } else {
+        $curindex = $self->add_line($struct);
+    }
     for my $name (@{ $derive->working_name }) {
         warn "Replacing name '$name'\n" if defined $self->named->{$name};
-        $self->named->{$name} = $#{ $self->lines };
+        $self->named->{$name} = $curindex;
     }
     print $derive->str, "\n" unless $quiet;
     return;
+}
+
+sub print_lines {
+    my($self, $where) = @_;
+    my $lines = $self->lines;
+    my $these = $lines->{$where} // die "No data for $where";
+    $where .= '.' if length $where;
+    for (0 .. @$these) {
+        my $this = "$where$_";
+        if ($lines->{$this}) {
+            $self->print_lines($this);
+        }
+        last if $_ == @$these;
+        printf "%s: %s\n", $this, $these->[$_][0];
+    }
 }
 
 sub bindre {
@@ -80,10 +153,11 @@ sub apply_directive {
         return;
     } elsif ($line =~ m{^\*diag(?:\s+(-?\w+))?\z}) {
         my $name = $1 // -1;
-        my $expr = $self->expr($name)
+        my $expr = $self->line($name)
                 // die "No line to diagnose for '$name'\n";
         use Data::Dumper; print Dumper($expr);
-        print $expr->str, "\n";
+        print $expr->[0], "\n";
+        print $expr->[1]->expr->str, "\n";
         return;
     } elsif ($line =~ bindre()) {
         my $type = $/{Type};
@@ -91,22 +165,22 @@ sub apply_directive {
         my $dict = $self->dict->copy;
         $dict->insert($_, $type) for @names;
         $self->{dict} = $dict;    # if successful for all names
-        push @{ $self->{lines} }, [ $line ];
+        $self->add_line([ $line ]);
     } elsif ($line eq '*terse') {
         my $named = $self->named;
         my $lines = $self->lines;
         for (sort { $named->{$a} <=> $named->{$b} } keys %$named) {
-            printf "%s: %s\n", $_, $lines->[$named->{$_}]->[1]->source;
+            printf "%s: %s\n", $_, $self->line($_)->[0];
         }
         return;
     } elsif ($line eq '*list') {
-        my $i = 1;
-        for (@{ $self->lines }) {
-            printf "%s: %s\n", $i++, $_->[0];
-        }
+        $self->print_lines('');
         return;
     } elsif ($line eq '*dict') {
         print $self->dict->str;
+        return;
+    } elsif ($line eq '*named') {
+        use Data::Dumper; print Dumper($self->named);
         return;
     } elsif ($line =~ /^\*save\s+(\S.+)\z/) {
         my $file = $1 . '.aa';

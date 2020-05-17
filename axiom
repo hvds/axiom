@@ -18,7 +18,7 @@ for my $arg (@ARGV) {
     $hs->add($arg);
 }
 while (1) {
-    my $line = $term->readline($hs->next . '> ') // last;
+    my $line = $term->readline($hs->curindex . '> ') // last;
     eval { $hs->add($line) };
     warn $@ if $@;
 }
