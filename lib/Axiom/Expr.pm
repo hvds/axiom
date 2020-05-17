@@ -34,23 +34,12 @@ sub atom { 0 }
 sub const { 0 }
 sub iter { 0 }
 
-sub maybe_clean {
+sub _clean {
     my($self) = @_;
-    return if $self->atom;
-    my $prev = 0;
-    my $args = $self->args;
-    while (1) {
-        my $improve = $prev;
-        for (0 .. $#$args) {
-            my $new = $args->[$_]->maybe_clean or next;
-            $args->[$_] = $new;
-            ++$improve;
-        }
-        last if $improve == $prev;
-        $prev = $improve;
-    }
-
+    return $self if $self->atom;
     my $type = $self->type;
+    my $args = $self->args;
+    $_ = $_->_clean for @$args;
     my $sub = {
         equals => undef,
         function => undef,
@@ -58,7 +47,6 @@ sub maybe_clean {
         braceexpr => sub { return $self->args->[0] },
         parenexpr => sub { return $self->args->[0] },
         pluslist => sub {
-            my $changed = 0;
           retry_pluslist:
             # +(null) -> 0
             return Axiom::Expr::Const->new({
@@ -74,17 +62,13 @@ sub maybe_clean {
                 if ($arg->type eq 'pluslist') {
                     # +(a, +(b, c), d) -> +(a, b, c, d)
                     splice @$args, $i, 1, @{ $arg->args };
-                    $changed = 1;
-                    goto retry_pluslist if @$args < 2;
-                    redo;
+                    goto retry_pluslist;
                 }
                 if ($arg->const) {
                     if ($arg->args->[0] eq '0') {
                         # +(a, 0, b) -> +(a, b)
                         splice @$args, $i, 1;
-                        $changed = 1;
-                        goto retry_pluslist if @$args < 2;
-                        redo;
+                        goto retry_pluslist;
                     }
                     push @const, $i;
                 }
@@ -105,8 +89,7 @@ sub maybe_clean {
                     });
                 splice(@$args, $_, 1) for reverse @const;
                 splice(@$args, $const[0], 0, $repl) if $repl;
-                $changed = 1;
-                goto retry_pluslist if @$args < 2;
+                goto retry_pluslist;
             }
             my(@con, @plus, @minus) = ();
             for (0 .. $#$args) {
@@ -123,7 +106,6 @@ sub maybe_clean {
                     for (sort { $b <=> $a } $m, $p) {
                         splice @$args, $_, 1;
                     }
-                    $changed = 1;
                     goto retry_pluslist;
                 }
             }
@@ -133,11 +115,8 @@ sub maybe_clean {
             my @order = (@con && $args->[$con[0]]->args->[0] =~ /^-/)
                 ? (@plus, @con, @minus)
                 : (@con, @plus, @minus);
-            unless (join(' ', @order) eq join(' ', 0 .. $#$args)) {
-                @$args = @$args[@order];
-                $changed = 1;
-            }
-            return $changed ? $self : undef;
+            @$args = @$args[@order];
+            return $self;
         },
         negate => sub {
             my $arg = $args->[0];
@@ -168,10 +147,9 @@ sub maybe_clean {
                     } @{ $arg->args } ],
                 });
             }
-            return undef;
+            return $self;
         },
         mullist => sub {
-            my $changed = 0;
           retry_mullist:
             # x(null) -> 1
             return Axiom::Expr::Const->new({
@@ -187,9 +165,7 @@ sub maybe_clean {
                 if ($arg->type eq 'mullist') {
                     # x(a, x(b, c), d) -> x(a, b, c, d)
                     splice @$args, $i, 1, @{ $arg->args };
-                    $changed = 1;
-                    goto retry_mullist if @$args < 2;
-                    redo;
+                    goto retry_mullist;
                 }
                 if ($arg->const) {
                     if ($arg->args->[0] eq '0') {
@@ -199,9 +175,7 @@ sub maybe_clean {
                     if ($arg->type eq 'integer' && $arg->args->[0] eq '1') {
                         # x(a, 1, b) -> x(a, b)
                         splice @$args, $i, 1;
-                        $changed = 1;
-                        goto retry_mullist if @$args < 2;
-                        redo;
+                        goto retry_mullist;
                     }
                     push @const, $i;
                 }
@@ -222,8 +196,7 @@ sub maybe_clean {
                 # x(a, c1, b, c2) -> x(a, eval(c1 . c2), b)
                 splice(@$args, $_, 1) for reverse @const;
                 splice(@$args, $const[0], 0, $repl) if $repl;
-                $changed = 1;
-                goto retry_mullist if @$args < 2;
+                goto retry_mullist;
             }
             my(@con, @mul, @div) = ();
             for (0 .. $#$args) {
@@ -240,18 +213,14 @@ sub maybe_clean {
                     for (sort { $b <=> $a } $d, $m) {
                         splice @$args, $_, 1;
                     }
-                    $changed = 1;
                     goto retry_mullist;
                 }
             }
             # Not sure what we want here
             # x(a, const p/q, 1/b, c, 1/d) -> x(const p/q, a, c, 1/b, 1/d)
             my @order = (@con, @mul, @div);
-            unless (join(' ', @order) eq join(' ', 0 .. $#$args)) {
-                @$args = @$args[@order];
-                $changed = 1;
-            }
-            return $changed ? $self : undef;
+            @$args = @$args[@order];
+            return $self;
         },
         recip => sub {
             my $arg = $args->[0];
@@ -276,7 +245,7 @@ sub maybe_clean {
                     args => [ @{ $arg->args }[1, 0] ],
                 });
             }
-            return undef;
+            return $self;
         },
         pow => sub {
             # x^1 -> x
@@ -284,7 +253,7 @@ sub maybe_clean {
                 return $args->[0];
             }
             # TODO: 0^x (x != 0), x^0 (x != 0)
-            return undef;
+            return $self;
         },
         rational => sub {
             if ($args->[1] eq '1') {
@@ -294,15 +263,15 @@ sub maybe_clean {
                     args => [ $args->[0] ],
                 });
             }
-            return undef;
+            return $self;
         }
     }->{$type};
-    return $sub && $sub->();
+    return $sub ? $sub->() : $self;
 }
 
 sub clean {
     my($self) = @_;
-    return $self->maybe_clean // $self;
+    return $self->copy->_clean;
 }
 
 sub str {
