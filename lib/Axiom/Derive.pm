@@ -86,6 +86,7 @@ sub _rulere {
             <axiom>
             | <theorem>
             | <identity>
+            | <condstart>
             | <distrib>
             | <unarydistrib>
             | <add>
@@ -101,6 +102,7 @@ sub _rulere {
         )
         <rule: theorem> theorem (?: <[args=rulename]> | <args=(?{ [] })> )
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
+        <rule: condstart> condstart <args=(?{ [] })>
         <rule: identity> identity \( <[args=Expr]> \)
         <rule: distrib>
             distrib \(
@@ -236,6 +238,13 @@ sub _linename {
             } else {
                 push @{ $self->rules }, 'theorem';
             }
+            return 1;
+        },
+        condstart => sub {
+            my($self, $args) = @_;
+            $self->working($self->expr);
+            $self->scope(1);
+            push @{ $self->rules }, 'condstart';
             return 1;
         },
         identity => sub {
