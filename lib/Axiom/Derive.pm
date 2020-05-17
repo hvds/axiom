@@ -87,6 +87,7 @@ sub _rulere {
             | <theorem>
             | <identity>
             | <condstart>
+            | <condend>
             | <distrib>
             | <unarydistrib>
             | <add>
@@ -104,6 +105,7 @@ sub _rulere {
         <rule: theorem> theorem (?: <[args=rulename]> | <args=(?{ [] })> )
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
         <rule: condstart> condstart <args=(?{ [] })>
+        <rule: condend> condend <args=(?{ [] })>
         <rule: identity> identity \( <[args=Expr]> \)
         <rule: distrib>
             distrib \(
@@ -249,6 +251,22 @@ sub _linename {
             $self->working($self->expr);
             $self->scope(1);
             push @{ $self->rules }, 'condstart';
+            return 1;
+        },
+        condend => sub {
+            my($self, $args) = @_;
+            my $where = $self->context->curline;
+            my $cond = $self->context->expr("$where.0");
+            my $result = Axiom::Expr->new({
+                type => 'implies',
+                args => [
+                    $cond->copy,
+                    $self->working->copy,
+                ],
+            });
+            $self->working($result);
+            $self->scope(-1);
+            push @{ $self->rules }, 'condend';
             return 1;
         },
         identity => sub {
