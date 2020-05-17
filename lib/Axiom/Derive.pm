@@ -88,6 +88,7 @@ sub _rulere {
             | <identity>
             | <condstart>
             | <condend>
+            | <induction>
             | <distrib>
             | <unarydistrib>
             | <add>
@@ -106,6 +107,7 @@ sub _rulere {
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
         <rule: condstart> condstart <args=(?{ [] })>
         <rule: condend> condend <args=(?{ [] })>
+        <rule: induction> induction \( <[args=Variable]> , <[args=Expr]> \)
         <rule: identity> identity \( <[args=Expr]> \)
         <rule: distrib>
             distrib \(
@@ -267,6 +269,36 @@ sub _linename {
             $self->working($result);
             $self->scope(-1);
             push @{ $self->rules }, 'condend';
+            return 1;
+        },
+        induction => sub {
+            my($self, $args) = @_;
+            my($var, $base_expr) = @$args;
+            my $starting = $self->working;
+            my $base = $self->context->lines->{$self->context->curline}[-2][1]->expr;
+            $starting->type eq 'implies' or die sprintf
+                    "Cannot apply induction over a %s\n", $starting->type;
+            my($result, $next) = @{ $starting->args };
+            my $expect_base = $result->subst_var($var, $base_expr);
+            my $diff = $expect_base->clean->diff($base->clean);
+            if ($diff) {
+                die sprintf "base expressions differ at\n  %s\n  %s\n",
+                        map $_->locate($diff)->str, $expect_base, $base;
+            }
+            my $expect_next = $result->subst_var($var, Axiom::Expr->new({
+                type => 'pluslist',
+                args => [ $var->copy, _one() ],
+            }));
+            $diff = $expect_next->clean->diff($next->clean);
+            if ($diff) {
+                die sprintf "next expressions differ at\n  %s\n  %s\n",
+                        map $_->locate($diff)->str, $expect_next, $next;
+            }
+            # FIXME: attach 'var >= base_expr -> ...' unless that covers
+            # the whole domain of the var.
+            $self->working($result->copy);
+            push @{ $self->rules }, sprintf 'induction(%s, %s)',
+                    $var->name, $base_expr->{''};
             return 1;
         },
         identity => sub {
