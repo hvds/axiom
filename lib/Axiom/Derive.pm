@@ -387,15 +387,12 @@ sub _linename {
     );
     sub validate {
         my($self, $rules) = @_;
-        my $expr = $self->expr->clean;
+        my $expr = $self->expr;
         for my $rule (@$rules) {
             my($type, $args) = @$rule;
             return unless $validation{$type}->($self, $args);
-            next unless $self->working;
-            my $clean = $self->working->maybe_clean or next;
-            $self->working($clean);
         }
-        my $diff = $expr->diff($self->working);
+        my $diff = $expr->clean->diff($self->working->clean);
         return $self unless $diff;
         die sprintf "Expressions differ at\n  %s\n  %s\n",
                 map $_->locate($diff)->str, $expr, $self->working;

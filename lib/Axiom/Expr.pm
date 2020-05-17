@@ -381,12 +381,12 @@ package Axiom::Expr::Iter {
                     args => [ "$_" ],
                 }),
             ],
-        })->clean, 0 .. $diff->args->[0] ];
+        }), 0 .. $diff->args->[0] ];
     }
     sub value_at {
         my($self, $expr) = @_;
         my($var, $targ) = @{ $self->args }[0, 3];
-        return $targ->subst_var($var, $expr)->clean;
+        return $targ->subst_var($var, $expr);
     }
 };
 
