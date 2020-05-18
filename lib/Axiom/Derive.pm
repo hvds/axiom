@@ -112,35 +112,34 @@ sub _rulere {
         <rule: induction> induction \( <[args=Variable]> , <[args=Expr]> \)
         <rule: distrib>
             distrib \(
-                <[args=lineref]> <[args=location]> , <[args=arg]> , <[args=arg]>
+                <[args=optline]> <[args=location]> , <[args=arg]> , <[args=arg]>
             \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
         <rule: unarydistrib>
-            unarydistrib \(
-                <[args=lineref]> <[args=location]>
-            \)
+            unarydistrib \( <[args=optline]> <[args=location]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
         <rule: add>
-            add \( <[args=lineref]> <[args=Expr]> \)
+            add \( <[args=optline]> <[args=Expr]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
         <rule: multiply>
-            multiply \( <[args=lineref]> <[args=Expr]> \)
+            multiply \( <[args=optline]> <[args=Expr]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
         <rule: factor>
-            factor \( <[args=lineref]> <[args=location]> , <[args=Expr]> \)
+            factor \( <[args=optline]> <[args=location]> , <[args=Expr]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
         <rule: iterexpand>
-            iterexpand \( <[args=lineref]> <[args=location]> \)
+            iterexpand \( <[args=optline]> <[args=location]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
         <rule: iterextend>
-            iterextend \( <[args=lineref]> <[args=location]> , <[args=arg]> \)
+            iterextend \( <[args=optline]> <[args=location]> , <[args=arg]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
 
-        <token: lineref>
-            <args=(?: \d+ (?: \. \d+ )* )> :
-            | <args=rulename> :
-                (?{ $MATCH{args} = $MATCH{args}{args} })
+        <token: optline>
+            <args=line> : <args=(?{ $MATCH{args}{args} })>
             | <args=(?{ '' })>
+        <token: line>
+            <args=(?: \d+ (?: \. \d+ )* )>
+            | <args=rulename> <args=(?{ $MATCH{args}{args} })>
         <token: rulename> <args=(?:[A-Z]\w*(?!\w))>
         <token: location> <[args=arg]>+ % \.
         <token: arg> \d+
