@@ -81,6 +81,7 @@ sub _rulere {
         <grammar: Axiom::Derive>
         <extends: Axiom::Expr>
         <nocontext:>
+        <debug: same>
 
         <rule: rule> (?:
             <axiom>
