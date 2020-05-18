@@ -306,7 +306,7 @@ sub _map {
                     "Cannot apply induction over a %s\n", $starting->type;
             my($result, $next) = @{ $starting->args };
             my $expect_base = $result->subst_var($var, $base_expr);
-            my $diff = $expect_base->clean->diff($base->clean);
+            my $diff = $expect_base->diff($base);
             if ($diff) {
                 die sprintf "base expressions differ at\n  %s\n  %s\n",
                         map $_->locate($diff)->str, $expect_base, $base;
@@ -315,7 +315,7 @@ sub _map {
                 type => 'pluslist',
                 args => [ $var->copy, _one() ],
             }));
-            $diff = $expect_next->clean->diff($next->clean);
+            $diff = $expect_next->diff($next);
             if ($diff) {
                 die sprintf "next expressions differ at\n  %s\n  %s\n",
                         map $_->locate($diff)->str, $expect_next, $next;
@@ -331,7 +331,7 @@ sub _map {
             my($self, $args) = @_;
             my($line, $loc, $eqline, $map) = @$args;
             my $starting = $self->line($line);
-            my $expr = $starting->locate($loc)->clean;
+            my $expr = $starting->locate($loc);
             my %vmap = map {
                 my($var, $expr) = @{ $_->{args} };
                 +($var->binding->index => $expr)
@@ -341,9 +341,9 @@ sub _map {
             my $repl;
             if ($equate->type eq 'equals') {
                 my($left, $right) = @{ $equate->args };
-                if (! $expr->diff($left->clean)) {
+                if (! $expr->diff($left)) {
                     $repl = $right;
-                } elsif (! $expr->diff($right->clean)) {
+                } elsif (! $expr->diff($right)) {
                     $repl = $left;
                 } else {
                     die "Neither side of equate match target\n";
@@ -555,10 +555,11 @@ sub _map {
             my($type, $args) = @$rule;
             return unless $validation{$type}->($self, $args);
         }
-        my $diff = $expr->clean->diff($self->working->clean);
+        my $diff = $expr->diff($self->working);
         return $self unless $diff;
-        die sprintf "Expressions differ at\n  %s\n  %s\n",
-                map $_->locate($diff)->str, $expr, $self->working;
+        die sprintf "Expressions differ at\n  %s\n  %s\nclean:\n  %s\n  %s\n",
+                map($_->locate($diff)->str, $expr, $self->working),
+                map $_->str, $expr->clean, $self->working->clean;
     }
 }
 

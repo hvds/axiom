@@ -361,7 +361,7 @@ sub parse {
     }
 }
 
-sub diff {
+sub _diff {
     my($self, $other, $map) = @_;
     $map //= [];
     $self->type eq $other->type or return [];
@@ -369,11 +369,19 @@ sub diff {
     @$sa == @$oa or return [];
     my $diff;
     for my $i (0 .. $#$sa) {
-        my $_diff = $sa->[$i]->diff($oa->[$i], $map) // next;
+        my $_diff = $sa->[$i]->_diff($oa->[$i], $map) // next;
         return [] if $diff;
         $diff = [ $i + 1, @{ $_diff } ];
     }
     return $diff;
+}
+
+sub diff {
+    my($self, $other, $map) = @_;
+    my $where = $self->_diff($other, $map);
+    return undef unless $where;
+    return undef unless $self->clean->_diff($other->clean, $map);
+    return $where;
 }
 
 package Axiom::Expr::Const {
@@ -396,7 +404,7 @@ package Axiom::Expr::Const {
         });
     }
     sub str { join '/', @{ shift->args } }
-    sub diff {
+    sub _diff {
         my($self, $other, $map) = @_;
         my $type = $self->type;
         return [] unless $type eq $other->type;
@@ -431,7 +439,7 @@ package Axiom::Expr::Name {
         my($self) = @_;
         return sprintf '%s %s', $self->bindtype, $self->name;
     }
-    sub diff {
+    sub _diff {
         my($self, $other, $map) = @_;
         return [] unless $self->type eq $other->type
                 && $self->bindtype eq $other->bindtype
