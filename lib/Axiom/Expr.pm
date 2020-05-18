@@ -337,11 +337,17 @@ sub substitute {
 sub subst_var {
     my($self, $var, $replace) = @_;
     my $vi = $var->binding->index;
+    return $self->subst_vars({ $vi => $replace });
+}
+
+sub subst_vars {
+    my($self, $map) = @_;
     return $self->copy_with(sub {
         my($other) = @_;
-        return $replace->copy if $other->type eq 'name'
-                && $other->binding->index == $vi;
-        return undef;
+        return undef unless $other->type eq 'name';
+        my $oi = $other->binding->index;
+        return undef unless $map->{$oi};
+        return $map->{$oi}->copy;
     });
 }
 
