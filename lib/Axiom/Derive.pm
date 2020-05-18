@@ -105,10 +105,10 @@ sub _rulere {
         )
         <rule: theorem> theorem (?: <[args=rulename]> | <args=(?{ [] })> )
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
+        <rule: identity> identity \( <[args=Expr]> \)
         <rule: condstart> condstart <args=(?{ [] })>
         <rule: condend> condend <args=(?{ [] })>
         <rule: induction> induction \( <[args=Variable]> , <[args=Expr]> \)
-        <rule: identity> identity \( <[args=Expr]> \)
         <rule: distrib>
             distrib \(
                 <[args=lineref]> <[args=location]> , <[args=arg]> , <[args=arg]>
@@ -248,6 +248,16 @@ sub _linename {
             }
             return 1;
         },
+        identity => sub {
+            my($self, $args) = @_;
+            my $expr = $args->[0];
+            $self->working(Axiom::Expr->new({
+                type => 'equals',
+                args => [ $expr->copy, $expr->copy ],
+            }));
+            push @{ $self->rules }, sprintf 'identity(%s)', $expr->{''};
+            return 1;
+        },
         condstart => sub {
             my($self, $args) = @_;
             $self->working($self->expr);
@@ -299,16 +309,6 @@ sub _linename {
             $self->working($result->copy);
             push @{ $self->rules }, sprintf 'induction(%s, %s)',
                     $var->name, $base_expr->{''};
-            return 1;
-        },
-        identity => sub {
-            my($self, $args) = @_;
-            my $expr = $args->[0];
-            $self->working(Axiom::Expr->new({
-                type => 'equals',
-                args => [ $expr->copy, $expr->copy ],
-            }));
-            push @{ $self->rules }, sprintf 'identity(%s)', $expr->{''};
             return 1;
         },
         distrib => sub {
