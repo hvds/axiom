@@ -90,6 +90,7 @@ sub _rulere {
             | <condstart>
             | <condend>
             | <induction>
+            | <equate>
             | <distrib>
             | <unarydistrib>
             | <add>
@@ -110,6 +111,10 @@ sub _rulere {
         <rule: condstart> condstart <args=(?{ [] })>
         <rule: condend> condend <args=(?{ [] })>
         <rule: induction> induction \( <[args=Variable]> , <[args=Expr]> \)
+        <rule: equate>
+            equate \( <[args=optline]> <[args=location]> ,
+                    <[args=line]> , <[args=varmap]> \)
+            (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 2) })
         <rule: distrib>
             distrib \(
                 <[args=optline]> <[args=location]> , <[args=arg]> , <[args=arg]>
@@ -133,6 +138,9 @@ sub _rulere {
         <rule: iterextend>
             iterextend \( <[args=optline]> <[args=location]> , <[args=arg]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
+
+        <rule: varmap> (?: \{ (?: <[args=pair]>* % , )? \} )?
+        <rule: pair> <[args=Variable]> := <[args=Expr]>
 
         <token: optline>
             <args=line> : <args=(?{ $MATCH{args}{args} })>
@@ -222,6 +230,14 @@ sub _linename {
     return "$line:";
 }
 
+sub _map {
+    my($map) = @_;
+    return sprintf '{ %s }', join ', ', map {
+        my($var, $expr) = @{ $_->{args} };
+        sprintf '%s := %s', $var->name, $expr->{''};
+    } @{ $map->{args} };
+}
+
 {
     my $OK = 0;
     my $NOK = 1;
@@ -309,6 +325,35 @@ sub _linename {
             $self->working($result->copy);
             push @{ $self->rules }, sprintf 'induction(%s, %s)',
                     $var->name, $base_expr->{''};
+            return 1;
+        },
+        equate => sub {
+            my($self, $args) = @_;
+            my($line, $loc, $eqline, $map) = @$args;
+            my $starting = $self->line($line);
+            my $expr = $starting->locate($loc)->clean;
+            my %vmap = map {
+                my($var, $expr) = @{ $_->{args} };
+                +($var->binding->index => $expr)
+            } @{ $map->{args} };
+            my $equate = $self->line($eqline)->subst_vars(\%vmap);
+
+            my $repl;
+            if ($equate->type eq 'equals') {
+                my($left, $right) = @{ $equate->args };
+                if (! $expr->diff($left->clean)) {
+                    $repl = $right;
+                } elsif (! $expr->diff($right->clean)) {
+                    $repl = $left;
+                } else {
+                    die "Neither side of equate match target\n";
+                }
+            } else {
+                die "Can't equate() with a %s\n", $equate->type;
+            }
+            $self->working($starting->substitute($loc, $repl));
+            push @{ $self->rules }, sprintf 'equate(%s%s, %s, %s)',
+                    _linename($line), join('.', @$loc), $eqline, _map($map);
             return 1;
         },
         distrib => sub {
