@@ -292,9 +292,25 @@ sub _clean {
             return $self;
         },
         pow => sub {
+            my($val, $pow) = @{ $args };
             # x^1 -> x
-            if ($args->[1]->type eq 'integer' && $args->[1]->args->[0] eq '1') {
-                return $args->[0];
+            if ($pow->type eq 'integer') {
+                return $val if $pow->args->[0] eq '1';
+                return Axiom::Expr::Const->new_rat(
+                    $val->rat ** $pow->args->[0]
+                ) if $val->is_const;
+            }
+            if ($pow->type eq 'pluslist') {
+                # pow(a, b+c) -> pow(a, b) x pow(a, c)
+                return Axiom::Expr->new({
+                    type => 'mullist',
+                    args => [
+                        map Axiom::Expr->new({
+                            type => 'pow',
+                            args => [ $val->copy, $_ ],
+                        })->clean, @{ $pow->{args} }
+                    ],
+                });
             }
             # TODO: 0^x (x != 0), x^0 (x != 0)
             return $self;
