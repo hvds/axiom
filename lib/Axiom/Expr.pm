@@ -289,6 +289,15 @@ sub _clean {
                     args => [ @{ $arg->args }[1, 0] ],
                 });
             }
+            if ($arg->type eq 'mullist') {
+                return Axiom::Expr->new({
+                    type => 'mullist',
+                    args => [ map Axiom::Expr->new({
+                        type => 'recip',
+                        args => [ $_ ],
+                    }), @{ $arg->args } ],
+                });
+            }
             return $self;
         },
         pow => sub {
