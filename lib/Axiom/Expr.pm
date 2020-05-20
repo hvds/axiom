@@ -411,10 +411,36 @@ sub _diff {
     my($sa, $oa) = ($self->args, $other->args);
     @$sa == @$oa or return [];
     my $diff;
-    for my $i (0 .. $#$sa) {
-        my $_diff = $sa->[$i]->_diff($oa->[$i], $map) // next;
-        return [] if $diff;
-        $diff = [ $i + 1, @{ $_diff } ];
+    if ($self->is_list) {
+        my @sd = map {
+            my $this_diff = $sa->[$_]->_diff($oa->[$_], $map);
+            $this_diff ? [ $_, $this_diff ] : ();
+        } 0 .. $#$sa;
+        if (@sd > 1) {
+            my @od = @sd;
+          DiffListPair:
+            for (my $si = 0; $si < @sd; ++$si) {
+                my $s = $sa->[$sd[$si][0]];
+                for (my $oi = 0; $oi < @od; ++$oi) {
+                    next if $s->_diff($oa->[$od[$oi][0]]);
+                    splice @sd, $si, 1;
+                    splice @od, $oi, 1;
+                    last DiffListPair if $si >= @sd;
+                    redo DiffListPair;
+                }
+            }
+            return undef unless @sd;
+            return [] if $sd[0][0] != $od[0][0];
+        }
+        return [] if @sd > 1;
+        $diff = [ $sd[0][0] + 1, @{ $sd[0][1] } ]
+                if @sd;
+    } else {
+        for my $i (0 .. $#$sa) {
+            my $_diff = $sa->[$i]->_diff($oa->[$i], $map) // next;
+            return [] if $diff;
+            $diff = [ $i + 1, @{ $_diff } ];
+        }
     }
     return $diff;
 }
