@@ -256,6 +256,15 @@ sub _clean {
             # x(a, const p/q, 1/b, c, 1/d) -> x(const p/q, a, c, 1/b, 1/d)
             my @order = (@con, @mul, @div);
             @$args = @$args[@order];
+
+            my $sign = 0;
+            for (my $i = 1; $i < $#$args; ++$i) {
+                my $arg = $args->[$i];
+                next unless $arg->is_neg;
+                $sign = !$sign;
+                $args->[$i] = $arg->negate;
+            }
+            $args->[0] = $args->[0]->negate if $sign;
             return $self;
         },
         recip => sub {
