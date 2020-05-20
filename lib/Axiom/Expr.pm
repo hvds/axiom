@@ -722,7 +722,19 @@ sub _grammar {
                 \{ <[args=Expr]> \}
                 | <[args=Atom]>
             )
-
+        <rule: RemapExpr>
+            <debug: step>
+            <[args=NewVariable]> <.BindToken>
+            (?{
+                my $var = $MATCH{args}[0];
+                use Data::Dumper; warn Dumper($var);
+                local $Axiom::Expr::DICT->dict->{$var->name} = $var->binding;
+            })
+            <[args=Expr]>
+            (?{
+                my $var = $MATCH{args}[0];
+                local $Axiom::Expr::DICT->dict->{$var->name} = undef;
+            })
         <rule: FuncName>
             <[args=Name]> (??{
                 my $name = $MATCH{args}[0];
@@ -785,6 +797,7 @@ sub _grammar {
         <token: SumToken> \\sum
         (?# Assign and Equals are ambiguous, I think that is ok )
         <token: AssignToken> =
+        <token: BindToken> :=
         <token: ws> \s*+
     }x;
     return;

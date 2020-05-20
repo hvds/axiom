@@ -99,6 +99,7 @@ sub _rulere {
             | <factor>
             | <iterexpand>
             | <iterextend>
+            | <sumvar>
         )
         <rule: axiom> axiom (?:
             <[args=rulename]>
@@ -139,6 +140,9 @@ sub _rulere {
         <rule: iterextend>
             iterextend \( <[args=optline]> <[args=location]> , <[args=arg]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
+        <rule: sumvar>
+            sumvar \( <[args=optline]> <[args=location]> , <[args=RemapExpr]> \)
+            (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 2) })
 
         <rule: varmap> (?: \{ (?: <[args=pair]>* % , )? \} )?
         <rule: pair> <[args=Variable]> := <[args=Expr]>
@@ -560,6 +564,10 @@ sub _map {
             push @{ $self->rules }, sprintf 'iterextend(%s%s, %s)',
                     _linename($line), join('.', @$loc), $dir;
             return 1;
+        },
+        sumvar => sub {
+            my($self, $args) = @_;
+            use Data::Dumper; die Dumper($args);
         },
     );
     sub validate {
