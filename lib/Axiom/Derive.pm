@@ -481,7 +481,7 @@ sub _map {
             my $iter = $starting->locate($loc);
             my $repl;
             die "Cannot iterate over a %s\n", $iter->type
-                    unless $iter->iter;
+                    unless $iter->is_iter;
             if ($iter->type eq 'sum') {
                 $repl = Axiom::Expr->new({
                     type => 'pluslist',

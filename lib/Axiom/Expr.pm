@@ -30,13 +30,14 @@ sub new {
 
 sub args { shift->{args} }
 sub type { shift->{type} }
-sub atom { 0 }
-sub const { 0 }
-sub iter { 0 }
+sub is_atom { 0 }
+sub is_const { 0 }
+sub is_iter { 0 }
+sub is_list { $listtype{ shift->type } }
 
 sub _clean {
     my($self) = @_;
-    return $self if $self->atom;
+    return $self if $self->is_atom;
     my $type = $self->type;
     my $args = $self->args;
     $_ = $_->_clean for @$args;
@@ -64,7 +65,7 @@ sub _clean {
                     splice @$args, $i, 1, @{ $arg->args };
                     goto retry_pluslist;
                 }
-                if ($arg->const) {
+                if ($arg->is_const) {
                     if ($arg->args->[0] eq '0') {
                         # +(a, 0, b) -> +(a, b)
                         splice @$args, $i, 1;
@@ -94,7 +95,7 @@ sub _clean {
             my(@con, @plus, @minus) = ();
             for (0 .. $#$args) {
                 push @{
-                    $args->[$_]->const ? \@con
+                    $args->[$_]->is_const ? \@con
                     : $args->[$_]->type eq 'negate' ? \@minus : \@plus
                 }, $_;
             }
@@ -124,7 +125,7 @@ sub _clean {
                 # -(-(a)) -> a
                 return $arg->args->[0];
             }
-            if ($arg->const) {
+            if ($arg->is_const) {
                 my $nargs = [ @{ $arg->args } ];
                 $nargs->[0] = -$nargs->[0];
                 # -(const) -> eval(-const)
@@ -167,7 +168,7 @@ sub _clean {
                     splice @$args, $i, 1, @{ $arg->args };
                     goto retry_mullist;
                 }
-                if ($arg->const) {
+                if ($arg->is_const) {
                     if ($arg->args->[0] eq '0') {
                         # x(a, 0, b) -> 0
                         return $arg;
@@ -201,7 +202,7 @@ sub _clean {
             my(@con, @mul, @div) = ();
             for (0 .. $#$args) {
                 push @{
-                    $args->[$_]->const ? \@con
+                    $args->[$_]->is_const ? \@con
                     : $args->[$_]->type eq 'recip' ? \@div : \@mul
                 }, $_;
             }
@@ -279,8 +280,6 @@ sub str {
     sprintf '[%s %s]', $self->type,
             join ', ', map $_->str, @{ $self->args };
 }
-
-sub is_list { $listtype{ shift->type } }
 
 sub locate {
     my($self, $location) = @_;
@@ -394,8 +393,8 @@ package Axiom::Expr::Const {
                 ? $hash->{args} : [ $hash->{args}[0] ];
         return bless { type => $type, args => $args }, $class;
     }
-    sub const { 1 }
-    sub atom { 1 }
+    sub is_const { 1 }
+    sub is_atom { 1 }
     sub copy_with {
         my($self, $with) = @_;
         return $with->($self) // ref($self)->new({
@@ -423,7 +422,7 @@ package Axiom::Expr::Name {
         my($class, $hash) = @_;
         return bless { type => 'name', args => $hash->{args} }, $class;
     }
-    sub atom { 1 }
+    sub is_atom { 1 }
     sub copy_with {
         my($self, $with) = @_;
         return $with->($self) // do {
@@ -459,7 +458,7 @@ package Axiom::Expr::Name {
 
 package Axiom::Expr::Iter {
     our @ISA = qw{Axiom::Expr};
-    sub iter { 1 }
+    sub is_iter { 1 }
     sub range {
         my($self) = @_;
         my($from, $to) = @{ $self->args }[1, 2];
@@ -476,7 +475,7 @@ package Axiom::Expr::Iter {
         die sprintf(
             "Cannot expand non-constant range: %s .. %s is not constant\n",
             $from->{''}, $to->{''},
-        ) unless $diff->const;
+        ) unless $diff->is_const;
         return [ map Axiom::Expr->new({
             type => 'pluslist',
             args => [
