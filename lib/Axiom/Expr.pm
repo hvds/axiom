@@ -100,10 +100,7 @@ sub _clean {
             if (@const > 1) {
                 # +(a, c1, b, c2) -> +(a, eval(c1+c2), b)
                 my $sum = Math::BigRat->new(0);
-                $sum += Math::BigRat->new(
-                    $_->args->[0],
-                    $_->type eq 'rational' ? $_->args->[1] : 1,
-                ) for @$args[@const];
+                $sum += $_->rat for @$args[@const];
                 my($sumn, $sumd) = $sum->parts;
                 my $repl = ($sumn == 0)
                     ? undef
@@ -205,10 +202,7 @@ sub _clean {
             }
             if (@const > 1) {
                 my $prod = Math::BigRat->new(1);
-                $prod *= Math::BigRat->new(
-                    $_->args->[0],
-                    $_->type eq 'rational' ? $_->args->[1] : 1,
-                ) for @$args[@const];
+                $prod *= $_->rat for @$args[@const];
                 my($prodn, $prodd) = $prod->parts;
                 my $repl = ($prodn eq '1' && $prodd eq '1')
                     ? undef
@@ -480,6 +474,14 @@ package Axiom::Expr::Const {
         });
     }
     sub str { join '/', @{ shift->args } }
+    sub rat {
+        my($self) = @_;
+        my $args = $self->args;
+        use Math::BigRat;
+        return Math::BigRat->new(
+            $args->[0], $self->type eq 'integer' ? '1' : $args->[1],
+        );
+    }
     sub _diff {
         my($self, $other, $map) = @_;
         my $type = $self->type;
