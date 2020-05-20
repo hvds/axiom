@@ -6,6 +6,7 @@ use warnings;
 
 use Axiom::Expr;
 use Scalar::Util qw{ weaken };
+use List::Util qw{ first };
 
 sub new {
     my($class, $context) = @_;
@@ -408,6 +409,17 @@ sub _map {
                         type => 'negate',
                         args => [ $_->copy ],
                     }), @{ $arg->args } ],
+                });
+            } elsif ($expr->type eq 'negate' && $arg->type eq 'mullist') {
+                my $margs = $arg->args;
+                my $target = first(
+                    sub { $_->is_neg }, @$margs
+                ) // $margs->[0];
+                $repl = Axiom::Expr->new({
+                    type => 'mullist',
+                    args => [ map {
+                        $_ == $target ? $_->negate : $_->copy
+                    } @$margs ],
                 });
             } else {
                 die sprintf "don't know how to distribute a %s over a %s\n",
