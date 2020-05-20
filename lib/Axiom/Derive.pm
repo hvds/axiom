@@ -361,8 +361,10 @@ sub _map {
             my($line, $loc, $from, $over) = @$args;
             my $starting = $self->line($line);
             my $expr = $starting->locate($loc);
-            my $efrom = $expr->args->[$from - 1];
-            my $eover = $expr->args->[$over - 1];
+            my $efrom = $expr->args->[$from - 1]
+                    // die sprintf "arg %s missing in %s\n", $from, $expr->str;
+            my $eover = $expr->args->[$over - 1]
+                    // die sprintf "arg %s missing in %s\n", $over, $expr->str;
             my $repl;
             if ($expr->type eq 'mullist' && $eover->type eq 'pluslist') {
                 $repl = Axiom::Expr->new({
