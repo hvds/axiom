@@ -238,12 +238,25 @@ sub _clean {
             for my $d (@div) {
                 my $de = $args->[$d]->args->[0];
                 for my $m (@mul) {
-                    next if $de->diff($args->[$m]);
-                    # x(a, b, c, 1/b) -> x(a, c)
-                    for (sort { $b <=> $a } $d, $m) {
-                        splice @$args, $_, 1;
+                    if (!$de->diff($args->[$m])) {
+                        # x(a, b, c, 1/b) -> x(a, c)
+                        for (sort { $b <=> $a } $d, $m) {
+                            splice @$args, $_, 1;
+                        }
+                        goto retry_mullist;
                     }
-                    goto retry_mullist;
+                    if ($args->[$m]->is_neg
+                        && !$de->diff($args->[$m]->negate)
+                    ) {
+                        # x(a, b, c, -1/b) -> x(a, -1, c)
+                        my($first, $second) = sort { $a <=> $b } $d, $m;
+                        splice @$args, $first, 1, Axiom::Expr::Const->new({
+                            type => 'integer',
+                            args => [ '-1' ],
+                        });
+                        splice @$args, $second, 1;
+                        goto retry_mullist;
+                    }
                 }
             }
             # Not sure what we want here
