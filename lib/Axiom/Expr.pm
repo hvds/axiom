@@ -101,13 +101,9 @@ sub _clean {
                 # +(a, c1, b, c2) -> +(a, eval(c1+c2), b)
                 my $sum = Math::BigRat->new(0);
                 $sum += $_->rat for @$args[@const];
-                my($sumn, $sumd) = $sum->parts;
-                my $repl = ($sumn == 0)
+                my $repl = ($sum == 0)
                     ? undef
-                    : Axiom::Expr::Const->new({
-                        type => 'rational',
-                        args => [ "$sumn", "$sumd" ],
-                    });
+                    : Axiom::Expr::Const->new_rat($sum);
                 splice(@$args, $_, 1) for reverse @const;
                 splice(@$args, $const[0], 0, $repl) if $repl;
                 goto retry_pluslist;
@@ -203,13 +199,9 @@ sub _clean {
             if (@const > 1) {
                 my $prod = Math::BigRat->new(1);
                 $prod *= $_->rat for @$args[@const];
-                my($prodn, $prodd) = $prod->parts;
-                my $repl = ($prodn eq '1' && $prodd eq '1')
+                my $repl = ($prod == 1)
                     ? undef
-                    : Axiom::Expr::Const->new({
-                        type => 'rational',
-                        args => [ "$prodn", "$prodd" ],
-                    });
+                    : Axiom::Expr::Const->new_rat($prod);
                 # x(a, c1, b, c2) -> x(a, eval(c1 . c2), b)
                 splice(@$args, $_, 1) for reverse @const;
                 splice(@$args, $const[0], 0, $repl) if $repl;
@@ -469,6 +461,10 @@ package Axiom::Expr::Const {
         my $args = ($type eq 'rational')
                 ? $hash->{args} : [ $hash->{args}[0] ];
         return bless { type => $type, args => $args }, $class;
+    }
+    sub new_rat {
+        my($class, $rat) = @_;
+        return $class->new({ args => [ $rat->parts ] });
     }
     sub is_const { 1 }
     sub is_atom { 1 }
