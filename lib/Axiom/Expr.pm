@@ -35,6 +35,29 @@ sub is_const { 0 }
 sub is_iter { 0 }
 sub is_list { $listtype{ shift->type } }
 
+sub is_neg {
+    my($self) = @_;
+    my $type = $self->type;
+    return $type eq 'negate' || (
+        $type eq 'mullist' && $self->args->[0]->is_neg
+    );
+}
+sub negate {
+    my($self) = @_;
+    my $type = $self->type;
+    if ($type eq 'negate') {
+        return $self->args->[0]->copy;
+    } elsif ($type eq 'mullist') {
+        my $other = $self->copy;
+        $other->args->[0] = $other->args->[0]->negate;
+        return $other;
+    }
+    return Axiom::Expr->new({
+        type => 'negate',
+        args => [ $self->copy ],
+    });
+}
+
 sub _clean {
     my($self) = @_;
     return $self if $self->is_atom;
@@ -96,18 +119,20 @@ sub _clean {
             for (0 .. $#$args) {
                 push @{
                     $args->[$_]->is_const ? \@con
-                    : $args->[$_]->type eq 'negate' ? \@minus : \@plus
+                    : $args->[$_]->is_neg ? \@minus : \@plus
                 }, $_;
             }
-            for my $m (@minus) {
-                my $me = $args->[$m]->args->[0];
-                for my $p (@plus) {
-                    next if $me->diff($args->[$p]);
-                    # +(a, b, c, -b) -> +(a, c)
-                    for (sort { $b <=> $a } $m, $p) {
-                        splice @$args, $_, 1;
+            if (@plus && @minus) {
+                for my $m (@minus) {
+                    my $nm = $args->[$m]->negate;
+                    for my $p (@plus) {
+                        next if $nm->diff($args->[$p]);
+                        # +(a, b, c, -b) -> +(a, c)
+                        for (sort { $b <=> $a } $m, $p) {
+                            splice @$args, $_, 1;
+                        }
+                        goto retry_pluslist;
                     }
-                    goto retry_pluslist;
                 }
             }
             # This should probably change
@@ -127,26 +152,23 @@ sub _clean {
             }
             if ($arg->is_const) {
                 my $nargs = [ @{ $arg->args } ];
-                $nargs->[0] = -$nargs->[0];
                 # -(const) -> eval(-const)
-                return Axiom::Expr::Const->new({
-                    type => $arg->type,
-                    args => $nargs,
-                });
+                return $arg->negate;
             }
             if ($arg->type eq 'pluslist') {
                 # -(a - b) -> b - a
                 return Axiom::Expr->new({
                     type => 'pluslist',
-                    args => [ map {
-                        $_->type eq 'negate'
-                            ? $_->args->[0]->copy
-                            : Axiom::Expr->new({
-                                type => 'negate',
-                                args => [ $_->copy ],
-                            });
-                    } @{ $arg->args } ],
-                });
+                    args => [ map $_->negate, @{ $arg->args } ],
+                })->clean;
+            }
+            if ($arg->type eq 'mullist') {
+                my $marg = $arg->args->[0];
+                if ($marg->is_neg) {
+                    # -(2a) -> (-2)a
+                    $arg->args->[0] = $marg->negate;
+                    return $arg;
+                }
             }
             return $self;
         },
@@ -395,6 +417,13 @@ package Axiom::Expr::Const {
     }
     sub is_const { 1 }
     sub is_atom { 1 }
+    sub is_neg { shift->args->[0] < 0 }
+    sub negate {
+        my($self) = @_;
+        my $other = $self->copy;
+        $other->args->[0] = -$other->args->[0];
+        return $other;
+    }
     sub copy_with {
         my($self, $with) = @_;
         return $with->($self) // ref($self)->new({
@@ -466,10 +495,7 @@ package Axiom::Expr::Iter {
             type => 'pluslist',
             args => [
                 $to->copy,
-                Axiom::Expr->new({
-                    type => 'negate',
-                    args => [ $from->copy ],
-                }),
+                $from->negate,
             ],
         })->clean;
         die sprintf(
