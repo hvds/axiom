@@ -221,6 +221,19 @@ sub _clean {
                 splice(@$args, $const[0], 0, $repl) if $repl;
                 goto retry_mullist;
             }
+            for (my $i = 0; $i < @$args; ++$i) {
+                my $arg = $args->[$i];
+                next unless $arg->type eq 'pluslist';
+                splice @$args, $i, 1;
+                # x(a, b+c, d) -> +(abd, acd)
+                return Axiom::Expr->new({
+                    type => 'pluslist',
+                    args => [ map Axiom::Expr->new({
+                        type => 'mullist',
+                        args => [ $_, @$args ],
+                    }), @{ $arg->{args} } ],
+                })->clean;
+            }
             my(@con, @mul, @div) = ();
             for (0 .. $#$args) {
                 push @{
