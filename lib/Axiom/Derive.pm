@@ -383,7 +383,7 @@ sub _map {
                         $_ == $from - 1
                             ? ()
                         : $_ == $over - 1
-                            ? $repl = Axiom::Expr->new({
+                            ? Axiom::Expr->new({
                                 type => 'pluslist',
                                 args => [
                                     map Axiom::Expr->new({
