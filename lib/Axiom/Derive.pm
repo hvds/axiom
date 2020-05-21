@@ -376,22 +376,40 @@ sub _map {
             my $eover = $expr->args->[$over - 1]
                     // die sprintf "arg %s missing in %s\n", $over, $expr->str;
             my $repl;
-            if ($expr->type eq 'mullist' && $eover->type eq 'pluslist') {
+            if ($expr->type eq 'mullist'
+                && ($eover->type eq 'pluslist' || $eover->type eq 'sum')
+            ) {
+                my $eargs = $eover->args;
+                my $combined = ($eover->type eq 'pluslist')
+                    ? Axiom::Expr->new({
+                        type => 'pluslist',
+                        args => [
+                            map Axiom::Expr->new({
+                                type => 'mullist',
+                                args => [ $_, $efrom ],
+                            }), map $_->copy, @$eargs
+                        ],
+                    })
+                    : Axiom::Expr->new({
+                        type => 'sum',
+                        args => [
+                            $eargs->[0]->copy,
+                            $eargs->[1]->copy,
+                            $eargs->[2]->copy,
+                            Axiom::Expr->new({
+                                type => 'mullist',
+                                args => [ $eargs->[3]->copy, $efrom ],
+                            }),
+                        ],
+                    });
+
                 $repl = Axiom::Expr->new({
                     type => 'mullist',
                     args => [ map {
                         $_ == $from - 1
                             ? ()
                         : $_ == $over - 1
-                            ? Axiom::Expr->new({
-                                type => 'pluslist',
-                                args => [
-                                    map Axiom::Expr->new({
-                                        type => 'mullist',
-                                        args => [ $_, $efrom ],
-                                    }), map $_->copy, @{ $eover->args }
-                                ],
-                            })
+                            ? $combined
                             : $expr->args->[$_]->copy
                     } 0 .. $#{ $expr->args } ],
                 });
