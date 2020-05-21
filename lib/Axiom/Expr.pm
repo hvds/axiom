@@ -418,6 +418,25 @@ sub subst_vars {
     });
 }
 
+sub walk_tree {
+    my($self, $cb) = @_;
+    $cb->($self);
+    unless ($self->is_atom) {
+        $_->walk_tree($cb) for @{ $self->args };
+    }
+    return;
+}
+
+sub is_independent {
+    my($self, $var) = @_;
+    my $index = $var->binding->index;
+    my $seen = 0;
+    $self->walk_tree(sub {
+        $seen ||= $self->type eq 'name' && $self->binding->index == $index;
+    });
+    return $seen ? 0 : 1;
+}
+
 sub parse {
     my($class, $dict, $text, $debug) = @_;
     local $DICT = $dict;
@@ -722,7 +741,17 @@ sub _grammar {
                 \{ <[args=Expr]> \}
                 | <[args=Atom]>
             )
-
+        <rule: RemapExpr>
+            <[args=NewVariable]> <.BindToken>
+            (?{
+                my $var = $MATCH{args}[0];
+                local $Axiom::Expr::DICT->dict->{$var->name} = $var->binding;
+            })
+            <[args=Expr]>
+            (?{
+                my $var = $MATCH{args}[0];
+                local $Axiom::Expr::DICT->dict->{$var->name} = undef;
+            })
         <rule: FuncName>
             <[args=Name]> (??{
                 my $name = $MATCH{args}[0];
@@ -785,6 +814,7 @@ sub _grammar {
         <token: SumToken> \\sum
         (?# Assign and Equals are ambiguous, I think that is ok )
         <token: AssignToken> =
+        <token: BindToken> :=
         <token: ws> \s*+
     }x;
     return;

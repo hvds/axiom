@@ -99,6 +99,7 @@ sub _rulere {
             | <factor>
             | <iterexpand>
             | <iterextend>
+            | <itervar>
         )
         <rule: axiom> axiom (?:
             <[args=rulename]>
@@ -139,6 +140,14 @@ sub _rulere {
         <rule: iterextend>
             iterextend \( <[args=optline]> <[args=location]> , <[args=arg]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
+        <rule: itervar>
+            # FIXME: we actually need to parse the RemapExpr in the context
+            # of the variable mappings that exist at the line and location
+            # being specified by the first two arguments - it should be
+            # possible to rewrite \sum_i=...{sum_j=...} to set j := i - j.
+            itervar \( <[args=optline]> <[args=location]> , <[args=RemapExpr]> \)
+            (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 2) })
+            (?{ splice @{ $MATCH{args} }, 2, 1, @{ $MATCH{args}[2] } })
 
         <rule: varmap> (?: \{ (?: <[args=pair]>* % , )? \} )?
         <rule: pair> <[args=Variable]> := <[args=Expr]>
@@ -559,6 +568,63 @@ sub _map {
             $self->working($starting->substitute($loc, $repl));
             push @{ $self->rules }, sprintf 'iterextend(%s%s, %s)',
                     _linename($line), join('.', @$loc), $dir;
+            return 1;
+        },
+        itervar => sub {
+            my($self, $args) = @_;
+            my($line, $loc, $cvar, $cexpr) = @$args;
+            my $starting = $self->line($line);
+            my $iter = $starting->locate($loc);
+            $iter->is_iter or die sprintf(
+                "Don't know how to change iter var on a non-iterator %s\n",
+                $iter->type,
+            );
+            my($var, $from, $to, $expr) = @{ $iter->args };
+
+            my $repl;
+            # This gets tricky: if E is an expression independent of
+            # the iter variable i, we can change variable to E+i
+            # or to E-i (with a reverse of from/to), but not anything
+            # else.
+            if (Axiom::Expr->new({
+                type => 'pluslist',
+                args => [ $expr->copy, $var->copy ],
+            })->is_independent($var)) {
+                # i := E - i
+                $repl = Axiom::Expr::Iter->new({
+                    type => $iter->type,
+                    args => [
+                        $var->copy,
+                        $cexpr->subst_var($cvar, $to),
+                        $cexpr->subst_var($cvar, $from),
+                        $expr->subst_var($var, $cexpr->subst_var($cvar, $var)),
+                    ],
+                });
+            } elsif (Axiom::Expr->new({
+                type => 'pluslist',
+                args => [ $expr->copy, $var->negate ],
+            })->is_independent($var)) {
+                # i := E + i
+                $repl = Axiom::Expr::Iter->new({
+                    type => $iter->type,
+                    args => [
+                        $var->copy,
+                        $cexpr->subst_var($cvar, $from),
+                        $cexpr->subst_var($cvar, $to),
+                        $expr->subst_var($var, $cexpr->subst_var($cvar, $var)),
+                    ],
+                });
+            } else {
+                die sprintf(
+                    "Don't know how to change iter var with expression %s := %s\n",
+                    $cvar->name, $cexpr->{''},
+                );
+            }
+            $self->working($starting->substitute($loc, $repl));
+            push @{ $self->rules }, sprintf(
+                'sumvar(%s%s, %s := %s)',
+                _linename($line), join('.', @$loc), $cvar->name, $cexpr->{''},
+            );
             return 1;
         },
     );
