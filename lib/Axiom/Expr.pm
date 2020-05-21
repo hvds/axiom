@@ -321,6 +321,16 @@ sub _clean {
                     ],
                 });
             }
+            if ($pow->is_neg) {
+                # pow(a, -b) -> 1 / pow(a, b)
+                return Axiom::Expr->new({
+                    type => 'recip',
+                    args => [ Axiom::Expr->new({
+                        type => 'pow',
+                        args => [ $val->copy, $pow->negate ],
+                    }) ],
+                });
+            }
             # TODO: 0^x (x != 0), x^0 (x != 0)
             return $self;
         },
