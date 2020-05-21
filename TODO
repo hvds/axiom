@@ -1,5 +1,3 @@
-Conditional proof, induction
-Rules to act on sums
 - prove E(a, 1)
 Nice to have: find a way to apply a substitution recursively n times,
 to get the sums directly instead of by induction.
