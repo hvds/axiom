@@ -264,6 +264,19 @@ sub _clean {
                 $args->[$i] = $arg->negate;
             }
             $args->[0] = $args->[0]->negate if $sign;
+
+            # check that we haven't shaken out with a +1 or -1
+            if ($args->[0]->type eq 'integer') {
+                my $rat = $args->[0]->rat;
+                if ($rat == 1) {
+                    shift @$args;
+                    goto retry_mullist;
+                } elsif ($rat == -1) {
+                    shift @$args;
+                    $args->[0] = $args->[0]->negate;
+                    goto retry_mullist;
+                }
+            }
             return $self;
         },
         recip => sub {
