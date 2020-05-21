@@ -3,6 +3,7 @@
 axiom A1: E(0, 0) = 0
 axiom A2: E(a, 0) = an
 axiom A3: E(a, b) = 1 + ((n - 2)E(a, b) + E(a - 1, b) + E(a, b - 1)) / n
+
 add(-((n - 2)E(a, b) / n)): E(a, b) - ((n - 2)E(a, b) / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
 factor(1, E(a, b)): E(a, b)(1 - (n - 2) / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
 factor(1.2, 1 / n): E(a, b)(2 / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n

@@ -94,6 +94,7 @@ sub leave_scope {
 
 sub add {
     my($self, $line, $quiet) = @_;
+    return if $line =~ /^\s*(?:#.*)?\z/;
     if ($line =~ /^\*/) {
         $self->apply_directive($line, $quiet);
         return;
