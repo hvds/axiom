@@ -20,6 +20,7 @@ sub new {
 
 sub lines { shift->{lines} }
 sub named { shift->{named} }
+sub onamed { shift->{onamed} }
 sub dict { shift->{dict} }
 sub curline { shift->{curline} }
 sub curlines {
@@ -34,6 +35,7 @@ sub reset {
     my($self) = @_;
     $self->{lines} = { '' => [] };
     $self->{named} = {};
+    $self->{onamed} = [];
     $self->{dict} = Axiom::Dict->new;
     $self->{curline} = '';
     return;
@@ -113,6 +115,7 @@ sub add {
     for my $name (@{ $derive->working_name }) {
         warn "Replacing name '$name'\n" if defined $self->named->{$name};
         $self->named->{$name} = $curindex;
+        push @{ $self->onamed }, $name;
     }
     print $derive->str, "\n" unless $quiet;
     return;
@@ -168,10 +171,12 @@ sub apply_directive {
         $self->{dict} = $dict;    # if successful for all names
         $self->add_line([ $line ]);
     } elsif ($line eq '*terse') {
-        my $named = $self->named;
         my $lines = $self->lines;
-        for (sort { $named->{$a} <=> $named->{$b} } keys %$named) {
-            printf "%s: %s\n", $_, $self->line($_)->[0];
+        my $named = $self->named;
+        my $onamed = $self->onamed;
+        for my $name (@$onamed) {
+            my $line = $self->line($named->{$name});
+            printf "%s: %s\n", $name, $line->[1]->expr->{''};
         }
         return;
     } elsif ($line eq '*list') {
