@@ -8,3 +8,5 @@ add(-((n - 2)E(a, b) / n)): E(a, b) - ((n - 2)E(a, b) / n) = 1 + E(a - 1, b) / n
 factor(1, E(a, b)): E(a, b)(1 - (n - 2) / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
 factor(1.2, 1 / n): E(a, b)(2 / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
 theorem L1; multiply(n / 2): E(a, b) = n / 2 + E(a - 1, b) / 2 + E(a, b - 1) / 2
+
+*import sum

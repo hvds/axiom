@@ -9,9 +9,10 @@ use Scalar::Util qw{ weaken };
 use List::Util qw{ first };
 
 sub new {
-    my($class, $context) = @_;
+    my($class, $context, $source) = @_;
     my $self = bless {
         context => $context,
+        source => $source,
         dict => $context->dict->copy,
         rules => [],
         working => $context->last_expr,
@@ -22,11 +23,14 @@ sub new {
     return $self;
 }
 
+sub is_derived { 1 }
+
 sub context { shift->{context} }
 sub source { shift->{source} }
 sub rules { shift->{rules} }
 sub expr { shift->{expr} }
 sub dict { shift->{dict} }
+sub rawexpr { shift->{rawexpr} }
 sub working {
     my($self, $new) = @_;
     $self->{working} = $new if @_ > 1;
@@ -43,7 +47,7 @@ sub introduce {
 }
 sub str {
     my($self) = @_;
-    return sprintf '%s: %s', join('; ', @{ $self->rules }), $self->source;
+    return sprintf '%s: %s', join('; ', @{ $self->rules }), $self->rawexpr;
 }
 sub line {
     my($self, $index) = @_;
@@ -59,7 +63,7 @@ sub scope {
 
 sub derive {
     my($class, $line, $context, $debug) = @_;
-    my $self = $class->new($context);
+    my $self = $class->new($context, $line);
     my @rules;
     my $rre = rulere($debug);
 
@@ -68,10 +72,11 @@ sub derive {
         my($rule, $value) = %{ $/{rule} };
         push @rules, [ $rule, $value->{args} ];
     }
+    $line =~ s/^\s+//;
 
     my $expr = Axiom::Expr->parse($self->dict, $line, $debug) or return;
+    $self->{rawexpr} = $line;
     $self->{expr} = $expr;
-    $self->{source} = $line;
     $self->validate(\@rules) or return;
     return $self;
 }
@@ -244,7 +249,7 @@ sub _map {
     my($map) = @_;
     return sprintf '{ %s }', join ', ', map {
         my($var, $expr) = @{ $_->{args} };
-        sprintf '%s := %s', $var->name, $expr->{''};
+        sprintf '%s := %s', $var->name, $expr->rawexpr;
     } @{ $map->{args} };
 }
 
@@ -281,7 +286,7 @@ sub _map {
                 type => 'equals',
                 args => [ $expr->copy, $expr->copy ],
             }));
-            push @{ $self->rules }, sprintf 'identity(%s)', $expr->{''};
+            push @{ $self->rules }, sprintf 'identity(%s)', $expr->rawexpr;
             return 1;
         },
         condstart => sub {
@@ -311,7 +316,7 @@ sub _map {
             my($self, $args) = @_;
             my($var, $base_expr) = @$args;
             my $starting = $self->working;
-            my $base = $self->context->lines->{$self->context->curline}[-2][1]->expr;
+            my $base = $self->context->lines->{$self->context->curline}[-2]->expr;
             $starting->type eq 'implies' or die sprintf
                     "Cannot apply induction over a %s\n", $starting->type;
             my($result, $next) = @{ $starting->args };
@@ -334,7 +339,7 @@ sub _map {
             # the whole domain of the var.
             $self->working($result->copy);
             push @{ $self->rules }, sprintf 'induction(%s, %s)',
-                    $var->name, $base_expr->{''};
+                    $var->name, $base_expr->rawexpr;
             return 1;
         },
         equate => sub {
@@ -472,7 +477,7 @@ sub _map {
             });
             $self->working($result);
             push @{ $self->rules }, sprintf 'add(%s%s)',
-                    _linename($line), $expr->{''};
+                    _linename($line), $expr->rawexpr;
             return 1;
         },
         multiply => sub {
@@ -490,7 +495,7 @@ sub _map {
             });
             $self->working($result);
             push @{ $self->rules }, sprintf 'multiply(%s%s)',
-                    _linename($line), $expr->{''};
+                    _linename($line), $expr->rawexpr;
             return 1;
         },
         factor => sub {
@@ -512,7 +517,7 @@ sub _map {
             }
             $self->working($starting->substitute($loc, $repl));
             push @{ $self->rules }, sprintf 'factor(%s%s, %s)',
-                    _linename($line), join('.', @$loc), $expr->{''};
+                    _linename($line), join('.', @$loc), $expr->rawexpr;
             return 1;
         },
         iterexpand => sub {
@@ -635,13 +640,14 @@ sub _map {
             } else {
                 die sprintf(
                     "Don't know how to change iter var with expression %s := %s\n",
-                    $cvar->name, $cexpr->{''},
+                    $cvar->name, $cexpr->rawexpr,
                 );
             }
             $self->working($starting->substitute($loc, $repl));
             push @{ $self->rules }, sprintf(
                 'sumvar(%s%s, %s := %s)',
-                _linename($line), join('.', @$loc), $cvar->name, $cexpr->{''},
+                _linename($line), join('.', @$loc),
+                $cvar->name, $cexpr->rawexpr,
             );
             return 1;
         },

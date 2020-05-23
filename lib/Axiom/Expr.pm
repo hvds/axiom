@@ -30,6 +30,12 @@ sub new {
 
 sub args { shift->{args} }
 sub type { shift->{type} }
+sub rawexpr {
+    my($self) = @_;
+    # FIXME: better serialization for unparsed objects
+    return $self->{''} // $self->str;
+}
+
 sub is_atom { 0 }
 sub is_const { 0 }
 sub is_iter { 0 }
@@ -626,7 +632,7 @@ package Axiom::Expr::Iter {
         })->clean;
         die sprintf(
             "Cannot expand non-constant range: %s .. %s is not constant\n",
-            $from->{''}, $to->{''},
+            $from->rawexpr, $to->rawexpr,
         ) unless $diff->is_const;
         return [ map Axiom::Expr->new({
             type => 'pluslist',
@@ -650,7 +656,6 @@ sub _grammar {
     use Regexp::Grammars;
     state $grammar = qr{
         <grammar: Axiom::Expr>
-        <nocontext:>
         <debug: same>
         <objrule: Axiom::Expr=Relation>
             (?:

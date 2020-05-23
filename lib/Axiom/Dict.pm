@@ -46,6 +46,14 @@ sub introduce {
     return $bound;
 }
 
+sub scoped {
+    my($self) = @_;
+    my $dict = $self->dict;
+    my $scoped = Axiom::Dict::Scoped->new(sub { $self->{dict} = $dict });
+    $self->{dict} = {};
+    return $scoped;
+}
+
 sub copy {
     my($self) = @_;
     my $dict = $self->dict;
@@ -70,5 +78,17 @@ sub str {
         map sprintf("%s: %s\n", $_, join ', ', sort @{ $attr{$_} }),
             sort keys %attr;
 }
+
+package Axiom::Dict::Scoped {
+    sub new {
+        my($class, $cb) = @_;
+        return bless $cb, $class;
+    }
+    sub DESTROY {
+        my($self) = @_;
+        $self->();
+        return;
+    }
+};
 
 1;
