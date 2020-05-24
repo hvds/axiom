@@ -204,7 +204,7 @@ sub apply_directive {
             warn($@), return if $@;
         }
         close $f;
-        $self->apply_directive('*list');
+        $self->apply_directive('*list') unless $quiet;
         return;
     } else {
         die "Unknown directive: <$line>\n";
