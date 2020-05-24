@@ -176,7 +176,7 @@ sub apply_directive {
         my $onamed = $self->onamed;
         for my $name (@$onamed) {
             my $line = $self->line($named->{$name});
-            printf "%s: %s\n", $name, $line->[1]->expr->{''};
+            printf "%s: %s\n", $name, $line->[1]->rawexpr;
         }
         return;
     } elsif ($line eq '*list') {
@@ -191,7 +191,7 @@ sub apply_directive {
     } elsif ($line =~ /^\*save\s+(\S.+)\z/) {
         my $file = $1 . '.aa';
         open(my $f, '>', $file) or die "$file: $!\n";
-        $quiet or print $f $_->[0], "\n" for @{ $self->{lines} };
+        $quiet or print $f $_->rawexpr, "\n" for @{ $self->{lines} };
         close $f;
     } elsif ($line =~ /^\*load\s*(\S.+)\z/) {
         my $file = $1 . '.aa';
