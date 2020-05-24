@@ -659,7 +659,9 @@ sub _grammar {
         <debug: same>
         <objrule: Axiom::Expr=Relation>
             (?:
-                \( <[args=Relation]> \) <.ImpliesToken> \( <[args=Relation]> \)
+                <.OpenParen> <[args=Relation]> <.CloseParen>
+                <.ImpliesToken>
+                <.OpenParen> <[args=Relation]> <.CloseParen>
                 <type=(?{ 'implies' })>
             |
                 <[args=Expr]> <.EqualsToken> <[args=Expr]>
@@ -717,7 +719,7 @@ sub _grammar {
                 }
             })
         <objrule: Axiom::Expr=BraceExpr>
-            \{ <[args=Expr]> \}
+            <.OpenBrace> <[args=Expr]> <.CloseBrace>
             <type=(?{ 'nothing' })>
         <objrule: Axiom::Expr=Atom>
             (?:
@@ -729,7 +731,7 @@ sub _grammar {
             )
             <type=(?{ 'nothing' })>
         <objrule: Axiom::Expr=ParenExpr>
-            \( <[args=Expr]> \)
+            <.OpenParen> <[args=Expr]> <.CloseParen>
             <type=(?{ 'nothing' })>
         <objrule: Axiom::Expr=Function>
             <FuncName> \( <[args=ArgList]> \)
@@ -825,6 +827,10 @@ sub _grammar {
             <[args=(?: \d+ (?! \d ) )]>
             <type=(?{ 'integer' })>
 
+        <token: OpenParen> \(
+        <token: CloseParen> \)
+        <token: OpenBrace> \{
+        <token: CloseBrace> \}
         <token: ImpliesToken> ->
         <token: EqualsToken> =
         <token: PlusSeparator> <PlusToken> | <?MinusToken>
