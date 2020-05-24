@@ -190,12 +190,12 @@ sub apply_directive {
         use Data::Dumper; print Dumper($self->named);
         return;
     } elsif ($line =~ /^\*save\s+(\S.+)\z/) {
-        my $file = $1 . '.aa';
+        my $file = filename($1);
         open(my $f, '>', $file) or die "$file: $!\n";
         $quiet or print $f $_->rawexpr, "\n" for @{ $self->{lines} };
         close $f;
     } elsif ($line =~ /^\*load\s*(\S.+)\z/) {
-        my $file = $1 . '.aa';
+        my $file = filename($1);
         open(my $f, '<', $file) or die "$file: $!\n";
         $self->reset;
         while (<$f>) {
@@ -210,6 +210,12 @@ sub apply_directive {
         die "Unknown directive: <$line>\n";
     }
     print $line, "\n" unless $quiet;
+}
+
+sub filename {
+    my($file) = @_;
+    $file .= '.aa' unless $file =~ /\.aa\z/;
+    return $file;
 }
 
 package Axiom::Symbol::Directive {
