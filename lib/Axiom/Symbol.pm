@@ -197,7 +197,6 @@ sub apply_directive {
     } elsif ($line =~ /^\*load\s*(\S.+)\z/) {
         my $file = filename($1);
         open(my $f, '<', $file) or die "$file: $!\n";
-        $self->reset;
         while (<$f>) {
             chomp;
             eval { $self->add($_) };
