@@ -47,32 +47,31 @@ sub last_expr {
     return undef unless @$lines;
     # Find last line with a derivation (hence a theorem)
     for (my $i = $#$lines; $i >= 0; --$i) {
-        return $lines->[$i][1]->expr if $lines->[$i][1];
+        return $lines->[$i]->expr if $lines->[$i]->is_derived;
     }
     return undef;
 }
 sub line {
-    my($self, $index) = @_;
+    my($self, $name) = @_;
     my $lines = $self->lines;
     my $named = $self->named;
-    my $i = $index;
-    $i = $named->{$i} if defined $named->{$i};
-    $i =~ /^\d+(\.\d+)*$/
-            or die "Unknown theorem name '$index' ($i)\n";
-    my @parts = split /\./, $i;
+    return $named->{$name} if $named->{$name};
+    $name =~ /^\d+(\.\d+)*$/
+            or die "Unknown theorem name '$name'\n";
+    my @parts = split /\./, $name;
     my $where = join '.', @parts[0 .. $#parts - 1];
     my $wlines = $lines->{$where}
-            or die "Unknown prefix '$where' for $index\n";
+            or die "Unknown prefix '$where' for $name\n";
     my $line = $wlines->[$parts[-1]]
-            or die "Unknown line $i for $index\n";
+            or die "Unknown line $name\n";
     return $line;
 }
 sub expr {
     my($self, $index) = @_;
     my $line = $self->line($index);
-    my $derived = $line->[1]
+    $line->is_derived
             or die "Line $index is not a theorem\n";
-    return $derived->expr;
+    return $line->expr;
 }
 sub add_line {
     my($self, $entry) = @_;
@@ -102,19 +101,17 @@ sub add {
         return;
     }
     my $derive = Axiom::Derive->derive($line, $self, $DEBUG) or return;
-    my $struct = [ $line, $derive ];
     my $where = $derive->scope;
-    my $curindex;
     if ($where > 0) {
-        $curindex = $self->enter_scope($struct);
+        $self->enter_scope($derive);
     } elsif ($where < 0) {
-        $curindex = $self->leave_scope($struct);
+        $self->leave_scope($derive);
     } else {
-        $curindex = $self->add_line($struct);
+        $self->add_line($derive);
     }
     for my $name (@{ $derive->working_name }) {
         warn "Replacing name '$name'\n" if defined $self->named->{$name};
-        $self->named->{$name} = $curindex;
+        $self->named->{$name} = $derive;
         push @{ $self->onamed }, $name;
     }
     print $derive->str, "\n" unless $quiet;
@@ -132,7 +129,7 @@ sub print_lines {
             $self->print_lines($this);
         }
         last if $_ == @$these;
-        printf "%s: %s\n", $this, $these->[$_][0];
+        printf "%s: %s\n", $this, $these->[$_]->rawexpr;
     }
 }
 
@@ -157,11 +154,15 @@ sub apply_directive {
         return;
     } elsif ($line =~ m{^\*diag(?:\s+(-?\w+))?\z}) {
         my $name = $1 // -1;
-        my $expr = $self->line($name)
+        my $derive = $self->line($name)
                 // die "No line to diagnose for '$name'\n";
-        use Data::Dumper; print Dumper($expr);
-        print $expr->[0], "\n";
-        print $expr->[1]->expr->str, "\n";
+        {
+            use Data::Dumper;
+            local $derive->{context};
+            print Dumper($derive);
+        }
+        print $derive->rawexpr, "\n";
+        print $derive->expr->str, "\n";
         return;
     } elsif ($line =~ bindre()) {
         my $type = $/{Type};
@@ -169,14 +170,14 @@ sub apply_directive {
         my $dict = $self->dict->copy;
         $dict->insert($_, $type) for @names;
         $self->{dict} = $dict;    # if successful for all names
-        $self->add_line([ $line ]);
+        $self->add_line(Axiom::Symbol::Directive->new($line));
     } elsif ($line eq '*terse') {
         my $lines = $self->lines;
         my $named = $self->named;
         my $onamed = $self->onamed;
         for my $name (@$onamed) {
-            my $line = $self->line($named->{$name});
-            printf "%s: %s\n", $name, $line->[1]->rawexpr;
+            my $line = $self->line($name);
+            printf "%s: %s\n", $name, $line->rawexpr;
         }
         return;
     } elsif ($line eq '*list') {
@@ -210,5 +211,14 @@ sub apply_directive {
     }
     print $line, "\n" unless $quiet;
 }
+
+package Axiom::Symbol::Directive {
+    sub new {
+        my($class, $raw) = @_;
+        return bless { rawexpr => $raw }, $class;
+    }
+    sub is_derived { 0 }
+    sub rawexpr { shift->{rawexpr} }
+};
 
 1;

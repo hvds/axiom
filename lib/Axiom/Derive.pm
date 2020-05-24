@@ -23,6 +23,8 @@ sub new {
     return $self;
 }
 
+sub is_derived { 1 }
+
 sub context { shift->{context} }
 sub source { shift->{source} }
 sub rules { shift->{rules} }
@@ -314,7 +316,7 @@ sub _map {
             my($self, $args) = @_;
             my($var, $base_expr) = @$args;
             my $starting = $self->working;
-            my $base = $self->context->lines->{$self->context->curline}[-2][1]->expr;
+            my $base = $self->context->lines->{$self->context->curline}[-2]->expr;
             $starting->type eq 'implies' or die sprintf
                     "Cannot apply induction over a %s\n", $starting->type;
             my($result, $next) = @{ $starting->args };
