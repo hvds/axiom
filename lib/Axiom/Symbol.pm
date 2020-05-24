@@ -41,6 +41,13 @@ sub reset {
     return;
 }
 
+sub subsidiary {
+    my($self) = @_;
+    my $new = ref($self)->new;
+    $new->{dict} = $self->dict->subsidiary;
+    return $new;
+}
+
 sub last_expr {
     my($self) = @_;
     my $lines = $self->lines->{$self->curline};
@@ -205,6 +212,20 @@ sub apply_directive {
         close $f;
         $self->apply_directive('*list') unless $quiet;
         return;
+    } elsif ($line =~ /^\*import\s*(\S.+)\z/) {
+        my $file = $1;
+        my $named = $self->named;
+        my $onamed = $self->onamed;
+
+        my $sub = $self->subsidiary;
+        $sub->apply_directive("*load $file", 1);
+        for my $subname (@{ $sub->onamed }) {
+            my $derive = $sub->line($subname);
+            my $name = "$file.$subname";
+            $named->{$name} = $derive;
+            push @$onamed, $name;
+        }
+        $self->add_line(Axiom::Symbol::Directive->new($line));
     } else {
         die "Unknown directive: <$line>\n";
     }

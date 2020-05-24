@@ -46,6 +46,13 @@ sub introduce {
     return $bound;
 }
 
+sub subsidiary {
+    my($self) = @_;
+    my $new = ref($self)->new;
+    $new->{bind} = $self->bind;
+    return $new;
+}
+
 sub copy {
     my($self) = @_;
     my $dict = $self->dict;
