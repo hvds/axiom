@@ -460,8 +460,9 @@ sub is_independent {
     my($self, $var) = @_;
     my $index = $var->binding->index;
     my $seen = 0;
-    $self->walk_tree(sub {
-        $seen ||= $self->type eq 'name' && $self->binding->index == $index;
+    $self->clean->walk_tree(sub {
+        my($this) = @_;
+        $seen ||= $this->type eq 'name' && $this->binding->index == $index;
     });
     return $seen ? 0 : 1;
 }
