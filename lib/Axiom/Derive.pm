@@ -150,7 +150,9 @@ sub _rulere {
             # of the variable mappings that exist at the line and location
             # being specified by the first two arguments - it should be
             # possible to rewrite \sum_i=...{sum_j=...} to set j := i - j.
-            itervar \( <[args=optline]> <[args=location]> , <[args=RemapExpr]> \)
+            itervar \(
+                <[args=optline]> <[args=location]> , <[args=RemapExpr]>
+            \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 2) })
             (?{ splice @{ $MATCH{args} }, 2, 1, @{ $MATCH{args}[2] } })
 
@@ -611,7 +613,7 @@ sub _map {
             # else.
             if (Axiom::Expr->new({
                 type => 'pluslist',
-                args => [ $expr->copy, $var->copy ],
+                args => [ $cexpr->copy, $cvar->copy ],
             })->is_independent($var)) {
                 # i := E - i
                 $repl = Axiom::Expr::Iter->new({
@@ -625,7 +627,7 @@ sub _map {
                 });
             } elsif (Axiom::Expr->new({
                 type => 'pluslist',
-                args => [ $expr->copy, $var->negate ],
+                args => [ $cexpr->copy, $cvar->negate ],
             })->is_independent($var)) {
                 # i := E + i
                 $repl = Axiom::Expr::Iter->new({
