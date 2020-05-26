@@ -500,30 +500,33 @@ sub _f_pow {
             my($line, $loc) = @$args;
             my $starting = $self->line($line);
             my $expr = $starting->locate($loc);
-            my $arg = $expr->args->[0];
-            my $repl;
-            if ($expr->type eq 'negate' && $arg->type eq 'pluslist') {
-                $repl = Axiom::Expr->new({
-                    type => 'pluslist',
-                    args => [ map Axiom::Expr->new({
-                        type => 'negate',
-                        args => [ $_->copy ],
-                    }), @{ $arg->args } ],
-                });
-            } elsif ($expr->type eq 'negate' && $arg->type eq 'mullist') {
-                my $margs = $arg->args;
-                my $target = first(
-                    sub { $_->is_neg }, @$margs
-                ) // $margs->[0];
-                $repl = Axiom::Expr->new({
-                    type => 'mullist',
-                    args => [ map {
-                        $_ == $target ? $_->negate : $_->copy
-                    } @$margs ],
-                });
-            } else {
-                die sprintf "don't know how to distribute a %s over a %s\n",
-                        $expr->type, $arg->type;
+            my($arg, $repl);
+            if ($expr->type eq 'negate') {
+                $arg = $expr->args->[0];
+                if ($arg->type eq 'pluslist') {
+                    $repl = Axiom::Expr->new({
+                        type => 'pluslist',
+                        args => [ map Axiom::Expr->new({
+                            type => 'negate',
+                            args => [ $_->copy ],
+                        }), @{ $arg->args } ],
+                    });
+                } elsif ($arg->type eq 'mullist') {
+                    my $margs = $arg->args;
+                    my $target = first(
+                        sub { $_->is_neg }, @$margs
+                    ) // $margs->[0];
+                    $repl = Axiom::Expr->new({
+                        type => 'mullist',
+                        args => [ map {
+                            $_ == $target ? $_->negate : $_->copy
+                        } @$margs ],
+                    });
+                }
+            }
+            unless ($repl) {
+                die sprintf "don't know how to distribute a %s%s\n",
+                    $expr->type, $arg ? ' over a ' . $arg->type : '';
             }
             $self->working($starting->substitute($loc, $repl));
             push @{ $self->rules }, sprintf 'unarydistrib(%s%s)',
