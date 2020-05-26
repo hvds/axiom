@@ -134,7 +134,7 @@ sub _rulere {
         <rule: induction> induction \( <[args=Variable]> , <[args=Expr]> \)
         <rule: equate>
             equate \( <[args=optline]> <[args=location]> ,
-                    <[args=line]> , <[args=varmap]> \)
+                    <[args=line]> (?: , <[args=varmap]> )? \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 2) })
         <rule: distrib>
             distrib \(
@@ -174,7 +174,7 @@ sub _rulere {
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 1) })
             (?{ splice @{ $MATCH{args} }, 1, 1, @{ $MATCH{args}[1] } })
 
-        <rule: varmap> (?: \{ (?: <[args=pair]>* % , )? \} )?
+        <rule: varmap> (?: \{ (?: <[args=pair]>* % , )? \} )
         <rule: pair> <[args=Variable]> := <[args=Expr]>
 
         <token: optline>
@@ -267,7 +267,8 @@ sub _linename {
 
 sub _map {
     my($map) = @_;
-    return sprintf '{ %s }', join ', ', map {
+    return '' unless defined $map && keys %$map;
+    return sprintf ', { %s }', join ', ', map {
         my($var, $expr) = @{ $_->{args} };
         sprintf '%s := %s', $var->name, $expr->rawexpr;
     } @{ $map->{args} };
@@ -414,7 +415,7 @@ sub _f_pow {
             my %vmap = map {
                 my($var, $expr) = @{ $_->{args} };
                 +($var->binding->index => $expr)
-            } @{ $map->{args} };
+            } @{ $map->{args} // [] };
             my $equate = $self->line($eqline)->subst_vars(\%vmap);
 
             my $repl;
@@ -425,13 +426,16 @@ sub _f_pow {
                 } elsif (! $expr->diff($right)) {
                     $repl = $left;
                 } else {
-                    die "Neither side of equate match target\n";
+                    die sprintf(
+                        "Neither side of equate %s matches target %s\n",
+                        $equate->str, $expr->str,
+                    );
                 }
             } else {
                 die "Can't equate() with a %s\n", $equate->type;
             }
             $self->working($starting->substitute($loc, $repl));
-            push @{ $self->rules }, sprintf 'equate(%s%s, %s, %s)',
+            push @{ $self->rules }, sprintf 'equate(%s%s, %s%s)',
                     _linename($line), join('.', @$loc), $eqline, _map($map);
             return 1;
         },
