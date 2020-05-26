@@ -80,7 +80,20 @@ sub derive {
     $self->validate(\@rules) or return;
     return $self;
 }
-    
+
+# FIXME: these new vars are temporary, somehow we need to make them valid
+# while they're needed for comparison, then discard them.
+sub new_local {
+    my($self, $name) = @_;
+    my $subdict = $self->dict->subsidiary;
+    my $binding = $subdict->insert_local($name);
+    my $new = Axiom::Expr::Name->new({
+        args => [ $binding->name ],
+    });
+    $new->bind($binding);
+    return $new;
+}
+
 sub _rulere {
     use Regexp::Grammars;
     return state $gdre = qr{
@@ -105,6 +118,7 @@ sub _rulere {
             | <iterexpand>
             | <iterextend>
             | <itervar>
+            | <recurse>
         )
         <rule: axiom> axiom (?:
             <[args=rulename]>
@@ -155,6 +169,10 @@ sub _rulere {
             \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 2) })
             (?{ splice @{ $MATCH{args} }, 2, 1, @{ $MATCH{args}[2] } })
+        <rule: recurse>
+            recurse \( <[args=optline]> <[args=pair]> , <[args=Expr]> \)
+            (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 1) })
+            (?{ splice @{ $MATCH{args} }, 1, 1, @{ $MATCH{args}[1] } })
 
         <rule: varmap> (?: \{ (?: <[args=pair]>* % , )? \} )?
         <rule: pair> <[args=Variable]> := <[args=Expr]>
@@ -253,6 +271,50 @@ sub _map {
         my($var, $expr) = @{ $_->{args} };
         sprintf '%s := %s', $var->name, $expr->rawexpr;
     } @{ $map->{args} };
+}
+
+# Given (x, f(x), n) return f^x(n) if we know how to construct it, else undef.
+sub _f_pow {
+    my($var, $iter, $count) = @_;
+    my $try = Axiom::Expr->new({
+        type => 'pluslist',
+        args => [ $iter->copy, $var->negate ],
+    })->clean;
+    if ($try->is_independent($var)) {
+        # (x := x + a) -> (x + an)
+        return Axiom::Expr->new({
+            type => 'pluslist',
+            args => [
+                $var->copy,
+                Axiom::Expr->new({
+                    type => 'mullist',
+                    args => [ $try, $count ],
+                }),
+            ],
+        })->clean;
+    }
+    $try = Axiom::Expr->new({
+        type => 'mullist',
+        args => [ $iter, Axiom::Expr->new({
+            type => 'recip',
+            args => [ $var ],
+        }) ],
+    })->clean;
+    if ($try->is_independent($var)) {
+        # (x := ax) -> (a^n . x)
+        return Axiom::Expr->new({
+            type => 'mullist',
+            args => [
+                Axiom::Expr->new({
+                    type => 'pow',
+                    args => [ $try, $count ],
+                }),
+                $var,
+            ],
+        })->clean;
+    }
+    # Could handle ax + b (if we can discern it), not sure what else.
+    return undef;
 }
 
 {
@@ -650,6 +712,136 @@ sub _map {
                 'sumvar(%s%s, %s := %s)',
                 _linename($line), join('.', @$loc),
                 $cvar->name, $cexpr->rawexpr,
+            );
+            return 1;
+        },
+        recurse => sub {
+            my($self, $args) = @_;
+            my($line, $var, $iter, $count) = @$args;
+            my $starting = $self->line($line);
+            # Given f(x) = af(g(x)) + bh(x) + c, we iteratively replace
+            # af(g(x)) with the equivalent evaluation of the whole RHS
+            # n times to give
+            #  f(x) = a^n f(g^n(x)) + sum_0^{n-1}{ a^i (bh(g^i(x)) + c) }
+
+            $starting->type eq 'equals' or die sprintf(
+                "Don't know how to apply recurse over a %s\n", $starting->type,
+            );
+            my($lhs, $rhs) = @{ $starting->args };
+            my $base_pow = _f_pow($var, $iter, $count) or die sprintf(
+                "Don't know how to recurse iteration %s := %s\n",
+                $var->name, $iter->rawexpr,
+            );
+
+            $lhs->is_independent($var) and die sprintf(
+                "LHS of recurse expression is independent of %s\n", $var->name,
+            );
+            my $expect = $lhs->subst_var($var, $iter);
+            my $loc = $rhs->find_expr($expect) or die sprintf(
+                "Unable to find %s in %s\n",
+                $expect->str, $rhs->str,
+            );
+            my $prod = Axiom::Expr::Const->new({ args => [ 1 ] });
+            my $cur;
+            for (0 .. $#$loc) {
+                $cur = $_ ? $cur->args->[ $loc->[$_ - 1] ] : $rhs;
+                my $type = $cur->type;
+                if ($type eq 'pluslist') {
+                    next;
+                } elsif ($type eq 'negate') {
+                    $prod = $prod->negate;
+                    next;
+                } elsif ($type eq 'mullist') {
+                    my $next_loc = $loc->[$_];
+                    my $args = $cur->args;
+                    $prod = Axiom::Expr->new({
+                        type => 'mullist',
+                        args => [ $prod, @$args[ grep $_ != $next_loc, 0 .. $#$args ] ],
+                    });
+                    next;
+                } elsif ($type eq 'recip') {
+                    $prod = Axiom::Expr->new({
+                        type => 'recip',
+                        args => [ $prod ],
+                    });
+                    next;
+                } else {
+                    die sprintf(
+                        "Don't know how to recurse %s with RHS structure %s\n",
+                        $expect->str, $cur->str,
+                    );
+                }
+            }
+            $prod = $prod->clean;
+            my $rest = Axiom::Expr->new({
+                type => 'pluslist',
+                args => [
+                    $rhs,
+                    Axiom::Expr->new({
+                        type => 'mullist',
+                        args => [ $prod->copy, $expect->copy ],
+                    })->negate,
+                ],
+            })->clean;
+            my $itervar = $self->new_local('i');
+            my $rest_iter = Axiom::Expr::Iter->new({
+                type => 'sum',
+                args => [
+                    $itervar,
+                    _zero(),
+                    Axiom::Expr->new({
+                        type => 'pluslist',
+                        args => [
+                            $count->copy,
+                            _one()->negate,
+                        ],
+                    }),
+                    Axiom::Expr->new({
+                        type => 'mullist',
+                        args => [
+                            Axiom::Expr->new({
+                                type => 'pow',
+                                args => [
+                                    $prod->copy,
+                                    $itervar,
+                                ],
+                            }),
+                            $rest->subst_var($var, _f_pow($var, $iter, $itervar)),
+                        ],
+                    }),
+                ],
+            });
+            # (f(x) = af(g(x)) + bh(x) + c)
+            # -> f(x) = a^n . f(g^n(x)) + \sum_{i=0}^{n-1}{a^i(bh(g^i(x)) + c)}
+            my $result = Axiom::Expr->new({
+                type => 'equals',
+                args => [
+                    $lhs->copy,
+                    Axiom::Expr->new({
+                        type => 'pluslist',
+                        args => [
+                            Axiom::Expr->new({
+                                type => 'mullist',
+                                args => [
+                                    Axiom::Expr->new({
+                                        type => 'pow',
+                                        args => [
+                                            $prod->copy,
+                                            $count->copy,
+                                        ],
+                                    }),
+                                    $lhs->subst_var($var, $base_pow),
+                                ],
+                            }),
+                            $rest_iter,
+                        ],
+                    }),
+                ],
+            });
+            $self->working($result);
+            push @{ $self->rules }, sprintf(
+                'recurse(%s%s := %s, %s)',
+                _linename($line), $var->name, $iter->rawexpr, $count->rawexpr,
             );
             return 1;
         },

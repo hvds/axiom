@@ -37,6 +37,14 @@ sub insert {
     return;
 }
 
+sub insert_local {
+    my($self, $name) = @_;
+    my $dict = $self->dict;
+    ++$name while $dict->{$name};
+    $self->insert($name, 'local');
+    return $dict->{$name};
+}
+
 sub introduce {
     my($self, $name) = @_;
     my $index = @{ $self->bind };

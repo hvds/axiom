@@ -526,6 +526,18 @@ sub diff {
     return $where;
 }
 
+sub find_expr {
+    my($self, $expr) = @_;
+    return [] if !$self->_diff($expr);
+    return undef if $self->is_atom;
+    my $args = $self->args;
+    for my $i (0 .. $#$args) {
+        my $loc = $args->[$i]->find_expr($expr);
+        return [ $i, @$loc ] if $loc;
+    }
+    return undef;
+}
+
 package Axiom::Expr::Const {
     our @ISA = qw{Axiom::Expr};
     sub new {

@@ -1,6 +1,6 @@
+Must somehow differentiate references to variables introduced in a *import,
+dynamically during rule parsing.
 - prove E(a, 1)
-Nice to have: find a way to apply a substitution recursively n times,
-to get the sums directly instead of by induction.
 
 Stabilise enough to write tests
 
