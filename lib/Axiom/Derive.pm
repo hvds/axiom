@@ -523,6 +523,25 @@ sub _f_pow {
                         } @$margs ],
                     });
                 }
+            } elsif ($expr->type eq 'sum') {
+                (my($var, $from, $to), $arg) = @{ $expr->args };
+                if ($arg->type eq 'pluslist') {
+                    my $name = $var->name;
+                    my @var = map $self->new_local($name),
+                            0 .. $#{ $arg->args };
+                    $repl = Axiom::Expr->new({
+                        type => 'pluslist',
+                        args => [ map Axiom::Expr->new({
+                            type => 'sum',
+                            args => [
+                                $var[$_],
+                                $from->copy,
+                                $to->copy,
+                                $arg->args->[$_]->subst_var($var, $var[$_]),
+                            ],
+                        }), 0 .. $#{ $arg->args } ],
+                    });
+                }
             }
             unless ($repl) {
                 die sprintf "don't know how to distribute a %s%s\n",

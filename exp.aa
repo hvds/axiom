@@ -12,3 +12,5 @@ theorem L1; multiply(n / 2): E(a, b) = n / 2 + E(a - 1, b) / 2 + E(a, b - 1) / 2
 
 recurse(b := b - 1, b): E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} (n / 2 + E(a - 1, b - i) / 2) } + (1 / 2)^{b} E(a, 0)
 equate(2.2.2, A2): E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} (n / 2 + E(a - 1, b - i) / 2) } + (1 / 2)^{b} . an
+distrib(2.1.4, 1, 2): E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} n / 2 + (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
+unarydistrib(2.1): E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} n / 2 } + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
