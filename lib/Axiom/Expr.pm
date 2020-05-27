@@ -63,6 +63,17 @@ sub negate {
         args => [ $self->copy ],
     });
 }
+sub recip {
+    my($self) = @_;
+    my $type = $self->type;
+    if ($type eq 'recip') {
+        return $self->args->[0]->copy;
+    }
+    return Axiom::Expr->new({
+        type => 'recip',
+        args => [ $self->copy ],
+    });
+}
 
 sub _clean {
     my($self) = @_;
@@ -234,7 +245,7 @@ sub _clean {
                 }, $_;
             }
             for my $d (@div) {
-                my $de = $args->[$d]->args->[0];
+                my $de = $args->[$d]->recip;
                 for my $m (@mul) {
                     if (!$de->diff($args->[$m])) {
                         # x(a, b, c, 1/b) -> x(a, c)
@@ -292,21 +303,9 @@ sub _clean {
                 # 1/(1/x) -> x
                 return $arg->args->[0];
             }
-            if ($arg->type eq 'integer') {
-                # 1/1 -> 1
-                return $arg if $arg->args->[0] eq '1';
-                # 1/c -> eval(1/c)
-                return Axiom::Expr::Const->new({
-                    type => 'rational',
-                    args => [ '1', $arg->args->[0] ],
-                });
-            }
-            if ($arg->type eq 'rational') {
+            if ($arg->is_const) {
                 # 1/(p/q) -> q/p
-                return Axiom::Expr::Const->new({
-                    type => 'rational',
-                    args => [ @{ $arg->args }[1, 0] ],
-                });
+                return Axiom::Expr::Const->new_rat(1 / $arg->rat);
             }
             if ($arg->type eq 'mullist') {
                 # 1/(a.b) -> 1/a . 1/b
@@ -316,7 +315,7 @@ sub _clean {
                         type => 'recip',
                         args => [ $_ ],
                     }), @{ $arg->args } ],
-                });
+                })->_clean;
             }
             if ($arg->type eq 'pow') {
                 # 1/(a^b) -> (1/a)^b
@@ -362,7 +361,7 @@ sub _clean {
                         type => 'pow',
                         args => [ $val->copy, $pow->negate ],
                     }) ],
-                });
+                })->_clean;
             }
             # TODO: 0^x (x != 0), x^0 (x != 0)
             return $self;
@@ -574,6 +573,10 @@ package Axiom::Expr::Const {
         my $other = $self->copy;
         $other->args->[0] = -$other->args->[0];
         return $other;
+    }
+    sub recip {
+        my($self) = @_;
+        return Axiom::Expr::Const->new_rat(1 / $self->rat);
     }
     sub copy_with {
         my($self, $with) = @_;

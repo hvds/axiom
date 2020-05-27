@@ -1,3 +1,8 @@
+Every expr injected by clean() should itself be clean. Consider returning
+to the approach whereby _clean() returns undef if nothing changed; that
+may prompt another "clean-already-copied" intermediary method to avoid
+unnecessary additional copies.
+
 Must somehow differentiate references to variables introduced in a *import,
 dynamically during rule parsing.
 - prove E(a, 1)
