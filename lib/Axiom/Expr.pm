@@ -309,6 +309,7 @@ sub _clean {
                 });
             }
             if ($arg->type eq 'mullist') {
+                # 1/(a.b) -> 1/a . 1/b
                 return Axiom::Expr->new({
                     type => 'mullist',
                     args => [ map Axiom::Expr->new({
@@ -316,6 +317,19 @@ sub _clean {
                         args => [ $_ ],
                     }), @{ $arg->args } ],
                 });
+            }
+            if ($arg->type eq 'pow') {
+                # 1/(a^b) -> (1/a)^b
+                return Axiom::Expr->new({
+                    type => 'pow',
+                    args => [
+                        Axiom::Expr->new({
+                            type => 'recip',
+                            args => [ $arg->args->[0]->copy ],
+                        }),
+                        $arg->args->[1]->copy,
+                    ],
+                })->_clean;
             }
             return $self;
         },
