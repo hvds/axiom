@@ -26,12 +26,12 @@ sub lookup {
 
 sub insert {
     my($self, $name, $type) = @_;
-    my $index = @{ $self->bind };
+    my $id = @{ $self->bind };
     my $class = $typeclass->{$type}
             // die "Unknown bind type '$type' for name $name\n";
     die "Duplicate name '$name'\n"
             if $self->dict->{$name};
-    my $bound = $class->new($name, $index);
+    my $bound = $class->new($name, $id);
     push @{ $self->bind }, $bound;
     $self->dict->{$name} = $bound;
     return;
@@ -47,9 +47,9 @@ sub insert_local {
 
 sub introduce {
     my($self, $name) = @_;
-    my $index = @{ $self->bind };
+    my $id = @{ $self->bind };
     my $class = $typeclass->{'local'};
-    my $bound = $class->new($name, $index);
+    my $bound = $class->new($name, $id);
     push @{ $self->bind }, $bound;
     return $bound;
 }

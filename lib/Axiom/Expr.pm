@@ -447,7 +447,7 @@ sub substitute {
 
 sub subst_var {
     my($self, $var, $replace) = @_;
-    my $vi = $var->binding->index;
+    my $vi = $var->binding->id;
     return $self->subst_vars({ $vi => $replace });
 }
 
@@ -456,7 +456,7 @@ sub subst_vars {
     return $self->copy_with(sub {
         my($other) = @_;
         return undef unless $other->type eq 'name';
-        my $oi = $other->binding->index;
+        my $oi = $other->binding->id;
         return undef unless $map->{$oi};
         return $map->{$oi}->copy;
     });
@@ -473,11 +473,11 @@ sub walk_tree {
 
 sub is_independent {
     my($self, $var) = @_;
-    my $index = $var->binding->index;
+    my $id = $var->binding->id;
     my $seen = 0;
     $self->clean->walk_tree(sub {
         my($this) = @_;
-        $seen ||= $this->type eq 'name' && $this->binding->index == $index;
+        $seen ||= $this->type eq 'name' && $this->binding->id == $id;
     });
     return $seen ? 0 : 1;
 }

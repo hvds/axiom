@@ -414,7 +414,7 @@ sub _f_pow {
             my $expr = $starting->locate($loc);
             my %vmap = map {
                 my($var, $expr) = @{ $_->{args} };
-                +($var->binding->index => $expr)
+                +($var->binding->id => $expr)
             } @{ $map->{args} // [] };
             my $equate = $self->line($eqline)->subst_vars(\%vmap);
 

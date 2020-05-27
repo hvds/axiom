@@ -5,14 +5,14 @@ use strict;
 use warnings;
 
 sub new {
-    my($class, $name, $index) = @_;
+    my($class, $name, $id) = @_;
     return bless {
         name => $name,
-        index => $index,
+        id => $id,
     }, $class;
 }
 sub name { shift->{name} }
-sub index { shift->{'index'} }
+sub id { shift->{'id'} }
 sub typeclass {
     return state $typeclass = {
         map +($_->type => $_), qw{
