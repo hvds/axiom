@@ -1,4 +1,4 @@
-package Axiom::Symbol;
+package Axiom::Context;
 
 use v5.10;
 use strict;
@@ -177,7 +177,7 @@ sub apply_directive {
         my $dict = $self->dict->copy;
         $dict->insert($_, $type) for @names;
         $self->{dict} = $dict;    # if successful for all names
-        $self->add_line(Axiom::Symbol::Directive->new($line));
+        $self->add_line(Axiom::Context::Directive->new($line));
     } elsif ($line eq '*terse') {
         my $lines = $self->lines;
         my $named = $self->named;
@@ -225,7 +225,7 @@ sub apply_directive {
             $named->{$name} = $derive;
             push @$onamed, $name;
         }
-        $self->add_line(Axiom::Symbol::Directive->new($line));
+        $self->add_line(Axiom::Context::Directive->new($line));
     } else {
         die "Unknown directive: <$line>\n";
     }
@@ -238,7 +238,7 @@ sub filename {
     return $file;
 }
 
-package Axiom::Symbol::Directive {
+package Axiom::Context::Directive {
     sub new {
         my($class, $raw) = @_;
         return bless { rawexpr => $raw }, $class;
