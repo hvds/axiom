@@ -602,6 +602,17 @@ sub _f_pow {
                         args => [ map _div($_, $expr), @{ $targ->args } ],
                     }) ],
                 });
+            } elsif ($targ->type eq 'sum') {
+                $repl = Axiom::Expr->new({
+                    type => 'mullist',
+                    args => [ $expr, Axiom::Expr->new({
+                        type => 'sum',
+                        args => [
+                            map($_->copy, @{ $targ->args }[0 .. 2]),
+                            _div($targ->args->[3], $expr),
+                        ],
+                    }) ],
+                });
             } else {
                 die sprintf "don't know how to factor a %s\n", $targ->type;
             }
