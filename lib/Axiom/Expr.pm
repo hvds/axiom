@@ -179,16 +179,20 @@ sub _clean {
                 args => [ map $_->negate, @{ $arg->args } ],
             }) if $arg->type eq 'pluslist';
 
+            # -(a.b) -> (-a).b
             if ($arg->type eq 'mullist') {
-                my $marg = $arg->args->[0];
-                if ($marg->is_neg) {
-                    # -(2a) -> (-2)a
-                    $arg->args->[0] = $marg->negate;
-                    return $arg;
-                }
+                $arg->args->[0] = $arg->args->[0]->negate;
+                return $arg;
             }
 
-            return undef;
+            # -x -> (-1 . x)
+            return Axiom::Expr->new({
+                type => 'mullist',
+                args => [
+                    Axiom::Expr::Const->new({ args => [ '-1' ] }),
+                    $arg,
+                ],
+            });
         },
         mullist => sub {
             # x(null) -> 1
@@ -200,7 +204,7 @@ sub _clean {
             # x(a) -> a
             return $args->[0] if @$args == 1;
 
-            my @const = ();
+            my(@const, @neg) = ();
             for (my $i = 0; $i < @$args; ++$i) {
                 my $arg = $args->[$i];
                 if ($arg->type eq 'mullist') {
@@ -219,6 +223,8 @@ sub _clean {
                         return $self;
                     }
                     push @const, $i;
+                } elsif ($arg->is_neg) {
+                    push @neg, $i;
                 }
             }
 
@@ -231,6 +237,29 @@ sub _clean {
                 # x(a, c1, b, c2) -> x(a, eval(c1 . c2), b)
                 splice(@$args, $_, 1) for reverse @const;
                 splice(@$args, $const[0], 0, $repl) if $repl;
+                return $self;
+            } elsif (@const == 1) {
+                my $rat = $args->[ $const[0] ]->rat;
+                if ($rat == 1) {
+                    # a.1.b -> a.b
+                    splice @$args, $const[0], 1;
+                    return $self;
+                }
+            }
+
+            if (@neg) {
+                # 3.(-a).(-b).(-c) -> (-3)abc
+                # (-a).b -> (-1).ab
+                $args->[$_] = $args->[$_]->negate for @neg;
+                if (@neg & 1) {
+                    unless (@const) {
+                        unshift @$args, Axiom::Expr::Const->new_rat(
+                            Math::BigRat->new('1')
+                        );
+                        @const = (0);
+                    }
+                    $args->[ $const[0] ] = $args->[ $const[0] ]->negate;
+                }
                 return $self;
             }
 
@@ -248,67 +277,34 @@ sub _clean {
                 });
             }
 
-            my(@con, @mul, @div) = ();
-            for (0 .. $#$args) {
-                push @{
-                    $args->[$_]->is_const ? \@con
-                    : $args->[$_]->type eq 'recip' ? \@div : \@mul
-                }, $_;
-            }
-
-            for my $d (@div) {
-                my $de = $args->[$d]->recip;
-                for my $m (@mul) {
-                    if (!$de->diff($args->[$m])) {
+            for my $d (0 .. $#$args - 1) {
+                my $dr = $args->[$d]->recip;
+                for my $m ($d + 1 .. $#$args) {
+                    if (!$dr->diff($args->[$m])) {
                         # x(a, b, c, 1/b) -> x(a, c)
                         for (sort { $b <=> $a } $d, $m) {
                             splice @$args, $_, 1;
                         }
                         return $self;
                     }
-                    if ($args->[$m]->is_neg
-                        && !$de->diff($args->[$m]->negate)
-                    ) {
-                        # x(a, b, c, -1/b) -> x(a, -1, c)
-                        my($first, $second) = sort { $a <=> $b } $d, $m;
-                        splice @$args, $first, 1, Axiom::Expr::Const->new({
-                            args => [ '-1' ],
-                        });
-                        splice @$args, $second, 1;
-                        return $self;
-                    }
                 }
             }
 
+            my(@con, @mul, @pow, @div) = ();
+            for (0 .. $#$args) {
+                push @{
+                    $args->[$_]->is_const ? \@con
+                    : $args->[$_]->type eq 'pow' ? \@pow
+                    : $args->[$_]->type eq 'recip' ? \@div : \@mul
+                }, $_;
+            }
             # Not sure what we want here
             # x(a, const p/q, 1/b, c, 1/d) -> x(const p/q, a, c, 1/b, 1/d)
-            my @order = (@con, @mul, @div);
+            my @order = (@con, @mul, @pow, @div);
             my $changed = grep { $order[$_] > $order[$_ + 1] } 0 .. @order - 2;
             @$args = @$args[@order] if $changed;
 
-            my $sign = 0;
-            for (my $i = 1; $i < $#$args; ++$i) {
-                my $arg = $args->[$i];
-                next unless $arg->is_neg;
-                ++$sign;
-                $args->[$i] = $arg->negate;
-            }
-            $args->[0] = $args->[0]->negate if $sign & 1;
-
-            # check that we haven't shaken out with a +1 or -1
-            if ($args->[0]->type eq 'integer') {
-                my $rat = $args->[0]->rat;
-                if ($rat == 1) {
-                    shift @$args;
-                    return $self;
-                } elsif ($rat == -1) {
-                    shift @$args;
-                    $args->[0] = $args->[0]->negate;
-                    return $self;
-                }
-            }
-
-            return $changed || $sign ? $self : undef;
+            return $changed ? $self : undef;
         },
         recip => sub {
             my $arg = $args->[0];
