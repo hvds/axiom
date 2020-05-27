@@ -366,16 +366,6 @@ sub _clean {
             # TODO: 0^x (x != 0), x^0 (x != 0)
             return $self;
         },
-        rational => sub {
-            if ($args->[1] eq '1') {
-                # a/1 -> a
-                return Axiom::Expr::Const->new({
-                    type => 'integer',
-                    args => [ $args->[0] ],
-                });
-            }
-            return $self;
-        }
     }->{$type};
     return $sub ? $sub->() : $self;
 }
