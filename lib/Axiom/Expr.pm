@@ -77,10 +77,14 @@ sub recip {
 
 sub _clean {
     my($self) = @_;
-    return $self if $self->is_atom;
+    return undef if $self->is_atom;
     my $type = $self->type;
     my $args = $self->args;
-    $_ = $_->_clean for @$args;
+    for (@$args) {
+        my $new = $_->_clean // next;
+        $_ = $new;
+        redo;
+    }
     my $sub = {
         equals => undef,
         function => undef,
@@ -88,12 +92,12 @@ sub _clean {
         braceexpr => sub { return $self->args->[0] },
         parenexpr => sub { return $self->args->[0] },
         pluslist => sub {
-          retry_pluslist:
             # +(null) -> 0
             return Axiom::Expr::Const->new({
                 type => 'integer',
                 args => [ '0' ],
             }) if @$args == 0;
+
             # +(x) -> x
             return $args->[0] if @$args == 1;
 
@@ -103,17 +107,18 @@ sub _clean {
                 if ($arg->type eq 'pluslist') {
                     # +(a, +(b, c), d) -> +(a, b, c, d)
                     splice @$args, $i, 1, @{ $arg->args };
-                    goto retry_pluslist;
+                    return $self;
                 }
                 if ($arg->is_const) {
                     if ($arg->args->[0] eq '0') {
                         # +(a, 0, b) -> +(a, b)
                         splice @$args, $i, 1;
-                        goto retry_pluslist;
+                        return $self;
                     }
                     push @const, $i;
                 }
             }
+
             if (@const > 1) {
                 # +(a, c1, b, c2) -> +(a, eval(c1+c2), b)
                 my $sum = Math::BigRat->new(0);
@@ -123,8 +128,9 @@ sub _clean {
                     : Axiom::Expr::Const->new_rat($sum);
                 splice(@$args, $_, 1) for reverse @const;
                 splice(@$args, $const[0], 0, $repl) if $repl;
-                goto retry_pluslist;
+                return $self;
             }
+
             my(@con, @plus, @minus) = ();
             for (0 .. $#$args) {
                 push @{
@@ -132,6 +138,7 @@ sub _clean {
                     : $args->[$_]->is_neg ? \@minus : \@plus
                 }, $_;
             }
+
             if (@plus && @minus) {
                 for my $m (@minus) {
                     my $nm = $args->[$m]->negate;
@@ -141,37 +148,37 @@ sub _clean {
                         for (sort { $b <=> $a } $m, $p) {
                             splice @$args, $_, 1;
                         }
-                        goto retry_pluslist;
+                        return $self;
                     }
                 }
             }
+
             # This should probably change
             # +(-a, b, -const) -> +(b, -const, -a)
             # +(-a, b, const) -> +(const, b, -a)
             my @order = (@con && $args->[$con[0]]->args->[0] =~ /^-/)
                 ? (@plus, @con, @minus)
                 : (@con, @plus, @minus);
-            @$args = @$args[@order];
-            return $self;
+            if (grep $order[$_] > $order[$_ + 1], 0 .. @order - 2) {
+                @$args = @$args[@order];
+                return $self;
+            }
+            return undef;
         },
         negate => sub {
             my $arg = $args->[0];
-            if ($arg->type eq 'negate') {
-                # -(-(a)) -> a
-                return $arg->args->[0];
-            }
-            if ($arg->is_const) {
-                my $nargs = [ @{ $arg->args } ];
-                # -(const) -> eval(-const)
-                return $arg->negate;
-            }
-            if ($arg->type eq 'pluslist') {
-                # -(a - b) -> b - a
-                return Axiom::Expr->new({
-                    type => 'pluslist',
-                    args => [ map $_->negate, @{ $arg->args } ],
-                })->clean;
-            }
+            # -(-(a)) -> a
+            return $arg->args->[0] if $arg->type eq 'negate';
+
+            # -(const) -> eval(-const)
+            return $arg->negate if $arg->is_const;
+
+            # -(a - b) -> b - a
+            return Axiom::Expr->new({
+                type => 'pluslist',
+                args => [ map $_->negate, @{ $arg->args } ],
+            }) if $arg->type eq 'pluslist';
+
             if ($arg->type eq 'mullist') {
                 my $marg = $arg->args->[0];
                 if ($marg->is_neg) {
@@ -180,15 +187,16 @@ sub _clean {
                     return $arg;
                 }
             }
-            return $self;
+
+            return undef;
         },
         mullist => sub {
-          retry_mullist:
             # x(null) -> 1
             return Axiom::Expr::Const->new({
                 type => 'integer',
                 args => [ '1' ],
             }) if @$args == 0;
+
             # x(a) -> a
             return $args->[0] if @$args == 1;
 
@@ -198,7 +206,7 @@ sub _clean {
                 if ($arg->type eq 'mullist') {
                     # x(a, x(b, c), d) -> x(a, b, c, d)
                     splice @$args, $i, 1, @{ $arg->args };
-                    goto retry_mullist;
+                    return $self;
                 }
                 if ($arg->is_const) {
                     if ($arg->args->[0] eq '0') {
@@ -208,11 +216,12 @@ sub _clean {
                     if ($arg->type eq 'integer' && $arg->args->[0] eq '1') {
                         # x(a, 1, b) -> x(a, b)
                         splice @$args, $i, 1;
-                        goto retry_mullist;
+                        return $self;
                     }
                     push @const, $i;
                 }
             }
+
             if (@const > 1) {
                 my $prod = Math::BigRat->new(1);
                 $prod *= $_->rat for @$args[@const];
@@ -222,8 +231,9 @@ sub _clean {
                 # x(a, c1, b, c2) -> x(a, eval(c1 . c2), b)
                 splice(@$args, $_, 1) for reverse @const;
                 splice(@$args, $const[0], 0, $repl) if $repl;
-                goto retry_mullist;
+                return $self;
             }
+
             for (my $i = 0; $i < @$args; ++$i) {
                 my $arg = $args->[$i];
                 next unless $arg->type eq 'pluslist';
@@ -235,8 +245,9 @@ sub _clean {
                         type => 'mullist',
                         args => [ $_, @$args ],
                     }), @{ $arg->{args} } ],
-                })->clean;
+                });
             }
+
             my(@con, @mul, @div) = ();
             for (0 .. $#$args) {
                 push @{
@@ -244,6 +255,7 @@ sub _clean {
                     : $args->[$_]->type eq 'recip' ? \@div : \@mul
                 }, $_;
             }
+
             for my $d (@div) {
                 my $de = $args->[$d]->recip;
                 for my $m (@mul) {
@@ -252,7 +264,7 @@ sub _clean {
                         for (sort { $b <=> $a } $d, $m) {
                             splice @$args, $_, 1;
                         }
-                        goto retry_mullist;
+                        return $self;
                     }
                     if ($args->[$m]->is_neg
                         && !$de->diff($args->[$m]->negate)
@@ -260,77 +272,74 @@ sub _clean {
                         # x(a, b, c, -1/b) -> x(a, -1, c)
                         my($first, $second) = sort { $a <=> $b } $d, $m;
                         splice @$args, $first, 1, Axiom::Expr::Const->new({
-                            type => 'integer',
                             args => [ '-1' ],
                         });
                         splice @$args, $second, 1;
-                        goto retry_mullist;
+                        return $self;
                     }
                 }
             }
+
             # Not sure what we want here
             # x(a, const p/q, 1/b, c, 1/d) -> x(const p/q, a, c, 1/b, 1/d)
             my @order = (@con, @mul, @div);
-            @$args = @$args[@order];
+            my $changed = grep { $order[$_] > $order[$_ + 1] } 0 .. @order - 2;
+            @$args = @$args[@order] if $changed;
 
             my $sign = 0;
             for (my $i = 1; $i < $#$args; ++$i) {
                 my $arg = $args->[$i];
                 next unless $arg->is_neg;
-                $sign = !$sign;
+                ++$sign;
                 $args->[$i] = $arg->negate;
             }
-            $args->[0] = $args->[0]->negate if $sign;
+            $args->[0] = $args->[0]->negate if $sign & 1;
 
             # check that we haven't shaken out with a +1 or -1
             if ($args->[0]->type eq 'integer') {
                 my $rat = $args->[0]->rat;
                 if ($rat == 1) {
                     shift @$args;
-                    goto retry_mullist;
+                    return $self;
                 } elsif ($rat == -1) {
                     shift @$args;
                     $args->[0] = $args->[0]->negate;
-                    goto retry_mullist;
+                    return $self;
                 }
             }
-            return $self;
+
+            return $changed || $sign ? $self : undef;
         },
         recip => sub {
             my $arg = $args->[0];
-            if ($arg->type eq 'recip') {
-                # FIXME: x=0?
-                # 1/(1/x) -> x
-                return $arg->args->[0];
-            }
-            if ($arg->is_const) {
-                # 1/(p/q) -> q/p
-                return Axiom::Expr::Const->new_rat(1 / $arg->rat);
-            }
-            if ($arg->type eq 'mullist') {
-                # 1/(a.b) -> 1/a . 1/b
-                return Axiom::Expr->new({
-                    type => 'mullist',
-                    args => [ map Axiom::Expr->new({
+            # 1/(1/x) -> x (FIXME: x=0?)
+            return $arg->args->[0] if $arg->type eq 'recip';
+
+            # 1/(p/q) -> q/p
+            return Axiom::Expr::Const->new_rat(1 / $arg->rat) if $arg->is_const;
+
+            # 1/(a.b) -> 1/a . 1/b
+            return Axiom::Expr->new({
+                type => 'mullist',
+                args => [ map Axiom::Expr->new({
+                    type => 'recip',
+                    args => [ $_ ],
+                }), @{ $arg->args } ],
+            }) if $arg->type eq 'mullist';
+
+            # 1/(a^b) -> (1/a)^b
+            return Axiom::Expr->new({
+                type => 'pow',
+                args => [
+                    Axiom::Expr->new({
                         type => 'recip',
-                        args => [ $_ ],
-                    }), @{ $arg->args } ],
-                })->_clean;
-            }
-            if ($arg->type eq 'pow') {
-                # 1/(a^b) -> (1/a)^b
-                return Axiom::Expr->new({
-                    type => 'pow',
-                    args => [
-                        Axiom::Expr->new({
-                            type => 'recip',
-                            args => [ $arg->args->[0]->copy ],
-                        }),
-                        $arg->args->[1]->copy,
-                    ],
-                })->_clean;
-            }
-            return $self;
+                        args => [ $arg->args->[0]->copy ],
+                    }),
+                    $arg->args->[1]->copy,
+                ],
+            }) if $arg->type eq 'pow';
+
+            return undef;
         },
         pow => sub {
             my($val, $pow) = @{ $args };
@@ -341,38 +350,45 @@ sub _clean {
                     $val->rat ** $pow->args->[0]
                 ) if $val->is_const;
             }
-            if ($pow->type eq 'pluslist') {
-                # pow(a, b+c) -> pow(a, b) x pow(a, c)
-                return Axiom::Expr->new({
-                    type => 'mullist',
-                    args => [
-                        map Axiom::Expr->new({
-                            type => 'pow',
-                            args => [ $val->copy, $_ ],
-                        })->clean, @{ $pow->{args} }
-                    ],
-                });
-            }
-            if ($pow->is_neg) {
-                # pow(a, -b) -> 1 / pow(a, b)
-                return Axiom::Expr->new({
-                    type => 'recip',
-                    args => [ Axiom::Expr->new({
+
+            # pow(a, b+c) -> pow(a, b) x pow(a, c)
+            return Axiom::Expr->new({
+                type => 'mullist',
+                args => [
+                    map Axiom::Expr->new({
                         type => 'pow',
-                        args => [ $val->copy, $pow->negate ],
-                    }) ],
-                })->_clean;
-            }
+                        args => [ $val->copy, $_ ],
+                    })->clean, @{ $pow->{args} }
+                ],
+            }) if $pow->type eq 'pluslist';
+
+            # pow(a, -b) -> 1 / pow(a, b)
+            return Axiom::Expr->new({
+                type => 'recip',
+                args => [ Axiom::Expr->new({
+                    type => 'pow',
+                    args => [ $val->copy, $pow->negate ],
+                }) ],
+            }) if $pow->is_neg;
+
             # TODO: 0^x (x != 0), x^0 (x != 0)
-            return $self;
+            return undef;
         },
     }->{$type};
-    return $sub ? $sub->() : $self;
+    return $sub ? $sub->() : undef;
+}
+
+sub _clean_copied {
+    my($self) = @_;
+    while (1) {
+        my $new = $self->_clean // return $self;
+        $self = $new;
+    }
 }
 
 sub clean {
     my($self) = @_;
-    return $self->copy->_clean;
+    return $self->copy->_clean_copied;
 }
 
 sub str {
