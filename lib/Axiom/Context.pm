@@ -160,8 +160,8 @@ sub apply_directive {
         $quiet or print $DEBUG ? "debug ON\n" : "debug OFF\n";
         return;
     } elsif ($line =~ m{^\*diag(?:\s+(-?\w+))?\z}) {
-        my $name = $1 // -1;
-        my $derive = $self->line($name)
+        my $name = $1;
+        my $derive = ($name ? $self->line($name) : $self->last_expr)
                 // die "No line to diagnose for '$name'\n";
         {
             use Data::Dumper;
@@ -169,7 +169,7 @@ sub apply_directive {
             print Dumper($derive);
         }
         print $derive->rawexpr, "\n";
-        print $derive->expr->str, "\n";
+        print $derive->str, "\n";
         return;
     } elsif ($line =~ bindre()) {
         my $type = $/{Type};
