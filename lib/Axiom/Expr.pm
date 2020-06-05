@@ -28,6 +28,11 @@ sub new {
     }, $class;
 }
 
+sub local_dict {
+    my($class, $localdict) = @_;
+    return Axiom::Expr::LocalDict->new($localdict);
+}
+
 sub args { shift->{args} }
 sub type { shift->{type} }
 sub rawexpr {
@@ -484,7 +489,7 @@ sub is_independent {
 
 sub parse {
     my($class, $dict, $text, $debug) = @_;
-    local $DICT = $dict;
+    my $local = $class->local_dict($dict);
     if ($text =~ _parsere($debug)) {
         return $/{Relation};
     } else {
@@ -902,5 +907,20 @@ sub _parsere {
             ^ <Relation> \z
         }x);
 }
+
+package Axiom::Expr::LocalDict {
+    sub new {
+        my($class, $dict) = @_;
+        my $old = $Axiom::Expr::DICT;
+        my $restore = sub { $Axiom::Expr::DICT = $old };
+        my $self = bless \$restore, $class;
+        $Axiom::Expr::DICT = $dict;
+        return $self;
+    }
+    DESTROY {
+        my($self) = @_;
+        $$self->();
+    }
+};
 
 1;

@@ -67,7 +67,7 @@ sub derive {
     my @rules;
     my $rre = rulere($debug);
 
-    local $Axiom::Expr::DICT = $self->dict;
+    my $local = Axiom::Expr->local_dict($self->dict);
     while ($line =~ s{$rre}{}) {
         my($rule, $value) = %{ $/{rule} };
         push @rules, [ $rule, $value->{args} ];
