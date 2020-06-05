@@ -748,7 +748,7 @@ sub _f_pow {
             }
             $self->working($starting->substitute($loc, $repl));
             push @{ $self->rules }, sprintf(
-                'sumvar(%s%s, %s := %s)',
+                'itervar(%s%s, %s := %s)',
                 _linename($line), join('.', @$loc),
                 $cvar->name, $cexpr->rawexpr,
             );
