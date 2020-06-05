@@ -12,6 +12,12 @@ our $DICT;
 
 my %listtype = map +($_ => 1), qw{ pluslist mullist };
 
+my %classtype = (
+    (map +($_ => 'Axiom::Expr::Const'), qw{ integer rational }),
+    (map +($_ => 'Axiom::Expr::Name'), qw{ name }),
+    (map +($_ => 'Axiom::Expr::Iter'), qw{ sum prod }),
+);
+
 sub new {
     my($class, $hash) = @_;
     my($type, $args) = @$hash{qw{ type args }};
@@ -22,6 +28,8 @@ sub new {
             $_->type eq $type ? @{ $_->args } : $_
         } @$args ];
     }
+    my $targclass = $classtype{$type} // 'Axiom::Expr';
+    $class = $targclass unless $class->isa($targclass);
     return bless {
         type => $type,
         args => $args,
@@ -98,7 +106,7 @@ sub _clean {
         parenexpr => sub { return $self->args->[0] },
         pluslist => sub {
             # +(null) -> 0
-            return Axiom::Expr::Const->new({
+            return Axiom::Expr->new({
                 type => 'integer',
                 args => [ '0' ],
             }) if @$args == 0;
@@ -194,14 +202,14 @@ sub _clean {
             return Axiom::Expr->new({
                 type => 'mullist',
                 args => [
-                    Axiom::Expr::Const->new({ args => [ '-1' ] }),
+                    Axiom::Expr->new({ type => 'integer', args => [ '-1' ] }),
                     $arg,
                 ],
             });
         },
         mullist => sub {
             # x(null) -> 1
-            return Axiom::Expr::Const->new({
+            return Axiom::Expr->new({
                 type => 'integer',
                 args => [ '1' ],
             }) if @$args == 0;
@@ -675,7 +683,7 @@ package Axiom::Expr::Iter {
             type => 'pluslist',
             args => [
                 $from->copy,
-                Axiom::Expr::Const->new({
+                Axiom::Expr->new({
                     type => 'integer',
                     args => [ "$_" ],
                 }),
@@ -777,7 +785,7 @@ sub _grammar {
                         map @{ $_->{args} }, @{ $MATCH{args} } ];
             })
             <type=(?{ 'function' })>
-        <objrule: Axiom::Expr::Iter=Sum>
+        <objrule: Axiom::Expr=Sum>
             <.SumToken> <[args=SumStart]> <[args=SumEnd]>
             (?{
                 # split SumStart into variable and start value, extract SumEnd
@@ -857,10 +865,10 @@ sub _grammar {
                 }
             })
 
-        <objtoken: Axiom::Expr::Name>
+        <objtoken: Axiom::Expr=Name>
             <[args=(?: [a-zA-Z] (?: _ (?: \d \b ) )? )]>
             <type=(?{ 'name' })>
-        <objtoken: Axiom::Expr::Const=Integer>
+        <objtoken: Axiom::Expr=Integer>
             <[args=(?: \d+ (?! \d ) )]>
             <type=(?{ 'integer' })>
 

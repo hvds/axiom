@@ -87,7 +87,8 @@ sub new_local {
     my($self, $name) = @_;
     my $subdict = $self->dict->subsidiary;
     my $binding = $subdict->insert_local($name);
-    my $new = Axiom::Expr::Name->new({
+    my $new = Axiom::Expr->new({
+        type => 'name',
         args => [ $binding->name ],
     });
     $new->bind($binding);
@@ -208,14 +209,14 @@ sub rulere {
 }
 
 sub _zero {
-    return Axiom::Expr::Const->new({
+    return Axiom::Expr->new({
         type => 'integer',
         args => [ '0' ],
     });
 }
 
 sub _one {
-    return Axiom::Expr::Const->new({
+    return Axiom::Expr->new({
         type => 'integer',
         args => [ '1' ],
     });
@@ -662,7 +663,7 @@ sub _f_pow {
                     type => 'pluslist',
                     args => [
                         $base->copy,
-                        Axiom::Expr::Const->new({
+                        Axiom::Expr->new({
                             type => 'integer',
                             args => [ $add ],
                         }),
@@ -671,7 +672,7 @@ sub _f_pow {
                 $repl = Axiom::Expr->new({
                     type => 'pluslist',
                     args => [
-                        Axiom::Expr::Iter->new({
+                        Axiom::Expr->new({
                             type => 'sum',
                             args => [
                                 $var->copy,
@@ -715,7 +716,7 @@ sub _f_pow {
                 args => [ $cexpr->copy, $cvar->copy ],
             })->is_independent($var)) {
                 # i := E - i
-                $repl = Axiom::Expr::Iter->new({
+                $repl = Axiom::Expr->new({
                     type => $iter->type,
                     args => [
                         $var->copy,
@@ -729,7 +730,7 @@ sub _f_pow {
                 args => [ $cexpr->copy, $cvar->negate ],
             })->is_independent($var)) {
                 # i := E + i
-                $repl = Axiom::Expr::Iter->new({
+                $repl = Axiom::Expr->new({
                     type => $iter->type,
                     args => [
                         $var->copy,
@@ -778,7 +779,7 @@ sub _f_pow {
                 "Unable to find %s in %s\n",
                 $expect->str, $rhs->str,
             );
-            my $prod = Axiom::Expr::Const->new({ args => [ 1 ] });
+            my $prod = _one();
             my $cur;
             for (0 .. $#$loc) {
                 $cur = $_ ? $cur->args->[ $loc->[$_ - 1] ] : $rhs;
@@ -821,7 +822,7 @@ sub _f_pow {
                 ],
             })->clean;
             my $itervar = $self->new_local('i');
-            my $rest_iter = Axiom::Expr::Iter->new({
+            my $rest_iter = Axiom::Expr->new({
                 type => 'sum',
                 args => [
                     $itervar,
