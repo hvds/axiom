@@ -382,6 +382,7 @@ sub _f_pow {
             my($self, $args) = @_;
             my($var, $base_expr) = @$args;
             my $starting = $self->working;
+            # FIXME: source of base line should be explicit
             my $base = $self->context->lines->{$self->context->curline}[-2]->expr;
             $starting->type eq 'implies' or die sprintf
                     "Cannot apply induction over a %s\n", $starting->type;
