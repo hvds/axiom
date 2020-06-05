@@ -75,6 +75,7 @@ sub derive {
     $line =~ s/^\s+//;
 
     my $expr = Axiom::Expr->parse($self->dict, $line, $debug) or return;
+    $expr->resolve($self->dict);
     $self->{rawexpr} = $line;
     $self->{expr} = $expr;
     $self->validate(\@rules) or return;
@@ -348,10 +349,12 @@ sub _f_pow {
         identity => sub {
             my($self, $args) = @_;
             my $expr = $args->[0];
-            $self->working(Axiom::Expr->new({
+            my $result = Axiom::Expr->new({
                 type => 'equals',
                 args => [ $expr->copy, $expr->copy ],
-            }));
+            });
+            $result->resolve($self->dict);
+            $self->working($result);
             push @{ $self->rules }, sprintf 'identity(%s)', $expr->rawexpr;
             return 1;
         },
@@ -373,6 +376,7 @@ sub _f_pow {
                     $self->working->copy,
                 ],
             });
+            $result->resolve($self->dict);
             $self->working($result);
             $self->scope(-1);
             push @{ $self->rules }, 'condend';
@@ -387,6 +391,8 @@ sub _f_pow {
             $starting->type eq 'implies' or die sprintf
                     "Cannot apply induction over a %s\n", $starting->type;
             my($result, $next) = @{ $starting->args };
+            $var->resolve($self->dict);
+            $base_expr->resolve($self->dict);
             my $expect_base = $result->subst_var($var, $base_expr);
             my $diff = $expect_base->diff($base);
             if ($diff) {
@@ -404,6 +410,7 @@ sub _f_pow {
             }
             # FIXME: attach 'var >= base_expr -> ...' unless that covers
             # the whole domain of the var.
+            $result->resolve($self->dict);
             $self->working($result->copy);
             push @{ $self->rules }, sprintf 'induction(%s, %s)',
                     $var->name, $base_expr->rawexpr;
@@ -416,6 +423,7 @@ sub _f_pow {
             my $expr = $starting->locate($loc);
             my %vmap = map {
                 my($var, $expr) = @{ $_->{args} };
+                $_->resolve($self->dict) for ($var, $expr);
                 +($var->binding->id => $expr)
             } @{ $map->{args} // [] };
             my $equate = $self->line($eqline)->subst_vars(\%vmap);
@@ -436,7 +444,9 @@ sub _f_pow {
             } else {
                 die "Can't equate() with a %s\n", $equate->type;
             }
-            $self->working($starting->substitute($loc, $repl));
+            my $result = $starting->substitute($loc, $repl);
+            $result->resolve($self->dict);
+            $self->working($result);
             push @{ $self->rules }, sprintf 'equate(%s%s, %s%s)',
                     _linename($line), join('.', @$loc), $eqline, _map($map);
             return 1;
@@ -492,7 +502,9 @@ sub _f_pow {
                 die sprintf "don't know how to distribute a %s over a %s\n",
                         $efrom->type, $eover->type;
             }
-            $self->working($starting->substitute($loc, $repl));
+            my $result = $starting->substitute($loc, $repl);
+            $result->resolve($self->dict);
+            $self->working($result);
             push @{ $self->rules }, sprintf 'distrib(%s%s, %s, %s)',
                     _linename($line), join('.', @$loc), $from, $over;
             return 1;
@@ -549,7 +561,9 @@ sub _f_pow {
                 die sprintf "don't know how to distribute a %s%s\n",
                     $expr->type, $arg ? ' over a ' . $arg->type : '';
             }
-            $self->working($starting->substitute($loc, $repl));
+            my $result = $starting->substitute($loc, $repl);
+            $result->resolve($self->dict);
+            $self->working($result);
             push @{ $self->rules }, sprintf 'unarydistrib(%s%s)',
                     _linename($line), join('.', @$loc);
             return 1;
@@ -567,6 +581,7 @@ sub _f_pow {
                     args => [ $_->copy, $expr->copy ],
                 }), @{ $starting->args } ],
             });
+            $result->resolve($self->dict);
             $self->working($result);
             push @{ $self->rules }, sprintf 'add(%s%s)',
                     _linename($line), $expr->rawexpr;
@@ -585,6 +600,7 @@ sub _f_pow {
                     args => [ $_->copy, $expr->copy ],
                 }), @{ $starting->args } ],
             });
+            $result->resolve($self->dict);
             $self->working($result);
             push @{ $self->rules }, sprintf 'multiply(%s%s)',
                     _linename($line), $expr->rawexpr;
@@ -595,6 +611,7 @@ sub _f_pow {
             my($line, $loc, $expr) = @$args;
             my $starting = $self->line($line);
             my $targ = $starting->locate($loc);
+            $expr->resolve($self->dict);
             my $repl;
             if ($targ->type eq 'pluslist') {
                 $repl = Axiom::Expr->new({
@@ -618,7 +635,9 @@ sub _f_pow {
             } else {
                 die sprintf "don't know how to factor a %s\n", $targ->type;
             }
-            $self->working($starting->substitute($loc, $repl));
+            my $result = $starting->substitute($loc, $repl);
+            $result->resolve($self->dict);
+            $self->working($result);
             push @{ $self->rules }, sprintf 'factor(%s%s, %s)',
                     _linename($line), join('.', @$loc), $expr->rawexpr;
             return 1;
@@ -639,7 +658,9 @@ sub _f_pow {
             } else {
                 die sprintf "don't know how to expand a %s\n", $iter->type;
             }
-            $self->working($starting->substitute($loc, $repl));
+            my $result = $starting->substitute($loc, $repl);
+            $result->resolve($self->dict);
+            $self->working($result);
             push @{ $self->rules }, sprintf 'iterexpand(%s%s)',
                     _linename($line), join('.', @$loc);
             return 1;
@@ -691,7 +712,9 @@ sub _f_pow {
             } else {
                 die sprintf "Don't know how to extend a %s\n", $iter->type;
             }
-            $self->working($starting->substitute($loc, $repl));
+            my $result = $starting->substitute($loc, $repl);
+            $result->resolve($self->dict);
+            $self->working($result);
             push @{ $self->rules }, sprintf 'iterextend(%s%s, %s)',
                     _linename($line), join('.', @$loc), $dir;
             return 1;
@@ -706,6 +729,13 @@ sub _f_pow {
                 $iter->type,
             );
             my($var, $from, $to, $expr) = @{ $iter->args };
+
+            my $cdict = $self->dict->clone;
+            my $cbind = $cvar->_resolve_new($cdict);
+            {
+                my $local = $cdict->local_name($cvar->name, $cbind);
+                $cexpr->_resolve($cdict);
+            }
 
             my $repl;
             # This gets tricky: if E is an expression independent of
@@ -746,7 +776,9 @@ sub _f_pow {
                     $cvar->name, $cexpr->rawexpr,
                 );
             }
-            $self->working($starting->substitute($loc, $repl));
+            my $result = $starting->substitute($loc, $repl);
+            $result->resolve($self->dict);
+            $self->working($result);
             push @{ $self->rules }, sprintf(
                 'itervar(%s%s, %s := %s)',
                 _linename($line), join('.', @$loc),
@@ -758,6 +790,7 @@ sub _f_pow {
             my($self, $args) = @_;
             my($line, $var, $iter, $count) = @$args;
             my $starting = $self->line($line);
+            $_->resolve($self->dict) for ($var, $iter, $count);
             # Given f(x) = af(g(x)) + bh(x) + c, we iteratively replace
             # af(g(x)) with the equivalent evaluation of the whole RHS
             # n times to give
@@ -877,6 +910,7 @@ sub _f_pow {
                     }),
                 ],
             });
+            $result->resolve($self->dict);
             $self->working($result);
             push @{ $self->rules }, sprintf(
                 'recurse(%s%s := %s, %s)',

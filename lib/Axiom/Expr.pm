@@ -566,6 +566,19 @@ sub find_expr {
     return undef;
 }
 
+sub _resolve {
+    my($self, $dict) = @_;
+    $self->{dict} = $dict;
+    $_->_resolve($dict) for @{ $self->args };
+    return;
+}
+
+sub resolve {
+    my($self, $dict) = @_;
+    $self->_resolve($dict->clone);
+    return;
+}
+
 package Axiom::Expr::Const {
     our @ISA = qw{Axiom::Expr};
     sub new {
@@ -620,6 +633,7 @@ package Axiom::Expr::Const {
                 for (0 .. $argc - 1);
         return undef;
     }
+    sub _resolve { }
 };
 
 package Axiom::Expr::Name {
@@ -659,7 +673,35 @@ package Axiom::Expr::Name {
         return;
     }
     sub binding { shift->{binding} }
-    sub bindtype { shift->binding->type }
+    sub bindtype {
+        my($self) = @_;
+        my $binding = $self->binding;
+        return $binding->type;
+    }
+    sub _resolve {
+        my($self, $dict) = @_;
+        $self->{dict} = $dict;
+        my $binding = $self->binding;
+        return if $binding && $binding->is_func;
+
+        $binding = $dict->lookup($self->name) or die sprintf(
+            "Cannot resolve var %s, not in dictionary\n",
+            $self->name,
+        );
+        $binding->is_func and die sprintf(
+            "Cannot resolve var %s, is reserved as function name\n",
+            $self->name,
+        );
+        $self->bind($binding);
+        return;
+    }
+    sub _resolve_new {
+        my($self, $dict) = @_;
+        $self->{dict} = $dict;
+        my $binding = $dict->introduce($self->name);
+        $self->bind($binding);
+        return $binding;
+    }
 };
 
 package Axiom::Expr::Iter {
@@ -694,6 +736,16 @@ package Axiom::Expr::Iter {
         my($self, $expr) = @_;
         my($var, $targ) = @{ $self->args }[0, 3];
         return $targ->subst_var($var, $expr);
+    }
+    sub _resolve {
+        my($self, $dict) = @_;
+        $self->{dict} = $dict;
+        my($var, $from, $to, $expr) = @{ $self->args };
+        my $bind = $var->_resolve_new($dict);
+        $_->_resolve($dict) for ($from, $to);
+        my $local = $dict->local_name($var->name, $bind);
+        $expr->_resolve($dict);
+        return;
     }
 };
 
@@ -786,21 +838,11 @@ sub _grammar {
             })
             <type=(?{ 'function' })>
         <objrule: Axiom::Expr=Sum>
-            <.SumToken> <[args=SumStart]> <[args=SumEnd]>
+            <.SumToken> <[args=SumStart]> <[args=SumEnd]> <[args=BraceExpr]>
             (?{
                 # split SumStart into variable and start value, extract SumEnd
                 splice @{ $MATCH{args} }, 0, 1, @{ $MATCH{args}[0]{args} };
                 $MATCH{args}[2] = $MATCH{args}[2]{args}[0];
-
-                # introduce the local variable into the dictionary for the
-                # duration of the subexpression
-                my $var = $MATCH{args}[0];
-                local $Axiom::Expr::DICT->dict->{$var->name} = $var->binding;
-            })
-            <[args=BraceExpr]>
-            (?{
-                my $var = $MATCH{args}[0];
-                local $Axiom::Expr::DICT->dict->{$var->name} = undef;
             })
             <type=(?{ 'sum' })>
 
@@ -810,28 +852,19 @@ sub _grammar {
             _ \{ <[args=AssignExpr]> \}
             (?{ $MATCH = { args => $MATCH{args}[0]{args} } })
         <rule: AssignExpr>
-            <[args=NewVariable]> <.AssignToken> <[args=Expr]>
+            <[args=Variable]> <.AssignToken> <[args=Expr]>
         <rule: SumEnd>
             <.PowerToken> (?:
                 \{ <[args=Expr]> \}
                 | <[args=Atom]>
             )
         <rule: RemapExpr>
-            <[args=NewVariable]> <.BindToken>
-            (?{
-                my $var = $MATCH{args}[0];
-                local $Axiom::Expr::DICT->dict->{$var->name} = $var->binding;
-            })
-            <[args=Expr]>
-            (?{
-                my $var = $MATCH{args}[0];
-                local $Axiom::Expr::DICT->dict->{$var->name} = undef;
-            })
+            <[args=Variable]> <.BindToken> <[args=Expr]>
         <rule: FuncName>
             <[args=Name]> (??{
                 my $name = $MATCH{args}[0];
                 my $func = $Axiom::Expr::DICT->lookup($name->name);
-                if ($func && $func->type eq 'func') {
+                if ($func && $func->is_func) {
                     $name->bind($func);
                     $MATCH = $name;
                     $Axiom::Expr::SUCCEED;
@@ -843,23 +876,9 @@ sub _grammar {
             <[args=Name]> (??{
                 my $name = $MATCH{args}[0];
                 my $var = $Axiom::Expr::DICT->lookup($name->name);
-                if ($var && ($var->type eq 'var' || $var->type eq 'local')) {
-                    $name->bind($var);
-                    $MATCH = $name;
-                    $Axiom::Expr::SUCCEED;
-                } else {
-                    $Axiom::Expr::FAIL;
-                }
-            })
-        <rule: NewVariable>
-            <[args=Name]> (??{
-                my $name = $MATCH{args}[0];
-                my $var = $Axiom::Expr::DICT->lookup($name->name);
-                if ($var) {
+                if ($var && $var->is_func) {
                     $Axiom::Expr::FAIL;
                 } else {
-                    $var = $Axiom::Expr::DICT->introduce($name->name);
-                    $name->bind($var);
                     $MATCH = $name;
                     $Axiom::Expr::SUCCEED;
                 }

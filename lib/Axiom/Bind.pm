@@ -11,8 +11,14 @@ sub new {
         id => $id,
     }, $class;
 }
+sub clone {
+    my($self) = @_;
+    return ref($self)->new($self->name, $self->id);
+}
+
 sub name { shift->{name} }
 sub id { shift->{'id'} }
+sub is_func { 0 }
 sub typeclass {
     return state $typeclass = {
         map +($_->type => $_), qw{
@@ -28,6 +34,7 @@ package Axiom::Bind::Var {
 package Axiom::Bind::Func {
     our @ISA = qw{Axiom::Bind};
     sub type { 'func' }
+    sub is_func { 1 }
 };
 package Axiom::Bind::Local {
     our @ISA = qw{Axiom::Bind};
