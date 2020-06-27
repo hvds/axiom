@@ -5,6 +5,8 @@ use strict;
 use warnings;
 
 use Math::BigRat;
+use List::Util ();
+use Carp qw{ confess };
 
 our $SUCCEED = qr{(?=)};
 our $FAIL = qr{(?!)};
@@ -462,6 +464,41 @@ sub copy_with {
     });
 }
 
+sub common_loc {
+    my($self, $vi) = @_;
+    my @all;
+    $self->walk_locn(sub {
+        my($expr, $loc) = @_;
+        push @all, $loc if $expr->type eq 'name'
+                && !$expr->binding->is_func
+                && $expr->binding->id == $vi;
+    });
+    die "Variable index $vi not found in expr @{[ $self->str ]}" unless @all;
+    return List::Util::reduce(sub {
+        my @new;
+        while (@$a && @$b) {
+            my $la = shift @$a;
+            my $lb = shift @$b;
+            last if $la != $lb;
+            push @new, $la;
+        }
+        [@new];
+    }, @all);
+}
+
+sub dict_at {
+    my($self, $loc) = @_;
+    my $dict = $self->{dict}->clone;
+    return $self->_dict_at($dict, [ @$loc ]);
+}
+
+sub _dict_at {
+    my($self, $dict, $loc) = @_;
+    return $dict unless @$loc;
+    my $this = shift(@$loc) - 1;
+    return $self->args->[$this]->_dict_at($dict, $loc);
+}
+
 sub substitute {
     my($self, $location, $replace) = @_;
 # FIXME: must introduce and re-bind any local variables in $replace
@@ -484,7 +521,12 @@ sub substitute {
 
 sub subst_var {
     my($self, $var, $replace) = @_;
-    my $vi = $var->binding->id;
+    my $vi;
+    if ($var->binding) {
+        $vi = $var->binding->id;
+    } else {
+        confess("var @{[ $var->name ]} is unbound\n");
+    }
     return $self->subst_vars({ $vi => $replace });
 }
 
@@ -504,6 +546,19 @@ sub walk_tree {
     $cb->($self);
     unless ($self->is_atom) {
         $_->walk_tree($cb) for @{ $self->args };
+    }
+    return;
+}
+
+sub walk_locn {
+    my($self, $cb, $loc) = @_;
+    $loc //= [];
+    $cb->($self, $loc);
+    unless ($self->is_atom) {
+        my $args = $self->args;
+        for my $i (0 .. $#$args) {
+            $args->[$i]->walk_locn($cb, [ @$loc, $i + 1 ]);
+        }
     }
     return;
 }
@@ -661,6 +716,8 @@ package Axiom::Expr::Const {
 };
 
 package Axiom::Expr::Name {
+    use Carp qw{ confess };
+
     our @ISA = qw{Axiom::Expr};
     sub new {
         my($class, $hash) = @_;
@@ -700,6 +757,7 @@ package Axiom::Expr::Name {
     sub bindtype {
         my($self) = @_;
         my $binding = $self->binding;
+        confess("var ", $self->name, " is unbound") unless $binding;
         return $binding->type;
     }
     sub _resolve {
@@ -708,7 +766,7 @@ package Axiom::Expr::Name {
         my $binding = $self->binding;
         return if $binding && $binding->is_func;
 
-        $binding = $dict->lookup($self->name) or die sprintf(
+        $binding = $dict->lookup($self->name) or confess sprintf(
             "Cannot resolve var %s, not in dictionary\n",
             $self->name,
         );
@@ -758,6 +816,7 @@ package Axiom::Expr::Iter {
     }
     sub value_at {
         my($self, $expr) = @_;
+# FIXME: expr may have variables that need resolving/checking
         my($var, $targ) = @{ $self->args }[0, 3];
         return $targ->subst_var($var, $expr);
     }
@@ -770,6 +829,17 @@ package Axiom::Expr::Iter {
         my $local = $dict->local_name($var->name, $bind);
         $expr->_resolve($dict);
         return;
+    }
+    sub _dict_at {
+        my($self, $dict, $loc) = @_;
+        return $dict unless @$loc;
+        my $this = shift(@$loc) - 1;
+        my $result = $self->args->[$this]->_dict_at($dict, $loc);
+        if ($this == 3) {
+            my $var = $self->args->[0];
+            $result->dict->{$var->name} = $var->binding;
+        }
+        return $result;
     }
 };
 
@@ -784,6 +854,17 @@ package Axiom::Expr::Quant {
         my $local = $dict->local_name($var->name, $bind);
         $expr->_resolve($dict);
         return;
+    }
+    sub _dict_at {
+        my($self, $dict, $loc) = @_;
+        return $dict unless @$loc;
+        my $this = shift(@$loc) - 1;
+        my $result = $self->args->[$this]->_dict_at($dict, $loc);
+        if ($this == 1) {
+            my $var = $self->args->[0];
+            $result->dict->{$var->name} = $var->binding;
+        }
+        return $result;
     }
 };
 
