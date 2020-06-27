@@ -1,5 +1,4 @@
-Must somehow differentiate references to variables introduced in a *import,
-dynamically during rule parsing.
+Axiom::Dict->copy v. clone
 - prove E(a, 1)
 
 Stabilise enough to write tests

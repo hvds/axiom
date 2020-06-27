@@ -1,17 +1,17 @@
 *import sum
 *func E
-*var a, b, n
+*var n
 axiom A1: E(0, 0) = 0
-axiom A2: E(a, 0) = an
-axiom A3: E(a, b) = 1 + ((n - 2)E(a, b) + E(a - 1, b) + E(a, b - 1)) / n
+axiom A2: \Aa: E(a, 0) = an
+axiom A3: \Aa: \Ab: E(a, b) = 1 + ((n - 2)E(a, b) + E(a - 1, b) + E(a, b - 1)) / n
 
-add(-((n - 2)E(a, b) / n)): E(a, b) - ((n - 2)E(a, b) / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
-factor(1, E(a, b)): E(a, b)(1 - (n - 2) / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
-factor(1.2, 1 / n): E(a, b)(2 / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
-theorem L1; multiply(n / 2): E(a, b) = n / 2 + E(a - 1, b) / 2 + E(a, b - 1) / 2
+add(-((n - 2)E(a, b) / n)): \Aa: \Ab: E(a, b) - ((n - 2)E(a, b) / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
+factor(2.2.1, E(a, b)): \Aa: \Ab: E(a, b)(1 - (n - 2) / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
+factor(2.2.1.2, 1 / n): \Aa: \Ab: E(a, b)(2 / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
+theorem L1; multiply(n / 2): \Aa: \Ab: E(a, b) = n / 2 + E(a - 1, b) / 2 + E(a, b - 1) / 2
 
-recurse(b := b - 1, b): E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} (n / 2 + E(a - 1, b - i) / 2) } + (1 / 2)^{b} E(a, 0)
-equate(2.2.2, A2): E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} (n / 2 + E(a - 1, b - i) / 2) } + (1 / 2)^{b} . an
-distrib(2.1.4, 1, 2): E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} n / 2 + (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
-unarydistrib(2.1): E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} n / 2 } + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
-factor(2.1, n / 2): E(a, b) = (n / 2) . \sum_{i=0}^{b - 1}{ 2^{-i} } + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
+recurse(b := b - 1, b): \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} (n / 2 + E(a - 1, b - i) / 2) } + (1 / 2)^{b} E(a, 0)
+equate(2.2.2.2.2, A2): \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} (n / 2 + E(a - 1, b - i) / 2) } + (1 / 2)^{b} . an
+distrib(2.2.2.1.4, 1, 2): \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} n / 2 + (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
+unarydistrib(2.2.2.1): \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} n / 2 } + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
+factor(2.2.2.1, n / 2): \Aa: \Ab: E(a, b) = (n / 2) . \sum_{i=0}^{b - 1}{ 2^{-i} } + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
