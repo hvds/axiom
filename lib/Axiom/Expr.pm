@@ -16,6 +16,7 @@ my %classtype = (
     (map +($_ => 'Axiom::Expr::Const'), qw{ integer rational }),
     (map +($_ => 'Axiom::Expr::Name'), qw{ name }),
     (map +($_ => 'Axiom::Expr::Iter'), qw{ sum prod }),
+    (map +($_ => 'Axiom::Expr::Quant'), qw{ forall exists }),
 );
 
 sub new {
@@ -52,6 +53,7 @@ sub rawexpr {
 sub is_atom { 0 }
 sub is_const { 0 }
 sub is_iter { 0 }
+sub is_quant { 0 }
 sub is_list { $listtype{ shift->type } }
 
 sub is_neg {
@@ -104,6 +106,28 @@ sub _clean {
         expr => sub { return $self->args->[0] },
         braceexpr => sub { return $self->args->[0] },
         parenexpr => sub { return $self->args->[0] },
+        forall => sub {
+            my($var, $child) = @$args;
+            if ($child->type eq 'forall'
+                && $var->name gt $child->args->[0]->name
+            ) {
+                # \b \a x -> \a \b x
+                return Axiom::Expr->new({
+                    type => 'forall',
+                    args => [
+                        $child->args->[0]->copy,
+                        Axiom::Expr->new({
+                            type => 'forall',
+                            args => [
+                                $var->copy,
+                                $child->args->[1]->copy,
+                            ],
+                        }),
+                    ],
+                });
+            }
+            return undef;
+        },
         pluslist => sub {
             # +(null) -> 0
             return Axiom::Expr->new({
@@ -749,6 +773,20 @@ package Axiom::Expr::Iter {
     }
 };
 
+package Axiom::Expr::Quant {
+    our @ISA = qw{Axiom::Expr};
+    sub is_quant { 1 }
+    sub _resolve {
+        my($self, $dict) = @_;
+        $self->{dict} = $dict;
+        my($var, $expr) = @{ $self->args };
+        my $bind = $var->_resolve_new($dict);
+        my $local = $dict->local_name($var->name, $bind);
+        $expr->_resolve($dict);
+        return;
+    }
+};
+
 sub _grammar {
     use Regexp::Grammars;
     state $grammar = qr{
@@ -763,6 +801,12 @@ sub _grammar {
             |
                 <[args=Expr]> <.EqualsToken> <[args=Expr]>
                 <type=(?{ 'equals' })>
+            |
+                <.ForallToken> <[args=Variable]> : <[args=Relation]>
+                <type=(?{ 'forall' })>
+            |
+                <.ExistsToken> <[args=Variable]> : <[args=Relation]>
+                <type=(?{ 'exists' })>
             )
         <objrule: Axiom::Expr=Expr>
             <[args=PlusList]>
@@ -910,6 +954,8 @@ sub _grammar {
         <token: FactorialToken> !
         <token: CommaToken> ,
         <token: SumToken> \\sum
+        <token: ForallToken> \\A | \\forall
+        <token: ExistsToken> \\E | \\exists
         (?# Assign and Equals are ambiguous, I think that is ok )
         <token: AssignToken> =
         <token: BindToken> :=
