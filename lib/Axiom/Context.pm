@@ -22,6 +22,10 @@ sub lines { shift->{lines} }
 sub named { shift->{named} }
 sub onamed { shift->{onamed} }
 sub dict { shift->{dict} }
+sub scope_dict {
+    return +(shift->{scope_dict} // [])->[-1]
+            // die "No scoped dictionary available";
+}
 sub curline { shift->{curline} }
 sub curlines {
     my($self) = @_;
@@ -90,6 +94,8 @@ sub add_line {
 sub enter_scope {
     my($self, $entry) = @_;
     $self->{curline} = $self->curindex;
+    push @{ $self->{scope_dict} }, $self->dict;
+    $self->{dict} = $entry->dict;
     return $self->add_line($entry);
 }
 
@@ -97,6 +103,8 @@ sub leave_scope {
     my($self, $entry) = @_;
     $self->{curline} =~ s{(?:^|\.)\d+\z}{}
             or die "Cannot leave_scope: no scope at $self->{curline}\n";
+    my $dict = pop @{ $self->{scope_dict} };
+    $self->{dict} = $dict;
     return $self->add_line($entry);
 }
 

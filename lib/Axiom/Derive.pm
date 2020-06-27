@@ -75,7 +75,6 @@ sub derive {
     $line =~ s/^\s+//;
 
     my $expr = Axiom::Expr->parse($self->dict, $line, $debug) or return;
-    $expr->resolve($self->dict);
     $self->{rawexpr} = $line;
     $self->{expr} = $expr;
     $self->validate(\@rules) or return;
@@ -130,9 +129,11 @@ sub _rulere {
         )
         <rule: theorem> theorem (?: <[args=rulename]> | <args=(?{ [] })> )
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
-        <rule: identity> identity \( <[args=Expr]> \)
-        <rule: condstart> condstart <args=(?{ [] })>
-        <rule: condend> condend <args=(?{ [] })>
+        <rule: identity> identity \( <[args=varlist]> , <[args=Expr]> \)
+            (?{ $MATCH{args}[0] = $MATCH{args}[0]{args} })
+        <rule: condstart> condstart \( <[args=varlist]> \)
+            (?{ $MATCH{args}[0] = $MATCH{args}[0]{args} })
+        <rule: condend> condend \( <[args=varmap]> \)
         <rule: induction> induction \( <[args=Variable]> , <[args=Expr]> \)
         <rule: equate>
             equate \( <[args=optline]> <[args=location]> ,
@@ -178,6 +179,7 @@ sub _rulere {
 
         <rule: varmap> (?: \{ (?: <[args=pair]>* % , )? \} )
         <rule: pair> <[args=Variable]> := <[args=Expr]>
+        <rule: varlist> \{ <[args=Variable]>* % , <.ws>? \}
 
         <token: optline>
             <args=line> : <args=(?{ $MATCH{args}{args} })>
@@ -348,11 +350,17 @@ sub _f_pow {
         },
         identity => sub {
             my($self, $args) = @_;
-            my $expr = $args->[0];
+            my($varlist, $expr) = @$args;
             my $result = Axiom::Expr->new({
                 type => 'equals',
                 args => [ $expr->copy, $expr->copy ],
             });
+            for my $var (reverse @$varlist) {
+                $result = Axiom::Expr->new({
+                    type => 'forall',
+                    args => [ $var, $result ],
+                });
+            }
             $result->resolve($self->dict);
             $self->working($result);
             push @{ $self->rules }, sprintf 'identity(%s)', $expr->rawexpr;
@@ -360,23 +368,44 @@ sub _f_pow {
         },
         condstart => sub {
             my($self, $args) = @_;
+            my($varlist) = @$args;
+            my $dict = $self->dict->clone;
+            $dict->insert($_->name, 'var') for @$varlist;
+            my $result = $self->expr;
+            $result->resolve($dict);
             $self->working($self->expr);
+            $self->{dict} = $dict;
             $self->scope(1);
             push @{ $self->rules }, 'condstart';
             return 1;
         },
         condend => sub {
             my($self, $args) = @_;
+            my($map) = @$args;
             my $where = $self->context->curline;
             my $cond = $self->context->expr("$where.0");
+            my %vmap = map {
+                my($var, $expr) = @{ $_->{args} };
+                $var->resolve($self->dict);
+                +($var->binding->id => $expr)
+            } @{ $map->{args} // [] };
+
             my $result = Axiom::Expr->new({
                 type => 'implies',
                 args => [
                     $cond->copy,
                     $self->working->copy,
                 ],
-            });
-            $result->resolve($self->dict);
+            })->subst_vars(\%vmap);
+            for my $var (reverse sort values %vmap) {
+                $result = Axiom::Expr->new({
+                    type => 'forall',
+                    args => [ $var, $result ],
+                });
+            }
+
+            my $dict = $self->context->scope_dict;
+            $result->resolve($dict);
             $self->working($result);
             $self->scope(-1);
             push @{ $self->rules }, 'condend';
@@ -388,29 +417,53 @@ sub _f_pow {
             my $starting = $self->working;
             # FIXME: source of base line should be explicit
             my $base = $self->context->lines->{$self->context->curline}[-2]->expr;
-            $starting->type eq 'implies' or die sprintf
-                    "Cannot apply induction over a %s\n", $starting->type;
-            my($result, $next) = @{ $starting->args };
-            $var->resolve($self->dict);
-            $base_expr->resolve($self->dict);
-            my $expect_base = $result->subst_var($var, $base_expr);
+            $starting->type eq 'forall' or die sprintf
+                    "Induction requires 'forall', not %s\n", $starting->type;
+            my($ivar, $iexpr) = @{ $starting->args };
+            $ivar->name eq $var->name or die sprintf(
+                "Induction variable '%s' does not match '%s' found\n",
+                $var->name, $ivar->name,
+            );
+            $iexpr->type eq 'implies' or die sprintf(
+                "Induction requires 'implies', not '%s' in forall\n",
+                $iexpr->type,
+            );
+            my($result, $next) = @{ $iexpr->args };
+
+            # Allow the base_expr to reference any names resolvable at
+            # the deepest common subexpr that covers all references
+            # to be substituted.
+            my $common = $result->common_loc($ivar->binding->id);
+            my $subdict = $result->dict_at($common);
+            $base_expr->resolve($subdict);
+            my $expect_base = $result->subst_var($ivar, $base_expr);
             my $diff = $expect_base->diff($base);
             if ($diff) {
                 die sprintf "base expressions differ at\n  %s\n  %s\n",
                         map $_->locate($diff)->str, $expect_base, $base;
             }
-            my $expect_next = $result->subst_var($var, Axiom::Expr->new({
+
+            # The next_expr may resolve the same set of names as above,
+            # but may also reference the variable we're substituting.
+            $subdict->dict->{$ivar->name} = $ivar->binding;
+            my $next_expr = Axiom::Expr->new({
                 type => 'pluslist',
                 args => [ $var->copy, _one() ],
-            }));
+            });
+            $next_expr->resolve($subdict);
+            my $expect_next = $result->subst_var($ivar, $next_expr);
             $diff = $expect_next->diff($next);
             if ($diff) {
                 die sprintf "next expressions differ at\n  %s\n  %s\n",
                         map $_->locate($diff)->str, $expect_next, $next;
             }
+
             # FIXME: attach 'var >= base_expr -> ...' unless that covers
             # the whole domain of the var.
-            $result->resolve($self->dict);
+            $result = Axiom::Expr->new({
+                type => 'forall',
+                args => [ $ivar->copy, $result ],
+            });
             $self->working($result->copy);
             push @{ $self->rules }, sprintf 'induction(%s, %s)',
                     $var->name, $base_expr->rawexpr;
@@ -421,31 +474,42 @@ sub _f_pow {
             my($line, $loc, $eqline, $map) = @$args;
             my $starting = $self->line($line);
             my $expr = $starting->locate($loc);
+
+            my $from = $self->line($eqline);
+            my $from_expr = $from;
+            my $from_loc = [];
+            while ($from_expr->type eq 'forall') {
+                push @$from_loc, 2;
+                $from_expr = $from_expr->args->[1];
+            }
+            $from_expr->type eq 'equals' or die sprintf(
+                "Can't equate() with a %s\n", $from_expr->type,
+            );
+            my $from_dict = $from->dict_at($from_loc);
+            my $to_dict = $starting->dict_at($loc);
+
             my %vmap = map {
                 my($var, $expr) = @{ $_->{args} };
-                $_->resolve($self->dict) for ($var, $expr);
+                $var->resolve($from_dict);
+                $expr->resolve($to_dict);
                 +($var->binding->id => $expr)
             } @{ $map->{args} // [] };
-            my $equate = $self->line($eqline)->subst_vars(\%vmap);
+            my $equate = $from_expr->subst_vars(\%vmap);
 
             my $repl;
-            if ($equate->type eq 'equals') {
-                my($left, $right) = @{ $equate->args };
-                if (! $expr->diff($left)) {
-                    $repl = $right;
-                } elsif (! $expr->diff($right)) {
-                    $repl = $left;
-                } else {
-                    die sprintf(
-                        "Neither side of equate %s matches target %s\n",
-                        $equate->str, $expr->str,
-                    );
-                }
+            my($left, $right) = @{ $equate->args };
+            if (! $expr->diff($left)) {
+                $repl = $right;
+            } elsif (! $expr->diff($right)) {
+                $repl = $left;
             } else {
-                die "Can't equate() with a %s\n", $equate->type;
+                die sprintf(
+                    "Neither side of equate %s matches target %s\n",
+                    $equate->str, $expr->str,
+                );
             }
+
             my $result = $starting->substitute($loc, $repl);
-            $result->resolve($self->dict);
             $self->working($result);
             push @{ $self->rules }, sprintf 'equate(%s%s, %s%s)',
                     _linename($line), join('.', @$loc), $eqline, _map($map);
@@ -572,15 +636,23 @@ sub _f_pow {
             my($self, $args) = @_;
             my($line, $expr) = @$args;
             my $starting = $self->line($line);
-            $starting->type eq 'equals'
-                    or die "don't know how to add to a %s\n", $starting->type;
-            my $result = Axiom::Expr->new({
-                type => $starting->type,
+            my $loc = [];
+            my $eq = $starting;
+            while ($eq->is_quant) {
+                push @$loc, 2;
+                $eq = $eq->args->[1];
+            }
+            $eq->type eq 'equals' or die sprintf(
+                "don't know how to add to a %s\n", $eq->type
+            );
+            my $repl = Axiom::Expr->new({
+                type => $eq->type,
                 args => [ map Axiom::Expr->new({
                     type => 'pluslist',
                     args => [ $_->copy, $expr->copy ],
-                }), @{ $starting->args } ],
+                }), @{ $eq->args } ],
             });
+            my $result = $starting->substitute($loc, $repl);
             $result->resolve($self->dict);
             $self->working($result);
             push @{ $self->rules }, sprintf 'add(%s%s)',
@@ -591,15 +663,23 @@ sub _f_pow {
             my($self, $args) = @_;
             my($line, $expr) = @$args;
             my $starting = $self->line($line);
-            $starting->type eq 'equals'
-                    or die "don't know how to multiply a %s\n", $starting->type;
-            my $result = Axiom::Expr->new({
-                type => $starting->type,
+            my $loc = [];
+            my $eq = $starting;
+            while ($eq->is_quant) {
+                push @$loc, 2;
+                $eq = $eq->args->[1];
+            }
+            $eq->type eq 'equals' or die sprintf(
+                "don't know how to multiply a %s\n", $starting->type,
+            );
+            my $repl = Axiom::Expr->new({
+                type => $eq->type,
                 args => [ map Axiom::Expr->new({
                     type => 'mullist',
                     args => [ $_->copy, $expr->copy ],
-                }), @{ $starting->args } ],
+                }), @{ $eq->args } ],
             });
+            my $result = $starting->substitute($loc, $repl);
             $result->resolve($self->dict);
             $self->working($result);
             push @{ $self->rules }, sprintf 'multiply(%s%s)',
@@ -611,7 +691,8 @@ sub _f_pow {
             my($line, $loc, $expr) = @$args;
             my $starting = $self->line($line);
             my $targ = $starting->locate($loc);
-            $expr->resolve($self->dict);
+            my $subdict = $starting->dict_at($loc);
+            $expr->resolve($subdict);
             my $repl;
             if ($targ->type eq 'pluslist') {
                 $repl = Axiom::Expr->new({
@@ -636,7 +717,6 @@ sub _f_pow {
                 die sprintf "don't know how to factor a %s\n", $targ->type;
             }
             my $result = $starting->substitute($loc, $repl);
-            $result->resolve($self->dict);
             $self->working($result);
             push @{ $self->rules }, sprintf 'factor(%s%s, %s)',
                     _linename($line), join('.', @$loc), $expr->rawexpr;
@@ -648,7 +728,7 @@ sub _f_pow {
             my $starting = $self->line($line);
             my $iter = $starting->locate($loc);
             my $repl;
-            die "Cannot iterate over a %s\n", $iter->type
+            die sprintf "Cannot iterate over a %s\n", $iter->type
                     unless $iter->is_iter;
             if ($iter->type eq 'sum') {
                 $repl = Axiom::Expr->new({
@@ -730,7 +810,7 @@ sub _f_pow {
             );
             my($var, $from, $to, $expr) = @{ $iter->args };
 
-            my $cdict = $self->dict->clone;
+            my $cdict = $starting->dict_at($loc);
             my $cbind = $cvar->_resolve_new($cdict);
             {
                 my $local = $cdict->local_name($cvar->name, $cbind);
@@ -790,16 +870,25 @@ sub _f_pow {
             my($self, $args) = @_;
             my($line, $var, $iter, $count) = @$args;
             my $starting = $self->line($line);
-            $_->resolve($self->dict) for ($var, $iter, $count);
+            my $loc = [];
+            my $eq = $starting;
+            while ($eq->is_quant) {
+                push @$loc, 2;
+                $eq = $eq->args->[1];
+            }
+
+            my $subdict = $starting->dict_at($loc);
+            $_->resolve($subdict) for ($var, $iter, $count);
+
             # Given f(x) = af(g(x)) + bh(x) + c, we iteratively replace
             # af(g(x)) with the equivalent evaluation of the whole RHS
             # n times to give
             #  f(x) = a^n f(g^n(x)) + sum_0^{n-1}{ a^i (bh(g^i(x)) + c) }
 
-            $starting->type eq 'equals' or die sprintf(
-                "Don't know how to apply recurse over a %s\n", $starting->type,
+            $eq->type eq 'equals' or die sprintf(
+                "Don't know how to apply recurse over a %s\n", $eq->type,
             );
-            my($lhs, $rhs) = @{ $starting->args };
+            my($lhs, $rhs) = @{ $eq->args };
             my $base_pow = _f_pow($var, $iter, $count) or die sprintf(
                 "Don't know how to recurse iteration %s := %s\n",
                 $var->name, $iter->rawexpr,
@@ -809,14 +898,14 @@ sub _f_pow {
                 "LHS of recurse expression is independent of %s\n", $var->name,
             );
             my $expect = $lhs->subst_var($var, $iter);
-            my $loc = $rhs->find_expr($expect) or die sprintf(
+            my $rloc = $rhs->find_expr($expect) or die sprintf(
                 "Unable to find %s in %s\n",
                 $expect->str, $rhs->str,
             );
             my $prod = _one();
             my $cur;
-            for (0 .. $#$loc) {
-                $cur = $_ ? $cur->args->[ $loc->[$_ - 1] ] : $rhs;
+            for (0 .. $#$rloc) {
+                $cur = $_ ? $cur->args->[ $rloc->[$_ - 1] ] : $rhs;
                 my $type = $cur->type;
                 if ($type eq 'pluslist') {
                     next;
@@ -824,11 +913,11 @@ sub _f_pow {
                     $prod = $prod->negate;
                     next;
                 } elsif ($type eq 'mullist') {
-                    my $next_loc = $loc->[$_];
+                    my $next_rloc = $rloc->[$_];
                     my $args = $cur->args;
                     $prod = Axiom::Expr->new({
                         type => 'mullist',
-                        args => [ $prod, @$args[ grep $_ != $next_loc, 0 .. $#$args ] ],
+                        args => [ $prod, @$args[ grep $_ != $next_rloc, 0 .. $#$args ] ],
                     });
                     next;
                 } elsif ($type eq 'recip') {
@@ -885,7 +974,7 @@ sub _f_pow {
             });
             # (f(x) = af(g(x)) + bh(x) + c)
             # -> f(x) = a^n . f(g^n(x)) + \sum_{i=0}^{n-1}{a^i(bh(g^i(x)) + c)}
-            my $result = Axiom::Expr->new({
+            my $repl = Axiom::Expr->new({
                 type => 'equals',
                 args => [
                     $lhs->copy,
@@ -910,6 +999,7 @@ sub _f_pow {
                     }),
                 ],
             });
+            my $result = $starting->substitute($loc, $repl);
             $result->resolve($self->dict);
             $self->working($result);
             push @{ $self->rules }, sprintf(
@@ -921,11 +1011,12 @@ sub _f_pow {
     );
     sub validate {
         my($self, $rules) = @_;
-        my $expr = $self->expr;
         for my $rule (@$rules) {
             my($type, $args) = @$rule;
             return unless $validation{$type}->($self, $args);
         }
+        my $expr = $self->expr;
+        $expr->resolve($self->dict);
         my $diff = $expr->diff($self->working);
         return $self unless $diff;
         die sprintf "Expressions differ at\n  %s\n  %s\nclean:\n  %s\n  %s\n",
