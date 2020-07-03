@@ -160,7 +160,8 @@ sub _rulere {
             iterexpand \( <[args=optline]> <[args=location]> \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
         <rule: iterextend>
-            iterextend \( <[args=optline]> <[args=location]> , <[args=arg]> \)
+            iterextend \( <[args=optline]> <[args=location]> ,
+                    <[args=num]> (?: , <[args=num]> )? \)
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
         <rule: itervar>
             # FIXME: we actually need to parse the RemapExpr in the context
@@ -190,6 +191,7 @@ sub _rulere {
         <token: rulename> <args=(?:[A-Z]\w*(?!\w))>
         <token: location> <[args=arg]>+ % \.
         <token: arg> \d+
+        <token: num> -?\d+
     }x;
 }
 BEGIN { _rulere() }
@@ -748,30 +750,29 @@ sub _f_pow {
         },
         iterextend => sub {
             my($self, $args) = @_;
-            my($line, $loc, $dir) = @$args;
+            my($line, $loc, $which, $dir) = @$args;
             my $starting = $self->line($line);
             my $iter = $starting->locate($loc);
             my $repl;
             if ($iter->type eq 'sum') {
                 my($var, $from, $to, $expr) = @{ $iter->args };
-                my($base, $add);
-                if ($dir == 0) {
-                    $base = $from;
-                    $add = '-1';
-                } else {
-                    $base = $to;
-                    $add = '1';
-                }
+                my $base = ($which > 0) ? $to : $from;
                 my $var_at = Axiom::Expr->new({
                     type => 'pluslist',
                     args => [
                         $base->copy,
                         Axiom::Expr->new({
                             type => 'integer',
-                            args => [ $add ],
+                            args => [ $dir > 0 ? '1' : '-1' ],
                         }),
                     ],
                 });
+                my $newfrom = ($which > 0) ? $from->copy : $var_at;
+                my $newto = ($which > 0) ? $var_at : $to->copy;
+                my($sign, $diff) = ($which > 0)
+                    ? ($dir > 0) ? (-1, $var_at) : (1, $to)
+                    : ($dir > 0) ? (1, $from) : (-1, $var_at);
+                my $value = $iter->value_at($diff);
                 $repl = Axiom::Expr->new({
                     type => 'pluslist',
                     args => [
@@ -779,15 +780,18 @@ sub _f_pow {
                             type => 'sum',
                             args => [
                                 $var->copy,
-                                ($base == $from) ? $var_at : $from->copy,
-                                ($base == $to) ? $var_at : $to->copy,
+                                $newfrom,
+                                $newto,
                                 $expr->copy,
                             ],
                         }),
-                        Axiom::Expr->new({
-                            type => 'negate',
-                            args => [ $iter->value_at($var_at) ],
-                        }),
+                        ($sign > 0
+                            ? $value
+                            : Axiom::Expr->new({
+                                type => 'negate',
+                                args => [ $value ],
+                            }),
+                        ),
                     ],
                 });
             } else {
@@ -796,8 +800,8 @@ sub _f_pow {
             my $result = $starting->substitute($loc, $repl);
             $result->resolve($self->dict);
             $self->working($result);
-            push @{ $self->rules }, sprintf 'iterextend(%s%s, %s)',
-                    _linename($line), join('.', @$loc), $dir;
+            push @{ $self->rules }, sprintf 'iterextend(%s%s, %s, %s)',
+                    _linename($line), join('.', @$loc), $which, $dir;
             return 1;
         },
         itervar => sub {
