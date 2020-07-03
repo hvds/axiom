@@ -107,6 +107,7 @@ sub _rulere {
             <axiom>
             | <theorem>
             | <identity>
+            | <specify>
             | <condstart>
             | <condend>
             | <induction>
@@ -131,6 +132,10 @@ sub _rulere {
             (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
         <rule: identity> identity \( <[args=varlist]> , <[args=Expr]> \)
             (?{ $MATCH{args}[0] = $MATCH{args}[0]{args} })
+        <rule: specify> specify \( <[args=optline]> <[args=pair]> \)
+            (?{ @{ $MATCH{args} } = (
+                $MATCH{args}[0]{args}, @{ $MATCH{args}[1]{args} }
+            ) })
         <rule: condstart> condstart \( <[args=varlist]> \)
             (?{ $MATCH{args}[0] = $MATCH{args}[0]{args} })
         <rule: condend> condend \( <[args=varmap]> \)
@@ -366,6 +371,36 @@ sub _f_pow {
             $result->resolve($self->dict);
             $self->working($result);
             push @{ $self->rules }, sprintf 'identity(%s)', $expr->rawexpr;
+            return 1;
+        },
+        specify => sub {
+            my($self, $args) = @_;
+            my($line, $var, $value) = @$args;
+            my $starting = $self->line($line);
+            my $expr = $starting;
+            my $loc = [];
+            while (1) {
+                $expr->type eq 'forall' or die sprintf(
+                    'Need forall for specify(), not %s', $expr->type,
+                );
+                my($fvar, $fexpr) = @{ $expr->args };
+                if ($fvar->name ne $var->name) {
+                    push @$loc, 2;
+                    $expr = $fexpr;
+                    next;
+                }
+                $var = $fvar;
+                $expr = $fexpr;
+                last;
+            }
+            # note _not_ including $var
+            my $subdict = $starting->dict_at($loc);
+            $value->resolve($subdict);
+            my $repl = $expr->subst_var($var, $value);
+            my $result = $starting->substitute($loc, $repl);
+            $self->working($result);
+            push @{ $self->rules }, sprintf 'specify(%s, %s)',
+                    $var->rawexpr, $value->rawexpr;
             return 1;
         },
         condstart => sub {
