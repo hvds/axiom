@@ -2,16 +2,35 @@
 *func E
 *var n
 axiom A1: E(0, 0) = 0
-axiom A2: \Aa: E(a, 0) = an
+axiom A2a: \Aa: E(a, 0) = an
+axiom A2b: \Aa: E(0, a) = an
 axiom A3: \Aa: \Ab: E(a, b) = 1 + ((n - 2)E(a, b) + E(a - 1, b) + E(a, b - 1)) / n
 
 add(-((n - 2)E(a, b) / n)): \Aa: \Ab: E(a, b) - ((n - 2)E(a, b) / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
 factor(2.2.1, E(a, b)): \Aa: \Ab: E(a, b)(1 - (n - 2) / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
 factor(2.2.1.2, 1 / n): \Aa: \Ab: E(a, b)(2 / n) = 1 + E(a - 1, b) / n + E(a, b - 1) / n
-theorem L1; multiply(n / 2): \Aa: \Ab: E(a, b) = n / 2 + E(a - 1, b) / 2 + E(a, b - 1) / 2
+theorem T1; multiply(n / 2): \Aa: \Ab: E(a, b) = n / 2 + E(a - 1, b) / 2 + E(a, b - 1) / 2
 
 recurse(b := b - 1, b): \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} (n / 2 + E(a - 1, b - i) / 2) } + (1 / 2)^{b} E(a, 0)
-equate(2.2.2.2.2, A2): \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} (n / 2 + E(a - 1, b - i) / 2) } + (1 / 2)^{b} . an
+equate(2.2.2.2.2, A2a): \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} (n / 2 + E(a - 1, b - i) / 2) } + (1 / 2)^{b} . an
 distrib(2.2.2.1.4, 1, 2): \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} n / 2 + (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
 unarydistrib(2.2.2.1): \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} n / 2 } + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
-factor(2.2.2.1, n / 2): \Aa: \Ab: E(a, b) = (n / 2) . \sum_{i=0}^{b - 1}{ 2^{-i} } + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
+theorem T2; factor(2.2.2.1, n / 2): \Aa: \Ab: E(a, b) = (n / 2) . \sum_{i=0}^{b - 1}{ 2^{-i} } + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + (1 / 2)^{b} . an
+
+specify(b := 1): \Aa: E(a, 1) = (n / 2) . \sum_{i=0}^0{ 2^{-i} } + \sum_{i=0}^0{ (1/2)^{i} E(a - 1, 1 - i) / 2 } + (1 / 2) . an
+iterexpand(2.2.1.3); iterexpand(2.2.2); factor(2.2, n): \Aa: E(a, 1) = (a + 1)n / 2 + E(a - 1, 1) / 2
+recurse(a := a - 1, a): \Aa: E(a, 1) = \sum_{i=0}^{a-1}{ 2^{-i} (a - i + 1)n / 2 } + 2^{-a} E(0, 1)
+equate(2.2.2.2, A2b, { a := 1 }): \Aa: E(a, 1) = \sum_{i=0}^{a-1}{ 2^{-i} (a - i + 1)n / 2 } + 2^{-a} n
+factor(2.2.1, n / 2): \Aa: E(a, 1) = (n / 2) \sum_{i=0}^{a-1}{ 2^{-i} (a - i + 1)} + 2^{-a} n
+
+factor(2.2, n / 2): \Aa: E(a, 1) = n(\sum_{i=0}^{a-1}{ 2^{-i} (a - i + 1)} + 2^{1 - a}) / 2
+distrib(2.2.2.1.4, 1, 2): \Aa: E(a, 1) = n(\sum_{i=0}^{a-1}{ 2^{-i} a - 2^{-i} i + 2^{-i} } + 2^{1 - a}) / 2
+unarydistrib(2.2.2.1): \Aa: E(a, 1) = n(\sum_{i=0}^{a-1}{ 2^{-i} a } + \sum_{i=0}^{a-1}{ -2^{-i} i } + \sum_{i=0}^{a-1}{ 2^{-i} } + 2^{1 - a}) / 2
+factor(2.2.2.1, a): \Aa: E(a, 1) = n(a \sum_{i=0}^{a-1}{ 2^{-i} } + \sum_{i=0}^{a-1}{ -2^{-i} i } + \sum_{i=0}^{a-1}{ 2^{-i} } + 2^{1 - a}) / 2
+equate(2.2.2.1.2, sum.Sum_pow_m2, { a := 0, b := a - 1 }): \Aa: E(a, 1) = n(a(2 - 2^{1 - a}) + \sum_{i=0}^{a-1}{ -2^{-i} i } + \sum_{i=0}^{a-1}{ 2^{-i} } + 2^{1 - a}) / 2
+equate(2.2.2.3, sum.Sum_pow_m2, { a := 0, b := a - 1 }): \Aa: E(a, 1) = n(a(2 - 2^{1 - a}) + \sum_{i=0}^{a-1}{ -2^{-i} i } + 2) / 2
+factor(2.2.2.2, -1): \Aa: E(a, 1) = n(a(2 - 2^{1 - a}) - \sum_{i=0}^{a-1}{ 2^{-i} i } + 2) / 2
+equate(2.2.2.2.1, sum.Sum_pow_m2_i, { a := 0, b := a - 1 }): \Aa: E(a, 1) = n(a(2 - 2^{1 - a}) + 2^{1 - a} (a + 1)) / 2
+distrib(2.2.2.1, 1, 2): \Aa: E(a, 1) = n(2a - 2^{1 - a} a + 2^{1 - a} (a + 1)) / 2
+distrib(2.2.2.3, 1, 2): \Aa: E(a, 1) = n(2a + 2^{1 - a}) / 2
+theorem T3: distrib(2.2, 3, 2): \Aa: E(a, 1) = n(a + 2^{-a})

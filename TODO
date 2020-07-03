@@ -1,18 +1,14 @@
-Axiom::Dict->copy v. clone
-- prove E(a, 1)
-
 Stabilise enough to write tests
 
 Reduce explicit rules to just the rule name, discover the rest.
 Remove explicit rules entirely, discover them.
 Discover rules even when we take multiple steps.
 
-Sets, type checking.
+Sets, type checking, inequalities, constraints.
+- \Aa \e \Z, a > 10: ...
 
 Abstract out knowledge of operators:
 - arg number and types, return type
 - rules
 - constructing the grammar will be hard
 
-Optionally: assume default .aa extension.
-Load axioms/theorems from library (eg sum identities)
