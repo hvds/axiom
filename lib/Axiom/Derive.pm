@@ -434,7 +434,8 @@ sub _f_pow {
             # the deepest common subexpr that covers all references
             # to be substituted.
             my $common = $result->common_loc($ivar->binding->id);
-            my $subdict = $result->dict_at($common);
+            # $result is at [ 2, 1 ] in the primary expr
+            my $subdict = $starting->dict_at([ 2, 1, @$common ]);
             $base_expr->resolve($subdict);
             my $expect_base = $result->subst_var($ivar, $base_expr);
             my $diff = $expect_base->diff($base);
