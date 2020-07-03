@@ -720,6 +720,7 @@ sub _f_pow {
                 die sprintf "don't know how to factor a %s\n", $targ->type;
             }
             my $result = $starting->substitute($loc, $repl);
+            $result->resolve($self->dict);
             $self->working($result);
             push @{ $self->rules }, sprintf 'factor(%s%s, %s)',
                     _linename($line), join('.', @$loc), $expr->rawexpr;
