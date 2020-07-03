@@ -8,6 +8,166 @@ use Axiom::Expr;
 use Scalar::Util qw{ weaken };
 use List::Util qw{ first };
 
+=head1 NAME
+
+Axiom::Derive - objects representing and validating derivation of a line
+
+=head1 Derivations
+
+By default, derivations that refer to a previous theorem will use the
+most recently derived expression. This can be overridden by preceding
+the other arguments with an explicit reference to another theorem (by
+name or by line number) followed by a colon.
+
+=over 4
+
+=item axiom ( name )
+
+Always valid, the resulting expression is accepted as an axiom with
+the given name.
+
+=item theorem ( name )
+
+The final result of this derivation, once validated, can be referred
+to later by the given name.
+
+=item identity ( varlist, expr )
+
+Constructs a theorem of the form C< \Aa: \Ab: ... expr = expr >.
+
+=item specify ( optline, var := expr )
+
+Given a prior theorem of the form C< \Aa: P(a) >, constructs the
+new theorem C< P(x) >.
+
+=item condstart ( varlist )
+
+Starts a conditional proof, introducing the resulting expression as
+temporarily axiomatic. The variables listed in I<varlist> are introduced
+as free variables for the scope of the conditional proof.
+
+=item condend ( varmap )
+
+Ends a conditional proof, constructing a new theorem of the form
+C<< \Aa: \Ab: ... expr1 -> expr2 >>. Each of the free variables introduced
+in the corresponding C<condstart> is mapped via the I<varmap> to a new
+name and made universal; I<expr1> is the expression introduced in the
+corresponding C<condstart>; and I<expr2> is the last theorem proven.
+
+=item induction ( var, expr )
+
+Applies induction to the last two theorems; these are expected to be of
+the form C< P(base) > and C<< \Ax: P(x) -> P(x + 1) >>. The specified
+I<var> is the variable used in the second theorem; the specified I<expr>
+is the base value used in the first expression. The result is the new
+theorem C< \Ax: P(x) >.
+
+TODO: a) allow invocations to override which theorems will be used as
+input; b) restrict the resulting theorem to C<< x: x >= base >> unless
+that covers the whole domain of the variable (which means knowing what
+the domain is, which requires some degree of support for sets).
+
+=item equate ( optline, location, line, varmap )
+
+Given a prior theorem I<line> of the form C< P(a, b, ...) = Q(a, b, ... ) >,
+attempts to substitute P for Q (or Q for P) at I<location> in the I<optline>,
+substituting C<a, b, ...> as necessary via the I<varmap>.
+
+=item distrib ( optline, location, arg1, arg2 )
+
+For the subexpression at the given I<location>, distribute the expression
+at its I<arg1>th argument over its I<arg2>th argument.
+
+Eg given C< x = y(y + 1) >, the derivation C< distrib(2, 1, 2) > will
+construct C< x = y . y + y >.
+
+TODO: we currently support only type C<mullist> at I<location>, and only
+with type C<pluslist> or C<sum> at I<arg2>.
+
+=item unarydistrib ( optline, location )
+
+Distribute the unary operator at the given I<location>. 
+
+TODO: we currently support only type C<negate> distributing over a
+C<pluslist> or C<mullist>, and type C<sum> distributing over a C<pluslist>.
+
+=item add ( optline, expr )
+
+Given a prior theorem of the form C< P = Q >, constructs the new theorem
+C< P + expr = Q + expr >.
+
+=item multiply ( optline, expr )
+
+Given a prior theorem of the form C< P = Q >, constructs the new theorem
+C< P . expr = Q . expr >.
+
+=item factor ( optline, location, expr )
+
+Factors the given I<expr> out of the subexpression at I<location>.
+
+Eg given C< x = 2/y + 3/y(y+1) + 1 >, C< factor(2, 1/y) > will construct
+C< x = (1 / y)(2 + 3/(y + 1) + y) >.
+
+TODO: we currently support only factoring from type C<pluslist> or C<sum>.
+
+=item iterexpand ( optline, location )
+
+Fully expands the iterator at I<location>. Requires that the range of
+the iterator is constant and finite.
+
+Eg given C< x = \sum_{i=1}^3{y^i} >, C< iterexpand(2) > will construct
+C< x = y + y^2 + y^3 >.
+
+TODO: currently supports only type C<sum>.
+
+TODO: could also support non-constant ranges in some cases, eg when the
+expression does not depend on the iterator variable.
+
+=item iterextend ( optline, location, which, dir )
+
+Modifies the iterator at I<location> by adding or removing one element,
+at either the I<from> or the I<to> end.
+
+We modify the I<to> value if I<which> is C<1>, or I<from> if I<which> is
+C<-1>. We extend upwards if I<dir> is C<1>, or downwards if I<dir> is C<-1>.
+In every case we add or subtract the appropriate balancing expression.
+
+Eg given C< x = \sum_{i=1}^n{y^i} >, C<iterextend(2, -1, -1)> will derive
+C< x = \sum_{i=0}^n{y^i} - y^0 >.
+
+TODO: currently supports only type C<sum>.
+
+=item itervar ( optline, location, var := expr )
+
+Rebases the iterator variable I<var> for the iterator at I<location>,
+rewriting it to I<expr>. Allows for C< var := E + var > or C< var := E - var >
+where C<E> is independent of I<var>.
+
+Eg given C< x = \sum_{i=1}^n{ y^{n - i} } >, C< itervar(2, i := n - i) >
+will construct C< x = \sum_{i=0}^{n-1}{ y^i } >.
+
+=item recurse ( optline, var := expr1, expr2 )
+
+Given an I<optline> equating some function C<f> of I<var> to some function
+of C<f> of I<expr1>, recursively evaluates the result of substituting the
+same equality into the right hand side I<expr2> times.
+
+More specifically: given C< f(x) = af(g(x)) + bh(x) + c >, we iteratively
+replace C< af(g(x)) > with the equivalent evaluation of the whole RHS
+C<n> times to give:
+  f(x) = a^n f(g^n(x)) + sum_0^{n-1}{ a^i (bh(g^i(x)) + c) }
+
+Eg given C< f(x) = f(x - 1) + 1 >, C< recurse(x := x - 1, x) > will construct
+C< f(x) = f(0) + \sum_{i=0}^{x - 1}{ 1 } >.
+
+TODO: currently supports I<expr1> only of the forms C< x := x + a >
+and C< x := ax >; could handle C< x := ax + b >. Not sure if there are
+more structures we need to support for the RHS.
+
+=back
+
+=cut
+
 sub new {
     my($class, $context, $source) = @_;
     my $self = bless {
