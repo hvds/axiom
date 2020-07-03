@@ -193,7 +193,7 @@ sub _rulere {
         <token: line>
             <args=(?: \d+ (?: \. \d+ )* )>
             | <args=rulename> <args=(?{ $MATCH{args}{args} })>
-        <token: rulename> <args=(?:[A-Z]\w*(?!\w))>
+        <token: rulename> <args=(?:(?:[a-z]+\.)?[A-Z]\w*(?!\w))>
         <token: location> <[args=arg]>+ % \.
         <token: arg> \d+
         <token: num> -?\d+
