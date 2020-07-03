@@ -438,8 +438,8 @@ sub _linename {
 
 sub _map {
     my($map) = @_;
-    return '' unless defined $map && keys %$map;
-    return sprintf ', { %s }', join ', ', map {
+    return '{ }' unless defined $map && keys %$map;
+    return sprintf '{ %s }', join ', ', map {
         my($var, $expr) = @{ $_->{args} };
         sprintf '%s := %s', $var->name, $expr->rawexpr;
     } @{ $map->{args} };
@@ -573,7 +573,8 @@ sub _f_pow {
             $self->working($self->expr);
             $self->{dict} = $dict;
             $self->scope(1);
-            push @{ $self->rules }, 'condstart';
+            push @{ $self->rules }, sprintf 'condstart({ %s })',
+                    join ', ', map $_->name, @$varlist;
             return 1;
         },
         condend => sub {
@@ -605,7 +606,7 @@ sub _f_pow {
             $result->resolve($dict);
             $self->working($result);
             $self->scope(-1);
-            push @{ $self->rules }, 'condend';
+            push @{ $self->rules }, sprintf 'condend(%s)', _map($map);
             return 1;
         },
         induction => sub {
@@ -709,7 +710,7 @@ sub _f_pow {
 
             my $result = $starting->substitute($loc, $repl);
             $self->working($result);
-            push @{ $self->rules }, sprintf 'equate(%s%s, %s%s)',
+            push @{ $self->rules }, sprintf 'equate(%s%s, %s, %s)',
                     _linename($line), join('.', @$loc), $eqline, _map($map);
             return 1;
         },
