@@ -737,7 +737,8 @@ package Axiom::Expr::Name {
     }
     sub str {
         my($self) = @_;
-        return sprintf '%s %s', $self->bindtype, $self->name;
+        return sprintf '%s %s%s', $self->bindtype, $self->name,
+                $self->binding ? "_" . $self->binding->id : "";
     }
     sub _diff {
         my($self, $other, $map) = @_;
