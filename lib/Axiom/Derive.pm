@@ -815,11 +815,11 @@ sub _f_pow {
             );
             my($var, $from, $to, $expr) = @{ $iter->args };
 
-            my $cdict = $starting->dict_at($loc);
-            my $cbind = $cvar->_resolve_new($cdict);
             {
+                my $cdict = $starting->dict_at($loc);
+                my $cbind = $cvar->_resolve_new($cdict);
                 my $local = $cdict->local_name($cvar->name, $cbind);
-                $cexpr->_resolve($cdict);
+                $cexpr->resolve($cdict);
             }
 
             my $repl;
@@ -827,31 +827,38 @@ sub _f_pow {
             # the iter variable i, we can change variable to E+i
             # or to E-i (with a reverse of from/to), but not anything
             # else.
-            if (Axiom::Expr->new({
+            my $pos = Axiom::Expr->new({
                 type => 'pluslist',
-                args => [ $cexpr->copy, $cvar->copy ],
-            })->is_independent($var)) {
-                # i := E - i
+                args => [ $cexpr->copy, $cvar->negate ],
+            });
+            if ($pos->is_independent($cvar)) {
+                # i := i + E; inverse is i := i - E
+                my $inv = Axiom::Expr->new({
+                    type => 'pluslist',
+                    args => [ $cvar->copy, Axiom::Expr->new({
+                        type => 'negate', args => [ $pos ]
+                    }) ],
+                })->clean;
                 $repl = Axiom::Expr->new({
                     type => $iter->type,
                     args => [
                         $var->copy,
-                        $cexpr->subst_var($cvar, $to),
-                        $cexpr->subst_var($cvar, $from),
+                        $inv->subst_var($cvar, $from),
+                        $inv->subst_var($cvar, $to),
                         $expr->subst_var($var, $cexpr->subst_var($cvar, $var)),
                     ],
                 });
             } elsif (Axiom::Expr->new({
                 type => 'pluslist',
-                args => [ $cexpr->copy, $cvar->negate ],
-            })->is_independent($var)) {
-                # i := E + i
+                args => [ $cexpr->copy, $cvar->copy ],
+            })->is_independent($cvar)) {
+                # i := E - i; inverse is same, i := E - i
                 $repl = Axiom::Expr->new({
                     type => $iter->type,
                     args => [
                         $var->copy,
-                        $cexpr->subst_var($cvar, $from),
                         $cexpr->subst_var($cvar, $to),
+                        $cexpr->subst_var($cvar, $from),
                         $expr->subst_var($var, $cexpr->subst_var($cvar, $var)),
                     ],
                 });
