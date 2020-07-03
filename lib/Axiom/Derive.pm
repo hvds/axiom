@@ -530,7 +530,8 @@ sub _f_pow {
             }
             $result->resolve($self->dict);
             $self->working($result);
-            push @{ $self->rules }, sprintf 'identity(%s)', $expr->rawexpr;
+            push @{ $self->rules }, sprintf 'identity({ %s }, %s)',
+                    join(', ', map $_->name, @$varlist), $expr->rawexpr;
             return 1;
         },
         specify => sub {
