@@ -647,14 +647,15 @@ sub find_expr {
 
 sub _resolve {
     my($self, $dict) = @_;
-    $self->{dict} = $dict;
     $_->_resolve($dict) for @{ $self->args };
     return;
 }
 
 sub resolve {
     my($self, $dict) = @_;
-    $self->_resolve($dict->clone);
+    $dict = $dict->clone;   # not copy, must preserve ids
+    $self->{dict} = $dict;  # store at top level of expr only
+    $self->_resolve($dict);
     return;
 }
 
@@ -763,7 +764,6 @@ package Axiom::Expr::Name {
     }
     sub _resolve {
         my($self, $dict) = @_;
-        $self->{dict} = $dict;
         my $binding = $self->binding;
         return if $binding && $binding->is_func;
 
@@ -780,7 +780,6 @@ package Axiom::Expr::Name {
     }
     sub _resolve_new {
         my($self, $dict) = @_;
-        $self->{dict} = $dict;
         my $binding = $dict->introduce($self->name);
         $self->bind($binding);
         return $binding;
@@ -823,7 +822,6 @@ package Axiom::Expr::Iter {
     }
     sub _resolve {
         my($self, $dict) = @_;
-        $self->{dict} = $dict;
         my($var, $from, $to, $expr) = @{ $self->args };
         my $bind = $var->_resolve_new($dict);
         $_->_resolve($dict) for ($from, $to);
@@ -849,7 +847,6 @@ package Axiom::Expr::Quant {
     sub is_quant { 1 }
     sub _resolve {
         my($self, $dict) = @_;
-        $self->{dict} = $dict;
         my($var, $expr) = @{ $self->args };
         my $bind = $var->_resolve_new($dict);
         my $local = $dict->local_name($var->name, $bind);
