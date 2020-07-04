@@ -560,8 +560,8 @@ sub _f_pow {
             my $repl = $expr->subst_var($var, $value);
             my $result = $starting->substitute($loc, $repl);
             $self->working($result);
-            push @{ $self->rules }, sprintf 'specify(%s, %s)',
-                    $var->rawexpr, $value->rawexpr;
+            push @{ $self->rules }, sprintf 'specify(%s%s, %s)',
+                    _linename($line), $var->rawexpr, $value->rawexpr;
             return 1;
         },
         condstart => sub {
