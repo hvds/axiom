@@ -57,6 +57,7 @@ sub is_const { 0 }
 sub is_iter { 0 }
 sub is_quant { 0 }
 sub is_list { $listtype{ shift->type } }
+sub has_newvar { 0 }
 
 sub is_neg {
     my($self) = @_;
@@ -789,6 +790,9 @@ package Axiom::Expr::Name {
 package Axiom::Expr::Iter {
     our @ISA = qw{Axiom::Expr};
     sub is_iter { 1 }
+    sub has_newvar { 1 }
+    sub intro_newvar { 0 }
+    sub affect_newvar { 3 }
     sub range {
         my($self) = @_;
         my($from, $to) = @{ $self->args }[1, 2];
@@ -845,6 +849,9 @@ package Axiom::Expr::Iter {
 package Axiom::Expr::Quant {
     our @ISA = qw{Axiom::Expr};
     sub is_quant { 1 }
+    sub has_newvar { 1 }
+    sub intro_newvar { 0 }
+    sub affect_newvar { 1 }
     sub _resolve {
         my($self, $dict) = @_;
         my($var, $expr) = @{ $self->args };
