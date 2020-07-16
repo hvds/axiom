@@ -98,12 +98,14 @@ sub derive {
         if ($e->type eq 'sum') {
             my($v, $se) = @$a[0, 3];
           retry_sum:
+            if ($se->is_independent($v)) {
+                return $result if $try->($loc, $se);
+            }
             if ($se->type eq 'mullist') {
                 my @ind = grep $_->is_independent($v), @{ $se->args };
                 return $result if $try_all->($loc, \@ind);
             } elsif ($se->type eq 'negate') {
-                return $result
-                        if $try->($loc, _mone());
+                return $result if $try->($loc, _mone());
                 $se = $se->args->[0];
                 goto retry_sum;
             } elsif ($se->type eq 'pluslist') {
