@@ -99,10 +99,7 @@ sub validate {
             });
             next;
         } elsif ($type eq 'recip') {
-            $prod = Axiom::Expr->new({
-                type => 'recip',
-                args => [ $prod ],
-            });
+            $prod = $prod->recip;
             next;
         } else {
             die sprintf(
@@ -192,14 +189,27 @@ sub validate {
     return 1;
 }
 
+sub _subv {
+    my($e, $v) = @_;
+    return Axiom::Expr->new({
+        type => 'pluslist',
+        args => [ $e->copy, $v->negate ],
+    })->clean;
+}
+
+sub _divv {
+    my($e, $v) = @_;
+    return Axiom::Expr->new({
+        type => 'mullist',
+        args => [ $e->copy, $v->recip ],
+    })->clean;
+}
+
 # Given (x, f(x), n) return f^x(n) if we know how to construct it, else undef.
 sub _f_pow {
     my($var, $iter, $count) = @_;
 
-    my $try = Axiom::Expr->new({
-        type => 'pluslist',
-        args => [ $iter->copy, $var->negate ],
-    })->clean;
+    my $try = _subv($iter, $var);
     if ($try->is_independent($var)) {
         # (x := x + a) -> (x + an)
         return Axiom::Expr->new({
@@ -214,13 +224,7 @@ sub _f_pow {
         })->clean;
     }
 
-    $try = Axiom::Expr->new({
-        type => 'mullist',
-        args => [ $iter, Axiom::Expr->new({
-            type => 'recip',
-            args => [ $var ],
-        }) ],
-    })->clean;
+    $try = _divv($iter, $var);
     if ($try->is_independent($var)) {
         # (x := ax) -> (a^n . x)
         return Axiom::Expr->new({

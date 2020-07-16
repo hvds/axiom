@@ -69,10 +69,6 @@ sub classes {
     };
     \@class;
 }
-sub class_for {
-    state %class_for = map +($_->{name} => $_->{class}), @{ classes() };
-    return \%class_for;
-}
 
 sub new {
     my($class, $context, $source) = @_;
@@ -230,6 +226,13 @@ sub _one {
     });
 }
 
+sub _mone {
+    return Axiom::Expr->new({
+        type => 'integer',
+        args => [ '-1' ],
+    });
+}
+
 sub _linename {
     my($self, $line) = @_;
     return '' unless defined $line && length $line;
@@ -261,6 +264,34 @@ sub _varmap {
                 map($_->locate($diff)->str, $expr, $self->working),
                 map $_->str, $expr->clean, $self->working->clean;
     }
+}
+
+sub _new_vars {
+    my($self, $expr, $dict, $new) = @_;
+    if ($expr->has_newvar) {
+        my $ivar = $expr->intro_newvar;
+        my $iexpr = $expr->affect_newvar;
+        my $args = $expr->args;
+        my $name = $args->[$ivar]->name;
+        for my $i (0 .. $#$args) {
+            local $dict->{$name} = 1 if $i == $ivar || $i == $iexpr;
+            $self->_new_vars($args->[$i], $dict, $new);
+        }
+    } elsif ($expr->type eq 'name') {
+        my $name = $expr->name;
+        $new->{$name} = 1 unless $dict->{$name};
+    } elsif (!$expr->is_const) {
+        $self->_new_vars($_, $dict, $new) for @{ $expr->args };
+    }
+    return;
+}
+
+sub new_vars {
+    my($self, $expr) = @_;
+    my %names = map +($_ => 1), %{ $self->dict->dict };
+    my %new;
+    $self->_new_vars($expr, \%names, \%new);
+    return [ sort keys %new ];
 }
 
 1;

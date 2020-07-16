@@ -27,12 +27,17 @@ sub rulere { <<'RE' }
     <rule: condend> condend \( <[args=varmap]> \)
 RE
 
+sub _condstart {
+    my($self) = @_;
+    my $where = $self->context->curline;
+    return $self->context->line("$where.0");
+}
+
 sub validate {
     my($self, $args) = @_;
     my($map) = @$args;
 
-    my $where = $self->context->curline;
-    my $cond = $self->context->expr("$where.0");
+    my $cond = _condstart($self)->expr;
     my %vmap = map {
         my($var, $expr) = @{ $_->{args} };
         $var->resolve($self->dict);
