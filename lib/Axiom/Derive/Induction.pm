@@ -30,9 +30,29 @@ the domain is, which requires some degree of support for sets).
 *_one = \&Axiom::Derive::_one;
 
 sub rulename { 'induction' }
+
 sub rulere { <<'RE' }
     <rule: induction> induction \( <[args=Variable]> , <[args=Expr]> \)
 RE
+
+sub derivere { <<'RE' }
+    <rule: induction> induction \( <[args=Expr]> \)
+RE
+
+sub derive {
+    my($self, $args) = @_;
+    # FIXME: derive base_expr too - determine $var, scan LHS of starting implies
+    # for locations of $var, then investigate them in priority order based on
+    # type of parent subexpr. Highest prio where $var appears alone in an
+    # easily matched location, eg as from/to of an iter, or a function arg.
+    # Not sure how to handle lower prios, but we don't need them yet.
+    # prio are standalone
+    my($base_expr) = @$args;
+    my $starting = $self->working;
+    $starting->type eq 'forall' or die "cannot derive";
+    my $var = $starting->args->[0];
+    return [ $var, $base_expr ];
+}
 
 sub validate {
     my($self, $args) = @_;

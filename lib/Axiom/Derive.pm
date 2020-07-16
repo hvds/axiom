@@ -45,9 +45,18 @@ sub classes {
         my $class = $_;
         eval qq{ use $class; 1; } or die $@;
         my $name = $class->rulename;
-        my $re = $class->rulere;
+        my $rulere = $class->rulere;
         my $validate = $class->can('validate');
-        +{ class => $class, name => $name, re => $re, validate => $validate };
+        my $derivere = $class->derivere;
+        my $derive = $class->can('derive');
+        +{
+            class => $class,
+            name => $name,
+            rulere => $rulere,
+            validate => $validate,
+            derivere => $derivere,
+            derive => $derive,
+        };
     } qw{
         Axiom::Derive::Axiom
         Axiom::Derive::Theorem
@@ -127,10 +136,10 @@ sub derive {
     my($class, $line, $context, $debug) = @_;
     my $self = $class->new($context, $line);
     my @rules;
-    my $rre = rulere($debug);
+    my $dre = derivere($debug);
 
     my $local = Axiom::Expr->local_dict($self->dict);
-    while ($line =~ s{$rre}{}) {
+    while ($line =~ s{$dre}{}) {
         my($rule, $value) = %{ $/{rule} };
         push @rules, [ $rule, $value->{args} ];
     }
@@ -159,14 +168,14 @@ sub new_local {
 
 sub _rulere {
     use Regexp::Grammars;
-    return state $gdre = do {
+    return state $gdrre = do {
         my $classes = classes();
         my $indent = " " x 4;
         my $names = join "\n$indent| ",
                 map sprintf('<%s>', $_->{name}), @$classes;
-        my $rules = join "", map $_->{re}, @$classes;
+        my $rules = join "", map $_->{rulere}, @$classes;
         qr{
-<grammar: Axiom::Derive>
+<grammar: Axiom::Derive::Validate>
 <extends: Axiom::Expr>
 <nocontext:>
 <debug: same>
@@ -200,12 +209,67 @@ sub rulere {
     my($debug) = @_;
     return $debug
         ? (state $drre = qr{
+            <extends: Axiom::Derive::Validate>
+            <nocontext:>
+            <debug: match>
+            ^ <rule> \z
+        }x)
+        : (state $rre = qr{
+            <extends: Axiom::Derive::Validate>
+            <nocontext:>
+            ^ <rule> \z
+        }x);
+}
+
+sub _derivere {
+    use Regexp::Grammars;
+    return state $gddre = do {
+        my $classes = classes();
+        my $indent = " " x 4;
+        my $names = join "\n$indent| ",
+                map sprintf('<%s>', $_->{name}), @$classes;
+        my $rules = join "", map $_->{derivere}, @$classes;
+        qr{
+<grammar: Axiom::Derive>
+<extends: Axiom::Expr>
+<nocontext:>
+<debug: same>
+
+<rule: rule> (?:
+    @{[ $names ]}
+)
+@{[ $rules ]}
+
+<rule: varmap> (?: \{ (?: <[args=pair]>* % , )? \} )
+<rule: pair> <[args=Variable]> := <[args=Expr]>
+<rule: varlist> \{ <[args=Variable]>* % , <.ws>? \}
+
+<token: optline>
+    <args=line> : <args=(?{ $MATCH{args}{args} })>
+    | <args=(?{ '' })>
+<token: line>
+    <args=(?: \d+ (?: \. \d+ )* )>
+    | <args=rulename> <args=(?{ $MATCH{args}{args} })>
+<token: rulename> <args=(?:(?:[a-z]+\.)?[A-Z]\w*(?!\w))>
+<token: location> <[args=arg]>+ % \.
+<token: arg> \d+
+<token: num> -?\d+
+        }x;
+    };
+}
+BEGIN { _derivere() }
+
+sub derivere {
+    use Regexp::Grammars;
+    my($debug) = @_;
+    return $debug
+        ? (state $ddre = qr{
             <extends: Axiom::Derive>
             <nocontext:>
             <debug: match>
             ^ <rule> [:;]
         }x)
-        : (state $rre = qr{
+        : (state $dre = qr{
             <extends: Axiom::Derive>
             <nocontext:>
             ^ <rule> [:;]
@@ -250,11 +314,13 @@ sub _varmap {
 
 {
     state %validate_for = map +($_->{name} => $_->{validate}), @{ classes() };
+    state %derive_for = map +($_->{name} => $_->{derive}), @{ classes() };
     sub validate {
         my($self, $rules) = @_;
         for my $rule (@$rules) {
             my($type, $args) = @$rule;
-            return unless $validate_for{$type}->($self, $args);
+            my $vargs = $derive_for{$type}->($self, $args);
+            return unless $validate_for{$type}->($self, $vargs);
         }
         my $expr = $self->expr;
         $expr->resolve($self->dict);

@@ -18,10 +18,18 @@ to later by the given name.
 =cut
 
 sub rulename { 'theorem' }
+
 sub rulere { <<'RE' }
     <rule: theorem> theorem (?: <[args=rulename]> | <args=(?{ [] })> )
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
 RE
+
+*derivere = \&rulere;
+
+sub derive {
+    my($self, $args) = @_;
+    return $args;
+}
 
 sub validate {
     my($self, $args) = @_;

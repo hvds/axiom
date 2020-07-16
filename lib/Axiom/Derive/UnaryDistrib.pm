@@ -23,11 +23,53 @@ C<pluslist> or C<mullist>, and type C<sum> distributing over a C<pluslist>.
 =cut
 
 sub rulename { 'unarydistrib' }
+
 sub rulere { <<'RE' }
     <rule: unarydistrib>
         unarydistrib \( <[args=optline]> <[args=location]> \)
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
 RE
+
+sub derivere { <<'RE' }
+    <rule: unarydistrib>
+        unarydistrib (?: \( <[args=line]>? \) )?
+        (?{
+            $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
+            $MATCH{args} //= [ '' ];
+        })
+RE
+
+sub derive {
+    my($self, $args) = @_;
+    my($line) = @$args;
+    my $starting = $self->line($line);
+    my $target = $self->expr;
+    $target->resolve($self->dict);
+
+    my @choice;
+    $starting->walk_locn(sub {
+        my($expr, $loc) = @_;
+        if ($expr->type eq 'negate') {
+            my $subtype = $expr->args->[0]->type;
+            push @choice, $loc if $subtype eq 'pluslist'
+                    || $subtype eq 'mullist';
+        } elsif ($expr->type eq 'sum') {
+            my $subtype = $expr->args->[3]->type;
+            push @choice, $loc if $subtype eq 'pluslist';
+        }
+        return;
+    });
+
+    for my $loc (@choice) {
+        my @vargs = ($line, $loc);
+        local $self->{rules} = [];
+        local $self->{working} = $self->{working};
+        next unless eval { validate($self, \@vargs) };
+        next if $self->working->diff($target);
+        return \@vargs;
+    }
+    die "don't know how to derive this unarydistrib";
+}
 
 sub validate {
     my($self, $args) = @_;

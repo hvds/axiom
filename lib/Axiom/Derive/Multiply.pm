@@ -20,11 +20,51 @@ C< P . expr = Q . expr >.
 =cut
 
 sub rulename { 'multiply' }
+
 sub rulere { <<'RE' }
     <rule: multiply>
         multiply \( <[args=optline]> <[args=Expr]> \)
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
 RE
+
+sub derivere { <<'RE' }
+    <rule: multiply>
+        multiply (?: \( <[args=line]>? \) )?
+        (?{
+            $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
+            $MATCH{args} //= [ '' ];
+        })
+RE
+
+sub derive {
+    my($self, $args) = @_;
+    my($line) = @$args;
+    my $from_base = $self->line($line);
+    my $from = $from_base;
+    my $to = $self->expr;
+    my $loc = [];
+    while ($from->is_quant) {
+        push @$loc, 2;
+        $from = $from->args->[1];
+        $to->is_quant or die "mismatched quantifiers";
+        $to = $to->args->[1];
+    }
+    $from->type eq 'equals' or die "No equals to derive from";
+    $to->type eq 'equals' or die "No equals to derive to";
+    my $expr = Axiom::Expr->new({
+        type => 'mullist',
+        args => [
+            $to->args->[0]->copy,
+            Axiom::Expr->new({
+                type => 'recip',
+                args => [ $from->args->[0]->copy ],
+            }),
+        ],
+    });
+    $expr->resolve($from_base->dict_at($loc));
+    $expr = $expr->clean;
+    return [ $line, $expr ];
+}
 
 sub validate {
     my($self, $args) = @_;

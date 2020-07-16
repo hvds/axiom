@@ -22,15 +22,48 @@ corresponding C<condstart>; and I<expr2> is the last theorem proven.
 
 =cut
 
+*ruleparse = \&Axiom::Derive::rulere;
+
 sub rulename { 'condend' }
+
 sub rulere { <<'RE' }
     <rule: condend> condend \( <[args=varmap]> \)
+RE
+
+sub derivere { <<'RE' }
+    <rule: condend> condend <args=(?{ [] })>
 RE
 
 sub _condstart {
     my($self) = @_;
     my $where = $self->context->curline;
     return $self->context->line("$where.0");
+}
+
+sub derive {
+    my($self, $args) = @_;
+    my(@from, @to, %map);
+
+    my $target = $self->expr;
+    my $te = $target;
+    while ($te->is_quant) {
+        push @to, $te->args->[0]->name;
+        $te = $te->args->[1];
+    }
+
+    my $from_rule = _condstart($self)->rules->[0];
+    $from_rule =~ ruleparse() or die "Can't re-parse <$from_rule>";
+    my $from_varlist = $/{rule}{condstart}{args}[0];
+    push @from, $_->name for @$from_varlist;
+
+    if (@from == 1 && @to == 1) {
+        my $from = Axiom::Expr->new({ type => 'name', args => [ $from[0] ] });
+        $from->{''} = $from[0];
+        my $to = Axiom::Expr->new({ type => 'name', args => [ $to[0] ] });
+        $to->{''} = $to[0];
+        return [ { args => [ { args => [ $from, $to ] } ] } ];
+    }
+    die "not yet";
 }
 
 sub validate {

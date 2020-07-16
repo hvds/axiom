@@ -24,6 +24,7 @@ will construct C< x = \sum_{i=0}^{n-1}{ y^i } >.
 =cut
 
 sub rulename { 'itervar' }
+
 sub rulere { <<'RE' }
     <rule: itervar>
         itervar \(
@@ -32,6 +33,45 @@ sub rulere { <<'RE' }
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 2) })
         (?{ splice @{ $MATCH{args} }, 2, 1, @{ $MATCH{args}[2] } })
 RE
+
+sub derivere { <<'RE' }
+    <rule: itervar>
+        itervar \( <[args=optline]> <[args=RemapExpr]> \)
+        (?{
+            $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 1);
+            splice @{ $MATCH{args} }, 1, 1, @{ $MATCH{args}[1] };
+        })
+RE
+
+sub derive {
+    my($self, $args) = @_;
+    my($line, $cvar, $cexpr) = @$args;
+    my $starting = $self->line($line);
+    my $target = $self->expr;
+    $target->resolve($self->dict);
+    my $loc = $starting->diff($target);
+
+    # If the map is _not_ { i := from + to - i }, the diff point must be
+    # the sum itself, since from and to will change. If it _is_, the
+    # diff point will be a descendant (but that descendant may itself
+    # be a sum).
+
+    my $first = 1;
+    while (1) {
+        my $se = $starting->locate($loc);
+        if ($se->is_iter) {
+            local $self->{rules} = [];
+            local $self->{working} = $self->{working};
+            my @vargs = ($line, $loc, $cvar, $cexpr);
+            return \@vargs if validate($self, \@vargs)
+                    && ! $self->working->diff($target);
+        }
+        last unless @$loc;
+        pop @$loc;
+        $first = 0;
+    }
+    die "don't know how to derive this itervar";
+}
 
 sub validate {
     my($self, $args) = @_;

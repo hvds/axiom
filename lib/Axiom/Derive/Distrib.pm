@@ -26,6 +26,7 @@ with type C<pluslist> or C<sum> at I<arg2>.
 =cut
 
 sub rulename { 'distrib' }
+
 sub rulere { <<'RE' }
     <rule: distrib>
         distrib \(
@@ -33,6 +34,50 @@ sub rulere { <<'RE' }
         \)
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
 RE
+
+sub derivere { <<'RE' }
+    <rule: distrib>
+        distrib (?: \( <arg=line>? \) )?
+        (?{
+            $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
+            $MATCH{args} //= [ '' ];
+        })
+RE
+
+sub derive {
+    my($self, $args) = @_;
+    my($line) = @$args;
+    my $starting = $self->line($line);
+    my $target = $self->expr;
+    $target->resolve($self->dict);
+    my @choice;
+    $starting->walk_locn(sub {
+        my($expr, $loc) = @_;
+        if ($expr->type eq 'mullist') {
+            my $eargs = $expr->args;
+            for my $i (0 .. $#$eargs) {
+                my $type = $eargs->[$i]->type;
+                next unless $type eq 'pluslist' || $type eq 'sum';
+                push @choice, [ $loc, $i ];
+            }
+        }
+    });
+    for (@choice) {
+        my($loc, $over) = @$_;
+        my $e = $starting->locate($loc);
+        my $eargs = $e->args;
+        for my $from (0 .. $#$eargs) {
+            next if $from == $over;
+            local $self->{rules} = [];
+            local $self->{working} = $self->{working};
+            my @vargs = ($line, $loc, $from + 1, $over + 1);
+            next unless eval { validate($self, \@vargs) };
+            next if $self->working->diff($target);
+            return \@vargs;
+        }
+    }
+    die "No match found to derive distrib";
+}
 
 sub validate {
     my($self, $args) = @_;

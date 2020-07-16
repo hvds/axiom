@@ -36,12 +36,92 @@ more structures we need to support for the RHS.
 *_one = \&Axiom::Derive::_one;
 
 sub rulename { 'recurse' }
+
 sub rulere { <<'RE' }
     <rule: recurse>
         recurse \( <[args=optline]> <[args=pair]> , <[args=Expr]> \)
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 1) })
         (?{ splice @{ $MATCH{args} }, 1, 1, @{ $MATCH{args}[1] } })
 RE
+
+sub derivere { <<'RE' }
+    <rule: recurse>
+        recurse \( <[args=optline]>? <[args=pair]> \)
+        (?{
+            $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 1);
+            splice @{ $MATCH{args} }, 1, 1, @{ $MATCH{args}[1] };
+        })
+RE
+
+sub derive {
+    my($self, $args) = @_;
+    my($line, $var, $iter) = @$args;
+    my $starting = $self->line($line);
+    my $target = $self->expr;
+    $target->resolve($self->dict);
+
+    my $loc = [];
+    my $eq = $starting;
+    while ($eq->is_quant) {
+        push @$loc, 2;
+        $eq = $eq->args->[1];
+    }
+    $eq->type eq 'equals' or die sprintf(
+        "Don't know how to derive recurse over a %s\n", $eq->type,
+    );
+    my($lhs, $rhs) = @{ $eq->args };
+
+    my $subdict = $starting->dict_at($loc);
+    $_->resolve($subdict) for ($var, $iter);
+
+    my($plus, $times);
+    $plus = _subv($iter, $var);
+    $plus = undef unless $plus->is_independent($var);
+
+    if (!$plus) {
+        $times = _divv($iter, $var);
+        unless ($times->is_independent($var)) {
+            die sprintf(
+                "unable to resolve iterator '%s := %s' to derive recurse",
+                $var->rawexpr, $iter->rawexpr,
+            );
+        }
+    }
+
+    my @choice;
+    $target->walk_locn(sub {
+        my($e, $loc) = @_;
+        my $diff = $e->diff($lhs);
+        return if !$diff || !@$diff;
+        my $candidate = _candidate($lhs, $e, $var);
+        if ($candidate) {
+            push @choice, ($plus
+                ? Axiom::Expr->new({
+                    type => 'mullist',
+                    args => [ _subv($candidate, $var), $plus->recip ],
+                })
+                : Axiom::Expr->new({
+                    type => 'pow',
+                    args => [ _divv($candidate, $var), $times->recip ],
+                })
+            )->clean;
+        }
+        return;
+    });
+
+    my %seen;
+    for my $choice (@choice) {
+        next if $seen{$choice->str}++;
+        local $self->{rules} = [];
+        local $self->{working} = $self->working;
+        my @vargs = ($line, $var, $iter, $choice);
+        next unless validate($self, \@vargs);
+        next if $target->diff($self->working);
+        return \@vargs;
+    }
+
+    die "don't know how to derive this recurse";
+}
 
 sub validate {
     my($self, $args) = @_;
@@ -203,6 +283,55 @@ sub _divv {
         type => 'mullist',
         args => [ $e->copy, $v->recip ],
     })->clean;
+}
+
+# We want to find a subexpression E of the target that represents some number
+# of iterations of the var := iter mapping on the lhs of the source. So we
+# need to be able to match up all aspects of the lhs that are independent
+# of var, and then solve _f_pow(var, iter, n) = F for n.
+sub _candidate {
+    my($lhs, $e, $var) = @_;
+    return $e if ! $lhs->diff($var);
+    return undef if $lhs->is_atom;
+    return undef if $lhs->type ne $e->type;
+    my($la, $ea) = ($lhs->args, $e->args);
+    if (! $lhs->is_list) {
+        for (0 .. $#$la) {
+            my($le, $ee) = ($la->[$_], $ea->[$_]);
+            if ($le->is_independent($var)) {
+                return undef if $le->diff($ee);
+                next;
+            }
+            return _candidate($le, $ee, $var);
+        }
+    }
+    my @la = @$la;
+    my @ea = @$ea;
+  LHS_ARG:
+    for my $li (0 .. $#la) {
+        my $le = $la[$li];
+        if ($le->is_independent($var)) {
+            for my $ei (0 .. $#ea) {
+                next if $le->diff($ea[$ei]);
+                splice @la, $li, 1;
+                splice @ea, $ei, 1;
+                redo LHS_ARG;
+            }
+            return undef;
+        }
+    }
+    # remaining @la are each dependent on $var
+    if (@la == 1) {
+        my $eremain = (@ea == 1) ? $ea[0] : Axiom::Expr->new({
+            type => $e->type,
+            args => [ map $_->copy, @ea ],
+        });
+        return _candidate($la[0], $eremain, $var);
+    }
+    die sprintf(
+        "don't know how to derive recurse candidate for:\n  %s\n  %s\n",
+        $lhs->str, $e->str,
+    );
 }
 
 # Given (x, f(x), n) return f^x(n) if we know how to construct it, else undef.

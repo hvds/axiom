@@ -20,12 +20,20 @@ new theorem C< P(x) >.
 =cut
 
 sub rulename { 'specify' }
+
 sub rulere { <<'RE' }
     <rule: specify> specify \( <[args=optline]> <[args=pair]> \)
         (?{ @{ $MATCH{args} } = (
             $MATCH{args}[0]{args}, @{ $MATCH{args}[1]{args} }
         ) })
 RE
+
+*derivere = \&rulere;
+
+sub derive {
+    my($self, $args) = @_;
+    return $args;
+}
 
 sub validate {
     my($self, $args) = @_;

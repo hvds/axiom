@@ -29,12 +29,96 @@ TODO: currently supports only type C<sum>.
 =cut
 
 sub rulename { 'iterextend' }
+
 sub rulere { <<'RE' }
     <rule: iterextend>
         iterextend \( <[args=optline]> <[args=location]> ,
                 <[args=num]> (?: , <[args=num]> )? \)
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
 RE
+
+sub derivere { <<'RE' }
+    <rule: iterextend>
+        iterextend (?: \( <[args=line]>? \) )?
+        (?{
+            $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
+            $MATCH{args} //= [ '' ];
+        })
+RE
+
+sub derive {
+    my($self, $args) = @_;
+    my($line) = @$args;
+    my $starting = $self->line($line);
+    my $target = $self->expr;
+    $target->resolve($self->dict);
+
+    my $loca;
+    my $find_iter = sub {
+        my($self, $loc) = @_;
+        push @$loca, $loc if $self->is_iter;
+        return;
+    };
+    my(@sloc, @tloc);
+    $loca = \@sloc;
+    $starting->walk_locn($find_iter);
+    $loca = \@tloc;
+    $target->walk_locn($find_iter);
+
+    T: for (my $ti = 0; $ti < @tloc; ++$ti) {
+        my $te = $target->locate($tloc[$ti]);
+        for my $si (0 .. $#sloc) {
+            my $se = $starting->locate($sloc[$si]);
+            next if $se->diff($te);
+            splice @sloc, $si, 1;
+            splice @tloc, $ti, 1;
+            redo T;
+        }
+    }
+
+    while (@sloc == 1 && @tloc == 1) {
+        my $loc = $sloc[0];
+        my $se = $starting->locate($loc);
+        my $te = $target->locate($tloc[0]);
+        last if $se->type ne $te->type;
+
+        my($sv, $sfrom, $sto, $sexpr) = @{ $se->args };
+        my($tv, $tfrom, $tto, $texpr) = @{ $te->args };
+        last if $sexpr->diff($texpr);
+
+        my $from = Axiom::Expr->new({
+            type => 'pluslist',
+            args => [
+                $tfrom->copy,
+                Axiom::Expr->new({
+                    type => 'negate',
+                    args => [ $sfrom->copy ],
+                }),
+            ],
+        })->clean;
+        last unless $from->type eq 'integer';
+
+        my $to = Axiom::Expr->new({
+            type => 'pluslist',
+            args => [
+                $tto->copy,
+                Axiom::Expr->new({
+                    type => 'negate',
+                    args => [ $sto->copy ],
+                }),
+            ],
+        })->clean;
+        last unless $to->type eq 'integer';
+
+        my $fn = $from->args->[0];
+        my $tn = $to->args->[0];
+        # FIXME: could generate multiple iterextend validations
+        last unless abs($fn) + abs($tn) == 1;
+
+        return [ $line, $loc, $fn ? -1 : 1, $fn || $tn ];
+    }
+    die "don't know how to derive this";
+}
 
 sub validate {
     my($self, $args) = @_;

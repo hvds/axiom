@@ -1,56 +1,72 @@
-identity({ a }, \sum_{i=a}^a{1}); iterexpand(2.2): \Aa: \sum_{i=a}^a{1} = 1
-condstart({ x }): \Aa: \sum_{i=a}^x{1} = x + 1 - a
-add(1); iterextend(2.1.1, 1, 1): \Aa: \sum_{i=a}^{x + 1}{1} = x + 2 - a
-condend({ x := b }): \Ab: (\Aa: \sum_{i=a}^b{1} = b + 1 - a) -> (\Aa: \sum_{i=a}^{b + 1}{1} = b + 2 - a)
-theorem Sum_const; induction(b, a): \Aa: \Ab: \sum_{i=a}^b{1} = b + 1 - a
+identity: \Aa: \sum_{i=a}^a{1} = \sum_{i=a}^a{1}
+iterexpand: \Aa: \sum_{i=a}^a{1} = 1
+condstart: \Aa: \sum_{i=a}^x{1} = x + 1 - a
+add: \Aa: \sum_{i=a}^x{1} + 1 = x + 2 - a
+iterextend: \Aa: \sum_{i=a}^{x + 1}{1} = x + 2 - a
+condend: \Ab: (\Aa: \sum_{i=a}^b{1} = b + 1 - a) -> (\Aa: \sum_{i=a}^{b + 1}{1} = b + 2 - a)
+theorem Sum_const; induction(a): \Aa: \Ab: \sum_{i=a}^b{1} = b + 1 - a
 
-identity({ a }, (a(a + 1) - a(a - 1))/2); factor(2.2.1, a): \Aa: (a(a + 1) - a(a - 1))/2 = a
-identity({ a }, \sum_{i=a}^a{i}); iterexpand(2.2); equate(2.2, 3, {a := a}): \Aa: \sum_{i=a}^a{i} = (a(a + 1) - a(a - 1))/2
-condstart({ x }): \Aa: \sum_{i=a}^x{i} = (x(x + 1) - a(a - 1))/2
-add(x + 1); iterextend(2.1.1, 1, 1); factor(2.2, 1/2): \Aa: \sum_{i=a}^{x + 1}{i} = ((x + 1)(x + 2) - a(a - 1))/2
-condend({ x := b }): \Ab: (\Aa: \sum_{i=a}^b{i} = (b(b + 1) - a(a - 1))/2) -> (\Aa: \sum_{i=a}^{b + 1}{i} = ((b + 1)(b + 2) - a(a - 1))/2)
-theorem Sum_i; induction(b, a): \Aa: \Ab: \sum_{i=a}^b{i} = (b(b + 1) - a(a - 1))/2
+identity: \Aa: (a(a + 1) - a(a - 1))/2 = (a(a + 1) - a(a - 1))/2
+theorem L1: factor: \Aa: (a(a + 1) - a(a - 1))/2 = a
+identity: \Aa: \sum_{i=a}^a{i} = \sum_{i=a}^a{i}
+iterexpand: \Aa: \sum_{i=a}^a{i} = a
+equate(L1, { a := a }): \Aa: \sum_{i=a}^a{i} = (a(a + 1) - a(a - 1))/2
+condstart: \Aa: \sum_{i=a}^x{i} = (x(x + 1) - a(a - 1))/2
+add: \Aa: \sum_{i=a}^x{i} + x + 1 = (x(x + 1) - a(a - 1))/2 + x + 1
+iterextend: \Aa: \sum_{i=a}^{x + 1}{i} = (x(x + 1) - a(a - 1))/2 + x + 1
+factor: \Aa: \sum_{i=a}^{x + 1}{i} = ((x + 1)(x + 2) - a(a - 1))/2
+condend: \Ab: (\Aa: \sum_{i=a}^b{i} = (b(b + 1) - a(a - 1))/2) -> (\Aa: \sum_{i=a}^{b + 1}{i} = ((b + 1)(b + 2) - a(a - 1))/2)
+theorem Sum_i; induction(a): \Aa: \Ab: \sum_{i=a}^b{i} = (b(b + 1) - a(a - 1))/2
 
-identity({ n }, 2^{n + 1} - 2^n); \An: 2^{n + 1} - 2^n = 2 . 2^n - 2^n
-factor(2.2, 2^n): \An: 2^{n + 1} - 2^n = 2^n
-identity({ a }, \sum_{i=a}^a{2^i}); iterexpand(2.2); equate(2.2, 8, { n := a }): \Aa: \sum_{i=a}^a{2^i} = 2^{a + 1} - 2^a
-condstart({ x }): \Aa: \sum_{i=a}^x{2^i} = 2^{x + 1} - 2^a
-add(2^{x + 1}); iterextend(2.1.1, 1, 1); factor(2.2, 2^{x + 1}): \Aa: \sum_{i=a}^{x + 1}{2^i} = 2^{x + 2} - 2^a
-condend({ x := b }): \Ab: (\Aa: \sum_{i=a}^b{2^i} = 2^{b + 1} - 2^a) -> (\Aa: \sum_{i=a}^{b + 1}{2^i} = 2^{b + 2} - 2^a)
-theorem Sum_pow_2; induction(b, a): \Aa: \Ab: \sum_{i=a}^b{2^i} = 2^{b + 1} - 2^a
+identity: \An: 2^{n + 1} - 2^n = 2 . 2^n - 2^n
+theorem L2: factor: \An: 2^{n + 1} - 2^n = 2^n
+identity: \Aa: \sum_{i=a}^a{2^i} = \sum_{i=a}^a{2^i}
+iterexpand: \Aa: \sum_{i=a}^a{2^i} = 2^a
+equate(L2, { n := a }): \Aa: \sum_{i=a}^a{2^i} = 2^{a + 1} - 2^a
+condstart: \Aa: \sum_{i=a}^x{2^i} = 2^{x + 1} - 2^a
+add: \Aa: \sum_{i=a}^x{2^i} + 2^{x + 1} = 2^{x + 1} - 2^a + 2^{x + 1}
+iterextend: \Aa: \sum_{i=a}^{x + 1}{2^i} = 2^{x + 1} - 2^a + 2^{x + 1}
+factor: \Aa: \sum_{i=a}^{x + 1}{2^i} = 2^{x + 2} - 2^a
+condend: \Ab: (\Aa: \sum_{i=a}^b{2^i} = 2^{b + 1} - 2^a) -> (\Aa: \sum_{i=a}^{b + 1}{2^i} = 2^{b + 2} - 2^a)
+theorem Sum_pow_2; induction(a): \Aa: \Ab: \sum_{i=a}^b{2^i} = 2^{b + 1} - 2^a
 
-itervar(2.2.1, i := a + b - i): \Aa: \Ab: \sum_{i=a}^b{2^{a + b - i}} = 2^{b + 1} - 2^a
-multiply(2^{-a - b}): \Aa: \Ab: \sum_{i=a}^b{2^{a + b - i}} . 2^{-a - b} = (2^{b + 1} - 2^a) . 2^{-a - b}
-theorem Sum_pow_m2; distrib(2.2.1, 2, 1): \Aa: \Ab: \sum_{i=a}^b{2^{-i}} = 2^{1 - a} - 2^{-b}
+itervar(i := a + b - i): \Aa: \Ab: \sum_{i=a}^b{2^{a + b - i}} = 2^{b + 1} - 2^a
+multiply: \Aa: \Ab: \sum_{i=a}^b{2^{a + b - i}} . 2^{-a - b} = (2^{b + 1} - 2^a) . 2^{-a - b}
+theorem Sum_pow_m2; distrib: \Aa: \Ab: \sum_{i=a}^b{2^{-i}} = 2^{1 - a} - 2^{-b}
 
-identity({ a, b }, \sum_{i=a}^b{ 2^{i} i }): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i} i }
-iterextend(2.2.2, 1, 1): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^{b + 1}{ 2^{i} i } - 2^{b + 1} (b + 1)
-iterextend(2.2.2.1, -1, 1): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a+1}^{b+1}{ 2^{i} i } - 2^{b + 1} (b + 1) + 2^{a} a
-itervar(2.2.2.1, i := i + 1): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i + 1} (i + 1) } - 2^{b + 1} (b + 1) + 2^{a} a
-distrib(2.2.2.1.4, 1, 2): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i + 1} i + 2^{i + 1} } - 2^{b + 1} (b + 1) + 2^{a} a
-unarydistrib(2.2.2.1): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i + 1} i } + \sum_{i=a}^b{ 2^{i + 1} } - 2^{b + 1} (b + 1) + 2^{a} a
-factor(2.2.2.1, 2): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } + \sum_{i=a}^b{ 2^{i + 1} } - 2^{b + 1} (b + 1) + 2^{a} a
-factor(2.2.2.2, 2): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } + 2 \sum_{i=a}^b{ 2^i } - 2^{b + 1} (b + 1) + 2^{a} a
-equate(2.2.2.2.2, Sum_pow_2, { a := a, b := b }): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } + 2(2^{b + 1} - 2^a) - 2^{b + 1} (b + 1) + 2^{a} a
-distrib(2.2.2.2, 1, 2): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } + 2 . 2^{b + 1} - 2 . 2^a - 2^{b + 1} (b + 1) + 2^{a} a
-factor(2.2.2, 2^{b + 1}): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } - 2 . 2^a - 2^{b + 1} (b - 1) + 2^{a} a
-factor(2.2.2, 2^a): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } - 2^{b + 1} (b - 1) + 2^{a} (a - 2)
-multiply(-1): \Aa: \Ab: -\sum_{i=a}^b{ 2^{i} i } = -2 \sum_{i=a}^b{ 2^{i} i } + 2^{b + 1} (b - 1) - 2^{a} (a - 2)
-add(2 \sum_{i=a}^b{ 2^{i} i }): \Aa: \Ab: 2 \sum_{i=a}^b{ 2^{i} i } - \sum_{i=a}^b{ 2^{i} i } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
-theorem Sum_pow_2_i; factor(2.2.1, \sum_{i=a}^b{ 2^{i} i }): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
+identity: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i} i }
+iterextend: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^{b + 1}{ 2^{i} i } - 2^{b + 1} (b + 1)
+iterextend: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a+1}^{b+1}{ 2^{i} i } - 2^{b + 1} (b + 1) + 2^{a} a
+itervar(i := i + 1): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i + 1} (i + 1) } - 2^{b + 1} (b + 1) + 2^{a} a
+distrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i + 1} i + 2^{i + 1} } - 2^{b + 1} (b + 1) + 2^{a} a
+unarydistrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i + 1} i } + \sum_{i=a}^b{ 2^{i + 1} } - 2^{b + 1} (b + 1) + 2^{a} a
+distrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2 . 2^{i} i } + \sum_{i=a}^b{ 2^{i + 1} } - 2^{b + 1} (b + 1) + 2^{a} a
+factor: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } + \sum_{i=a}^b{ 2^{i + 1} } - 2^{b + 1} (b + 1) + 2^{a} a
+distrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } + \sum_{i=a}^b{ 2 . 2^i } - 2^{b + 1} (b + 1) + 2^{a} a
+factor: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } + 2 \sum_{i=a}^b{ 2^i } - 2^{b + 1} (b + 1) + 2^{a} a
+equate(Sum_pow_2, { a := a, b := b }): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } + 2(2^{b + 1} - 2^a) - 2^{b + 1} (b + 1) + 2^{a} a
+distrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } + 2 . 2^{b + 1} - 2 . 2^a - 2^{b + 1} (b + 1) + 2^{a} a
+factor: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } - 2 . 2^a - 2^{b + 1} (b - 1) + 2^{a} a
+factor: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2 \sum_{i=a}^b{ 2^{i} i } - 2^{b + 1} (b - 1) + 2^{a} (a - 2)
+multiply: \Aa: \Ab: -\sum_{i=a}^b{ 2^{i} i } = -2 \sum_{i=a}^b{ 2^{i} i } + 2^{b + 1} (b - 1) - 2^{a} (a - 2)
+add: \Aa: \Ab: 2 \sum_{i=a}^b{ 2^{i} i } - \sum_{i=a}^b{ 2^{i} i } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
+theorem Sum_pow_2_i; factor: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
 
-itervar(2.2.1, i := a + b - i): \Aa: \Ab: \sum_{i=a}^b{ 2^{a + b - i} (a + b - i) } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
-factor(2.2.1, 2^{a + b}): \Aa: \Ab: 2^{a + b} \sum_{i=a}^b{ 2^{-i} (a + b - i) } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
-multiply(2^{-a-b}): \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} (a + b - i) } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2)
-distrib(2.2.1.4, 1, 2): \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} a + 2^{-i} b - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2)
-unarydistrib(2.2.1): \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} a } + \sum_{i=a}^b{ 2^{-i} b } + \sum_{i=a}^b{ - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2)
-factor(2.2.1.1, a); equate(2.2.1.1.2, Sum_pow_m2, { a := a, b := b }); add(-a(2^{1 - a} - 2^{-b})): \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} b } + \sum_{i=a}^b{ - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2) - a(2^{1 - a} - 2^{-b})
-add(-\sum_{i=a}^b{ 2^{-i} b }): \Aa: \Ab: \sum_{i=a}^b{ - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2) - a(2^{1 - a} - 2^{-b}) - \sum_{i=a}^b{ 2^{-i} b }
-factor(2.2.2.4.1, b): \Aa: \Ab: \sum_{i=a}^b{ - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2) - a(2^{1 - a} - 2^{-b}) - b \sum_{i=a}^b{ 2^{-i} }
-equate(2.2.2.4.1.2, Sum_pow_m2, { a := a, b := b }): \Aa: \Ab: \sum_{i=a}^b{ - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2) - a(2^{1 - a} - 2^{-b}) - b(2^{1 - a} - 2^{-b})
-factor(2.2.1, -1): \Aa: \Ab: -\sum_{i=a}^b{ 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2) - a(2^{1 - a} - 2^{-b}) - b(2^{1 - a} - 2^{-b})
-multiply(-1): \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} i } = -2^{1 - a} (b - 1) + 2^{-b} (a - 2) + a(2^{1 - a} - 2^{-b}) + b(2^{1 - a} - 2^{-b})
-distrib(2.2.2.3, 1, 2): \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} i } = -2^{1 - a} (b - 1) + 2^{-b} (a - 2) + 2^{1 - a} a - 2^{-b} a + b(2^{1 - a} - 2^{-b})
-distrib(2.2.2.5, 1, 2): \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} i } = -2^{1 - a} (b - 1) + 2^{-b} (a - 2) + 2^{1 - a} a - 2^{-b} a + 2^{1 - a} b - 2^{-b} b
-factor(2.2.2, 2^{1 - a}): \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} i } = 2^{1 - a} (a + 1) + 2^{-b} (a - 2) - 2^{-b} a - 2^{-b} b
-theorem Sum_pow_m2_i; factor(2.2.2, 2^{-b}): \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} i } = 2^{1 - a} (a + 1) - 2^{-b} (b + 2)
+itervar(i := a + b - i): \Aa: \Ab: \sum_{i=a}^b{ 2^{a + b - i} (a + b - i) } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
+distrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{a + b} . 2^{-i} (a + b - i) } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
+factor: \Aa: \Ab: 2^{a + b} \sum_{i=a}^b{ 2^{-i} (a + b - i) } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
+multiply: \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} (a + b - i) } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2)
+distrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} a + 2^{-i} b - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2)
+unarydistrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} a } + \sum_{i=a}^b{ 2^{-i} b } + \sum_{i=a}^b{ - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2)
+factor: \Aa: \Ab: a \sum_{i=a}^b{ 2^{-i} } + \sum_{i=a}^b{ 2^{-i} b } + \sum_{i=a}^b{ - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2)
+equate(Sum_pow_m2, { a := a, b := b }): \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} b } + \sum_{i=a}^b{ - 2^{-i} i } + a(2^{1 - a} - 2^{-b}) = 2^{1 - a} (b - 1) - 2^{-b} (a - 2)
+add: \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} b } + \sum_{i=a}^b{ - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2) - a(2^{1 - a} - 2^{-b})
+add: \Aa: \Ab: \sum_{i=a}^b{ - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2) - a(2^{1 - a} - 2^{-b}) - \sum_{i=a}^b{ 2^{-i} b }
+factor: \Aa: \Ab: \sum_{i=a}^b{ - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2) - a(2^{1 - a} - 2^{-b}) - b \sum_{i=a}^b{ 2^{-i} }
+equate(Sum_pow_m2, { a := a, b := b }): \Aa: \Ab: \sum_{i=a}^b{ - 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2) - a(2^{1 - a} - 2^{-b}) - b(2^{1 - a} - 2^{-b})
+factor: \Aa: \Ab: -\sum_{i=a}^b{ 2^{-i} i } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2) - a(2^{1 - a} - 2^{-b}) - b(2^{1 - a} - 2^{-b})
+multiply: \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} i } = -2^{1 - a} (b - 1) + 2^{-b} (a - 2) + a(2^{1 - a} - 2^{-b}) + b(2^{1 - a} - 2^{-b})
+distrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} i } = -2^{1 - a} (b - 1) + 2^{-b} (a - 2) + 2^{1 - a} a - 2^{-b} a + b(2^{1 - a} - 2^{-b})
+distrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} i } = -2^{1 - a} (b - 1) + 2^{-b} (a - 2) + 2^{1 - a} a - 2^{-b} a + 2^{1 - a} b - 2^{-b} b
+factor: \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} i } = 2^{1 - a} (a + 1) + 2^{-b} (a - 2) - 2^{-b} a - 2^{-b} b
+theorem Sum_pow_m2_i; factor: \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} i } = 2^{1 - a} (a + 1) - 2^{-b} (b + 2)

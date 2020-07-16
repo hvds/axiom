@@ -19,10 +19,23 @@ as free variables for the scope of the conditional proof.
 =cut
 
 sub rulename { 'condstart' }
+
 sub rulere { <<'RE' }
     <rule: condstart> condstart \( <[args=varlist]> \)
         (?{ $MATCH{args}[0] = $MATCH{args}[0]{args} })
 RE
+
+sub derivere { <<'RE' }
+    <rule: condstart> condstart <args=(?{ [] })>
+RE
+
+sub derive {
+    my($self, $args) = @_;
+    return [ [
+        map Axiom::Expr->new({ type => 'name', args => [ $_ ] }),
+                @{ $self->new_vars($self->expr) }
+    ] ];
+}
 
 sub validate {
     my($self, $args) = @_;

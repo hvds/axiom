@@ -22,6 +22,7 @@ the given name.
 =cut
 
 sub rulename { 'axiom' }
+
 sub rulere { <<'RE' }
     <rule: axiom> axiom (?:
         <[args=rulename]>
@@ -30,6 +31,13 @@ sub rulere { <<'RE' }
         <args=(?{ [] })>
     )
 RE
+
+*derivere = \&rulere;
+
+sub derive {
+    my($self, $args) = @_;
+    return $args;
+}
 
 sub validate {
     my($self, $args) = @_;

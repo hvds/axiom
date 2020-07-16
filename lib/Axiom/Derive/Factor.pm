@@ -24,13 +24,97 @@ TODO: we currently support only factoring from type C<pluslist> or C<sum>.
 =cut
 
 *_one = \&Axiom::Derive::_one;
+*_mone = \&Axiom::Derive::_mone;
 
 sub rulename { 'factor' }
+
 sub rulere { <<'RE' }
     <rule: factor>
         factor \( <[args=optline]> <[args=location]> , <[args=Expr]> \)
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
 RE
+
+sub derivere { <<'RE' }
+    <rule: factor>
+        factor (?: \( <[args=line]>? \) )?
+        (?{
+            $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
+            $MATCH{args} //= [ '' ];
+        })
+RE
+
+sub derive {
+    my($self, $args) = @_;
+    my($line) = @$args;
+    my $starting = $self->line($line);
+    my $target = $self->expr;
+    $target->resolve($self->dict);
+
+    my $result;
+    my $try = sub {
+        my($loc, $expr) = @_;
+        $result = [ $line, $loc, $expr->copy ];
+        local $self->{rules} = [];
+        local $self->{working} = $self->{working};
+        return 0 unless validate($self, $result);
+        return $self->working->diff($target) ? 0 : 1;
+    };
+    my $try_all = sub {
+        my($loc, $all) = @_;
+        for my $this (@$all) {
+            return 1 if $try->($loc, $this);
+            if ($this->type eq 'negate') {
+                return 1 if $try->($loc, _mone());
+                return 1 if $try->($loc, $this->args->[0]);
+            }
+        }
+        return 0;
+    };
+
+    my @choice = do {
+        my $l = $starting->diff($target, 1) or die "no diff, factor not needed";
+        ([ $l, $starting->locate($l) ]);
+    };
+    while (@choice) {
+        my($loc, $e) = @{ shift @choice };
+        my $a = $e->args;
+        if ($e->type eq 'mullist') {
+            push @choice, map [ [ @$loc, $_ + 1 ], $a->[$_] ], 0 .. $#$a;
+            next;
+        }
+        if ($e->type eq 'pluslist') {
+            for my $ae (@$a) {
+                if ($ae->type eq 'mullist') {
+                    return $result if $try_all->($loc, $ae->args);
+                } elsif ($ae->type eq 'negate') {
+                    return $result
+                            if $try->($loc, _mone());
+                } else {
+                    return $result if $try->($loc, $ae);
+                }
+            }
+            next;
+        }
+        if ($e->type eq 'sum') {
+            my($v, $se) = @$a[0, 3];
+          retry_sum:
+            if ($se->type eq 'mullist') {
+                my @ind = grep $_->is_independent($v), @{ $se->args };
+                return $result if $try_all->($loc, \@ind);
+            } elsif ($se->type eq 'negate') {
+                return $result
+                        if $try->($loc, _mone());
+                $se = $se->args->[0];
+                goto retry_sum;
+            } elsif ($se->type eq 'pluslist') {
+                $se = $se->args->[0];
+                goto retry_sum;
+            }
+            next;
+        }
+    }
+    die "don't know how to derive this";
+}
 
 sub validate {
     my($self, $args) = @_;
