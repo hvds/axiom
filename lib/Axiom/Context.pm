@@ -110,7 +110,10 @@ sub leave_scope {
 
 sub add {
     my($self, $line, $quiet) = @_;
-    return if $line =~ /^\s*(?:#.*)?\z/;
+    if ($line =~ /^\s*(?:#.*)?\z/) {
+        print $line, "\n" unless $quiet;
+        return;
+    }
     if ($line =~ /^\*/) {
         $self->apply_directive($line, $quiet);
         return;
@@ -215,7 +218,10 @@ sub apply_directive {
         while (<$f>) {
             chomp;
             eval { $self->add($_) };
-            warn($@), return if $@;
+            if ($@) {
+                warn "  $_\n", $@;
+                return;
+            }
         }
         close $f;
         $self->apply_directive('*list') unless $quiet;
