@@ -627,9 +627,11 @@ sub _diff {
 }
 
 sub diff {
-    my($self, $other, $map) = @_;
+    my($self, $other, $pure) = @_;
+    my $map = {};
     my $where = $self->_diff($other, $map);
     return undef unless $where;
+    return $where if $pure;
     return undef unless $self->clean->_diff($other->clean, $map);
     return $where;
 }
