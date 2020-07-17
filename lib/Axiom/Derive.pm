@@ -250,7 +250,7 @@ sub _derivere {
 <token: line>
     <args=(?: \d+ (?: \. \d+ )* )>
     | <args=rulename> <args=(?{ $MATCH{args}{args} })>
-<token: rulename> <args=(?:(?:[a-z]+\.)?[A-Z]\w*(?!\w))>
+<token: rulename> <args=(?:(?:[a-z]\w*\.)?[A-Z]\w*(?!\w))>
 <token: location> <[args=arg]>+ % \.
 <token: arg> \d+
 <token: num> -?\d+
