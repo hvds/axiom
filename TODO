@@ -13,7 +13,7 @@ Discover rules even when we take multiple steps.
 
 Performance:
 - deriving factor is very slow
-- import could just pick up the theorems without validating
+- cache and share data for multiple imports of same file
 
 Sets, type checking, inequalities, constraints.
 - \Aa \e \Z, a > 10: ...

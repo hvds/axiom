@@ -110,15 +110,20 @@ sub leave_scope {
 
 sub add {
     my($self, $line, $quiet) = @_;
+    # FIXME: find a way to do this without smuggling
+    my $import = $self->{importing};
     if ($line =~ /^\s*(?:#.*)?\z/) {
-        print $line, "\n" unless $quiet;
+        print $line, "\n" unless $quiet || $import;
         return;
     }
     if ($line =~ /^\*/) {
         $self->apply_directive($line, $quiet);
         return;
     }
-    my $derive = Axiom::Derive->derive($line, $self, $DEBUG) or return;
+    my $derive = ($import
+        ? Axiom::Derive->include($line, $self, $DEBUG)
+        : Axiom::Derive->derive($line, $self, $DEBUG)
+    ) or return;
     my $where = $derive->scope;
     if ($where > 0) {
         $self->enter_scope($derive);
@@ -232,6 +237,7 @@ sub apply_directive {
         my $onamed = $self->onamed;
 
         my $sub = $self->subsidiary;
+        local $sub->{importing} = 1;
         $sub->apply_directive("*load $file", 1);
         for my $subname (@{ $sub->onamed }) {
             my $derive = $sub->line($subname);

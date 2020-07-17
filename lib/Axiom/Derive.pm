@@ -152,6 +152,33 @@ sub derive {
     return $self;
 }
 
+my %include_rule = map +($_ => 1), qw{ axiom lemma theorem };
+sub include {
+    my($class, $line, $context, $debug) = @_;
+    my $self = $class->new($context, $line);
+    my @rules;
+    my $dre = derivere($debug);
+
+    my $local = Axiom::Expr->local_dict($self->dict);
+    while ($line =~ s{$dre}{}) {
+        my($rule, $value) = %{ $/{rule} };
+        next unless $include_rule{$rule};
+        push @rules, [ $rule, $value->{args} ];
+    }
+    return unless @rules;
+    $line =~ s/^\s+//;
+
+    my $expr = Axiom::Expr->parse($self->dict, $line, $debug) or return;
+    $self->{rawexpr} = $line;
+    $self->{expr} = $expr;
+
+    $expr->resolve($self->dict);
+    $self->working($expr);
+    $self->validate(\@rules);
+
+    return $self;
+}
+
 # FIXME: these new vars are temporary, somehow we need to make them valid
 # while they're needed for comparison, then discard them.
 sub new_local {
