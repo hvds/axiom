@@ -1,5 +1,8 @@
 Stabilise enough to write tests
 
+Serialize expressions properly
+- we need this for arguments to derived rules
+
 Reduce explicit rules to just the rule name, discover the rest.
 - all but variable mappings first
 - varmaps are of various complexity:
@@ -13,7 +16,6 @@ Discover rules even when we take multiple steps.
 
 Performance:
 - deriving factor is very slow
-- cache and share data for multiple imports of same file
 
 Sets, type checking, inequalities, constraints.
 - \Aa \e \Z, a > 10: ...

@@ -10,6 +10,7 @@ use Axiom::Derive;
 use Axiom::Dict;
 
 our $DEBUG = 0;
+my %import; END { %import = () }
 
 sub new {
     my($class) = @_;
@@ -236,9 +237,12 @@ sub apply_directive {
         my $named = $self->named;
         my $onamed = $self->onamed;
 
-        my $sub = $self->subsidiary;
-        local $sub->{importing} = 1;
-        $sub->apply_directive("*load $file", 1);
+        my $sub = $import{filename($file)} //= do {
+            my $suba = $self->subsidiary;
+            local $suba->{importing} = 1;
+            $suba->apply_directive("*load $file", 1);
+            $suba;
+        };
         for my $subname (@{ $sub->onamed }) {
             my $derive = $sub->line($subname);
             my $name = "$file.$subname";
