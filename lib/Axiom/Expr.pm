@@ -48,7 +48,6 @@ sub args { shift->{args} }
 sub type { shift->{type} }
 sub rawexpr {
     my($self) = @_;
-    # FIXME: better serialization for unparsed objects
     return $self->{''} // $self->str;
 }
 
@@ -91,6 +90,92 @@ sub recip {
         type => 'recip',
         args => [ $self->copy ],
     });
+}
+
+{
+    my %prec = (
+        '=' => 1,
+        '->' => 1,
+        '+' => 2,
+        '-' => 2,
+        '.' => 3,
+        '/' => 3,
+        '^' => 4,
+        '!' => 5,
+    );
+    my %stringify = (
+        forall => sub {
+            my($args, $prec) = @_;
+            sprintf "\\A%s %s", map $_->str(0), @$args;
+        },
+        exists => sub {
+            my($args, $prec) = @_;
+            sprintf "\\E%s %s", map $_->str(0), @$args;
+        },
+        integer => sub {
+            my($args, $prec) = @_;
+            my $result = "$args->[0]";
+            ($args->[0] < 0 && $prec >= $prec{'-'}) ? "($result)" : $result;
+        },
+        rational => sub {
+            my($args, $prec) = @_;
+            my $result = join '/', @$args;
+            ($prec >= $prec{'/'}
+                || ($args->[0] < 0 && $prec >= $prec{'-'})
+            ) ? "($result)" : $result;
+        },
+        name => sub {
+            my($args, $prec) = @_;
+            "$args->[0]";
+        },
+        function => sub {
+            my($args, $prec) = @_;
+            sprintf '%s(%s)', $args->[0]->str(0),
+                    join ', ', map $_->str(0), @$args[1 .. $#$args];
+        },
+        negate => sub {
+            my($args, $prec) = @_;
+            my $result = '-' . $args->[0]->str($prec{'-'});
+            $prec >= $prec{'-'} ? "($result)" : $result;
+        },
+        pluslist => sub {
+            my($args, $prec) = @_;
+            my $result = join ' + ', map $_->str($prec{'+'}), @$args;
+            $prec >= $prec{'+'} ? "($result)" : $result;
+        },
+        recip => sub {
+            my($args, $prec) = @_;
+            my $result = '1 / ' . $args->[0]->str($prec{'/'});
+            $prec >= $prec{'/'} ? "($result)" : $result;
+        },
+        mullist => sub {
+            my($args, $prec) = @_;
+            my $result = join ' . ', map $_->str($prec{'.'}), @$args;
+            $prec >= $prec{'.'} ? "($result)" : $result;
+        },
+        pow => sub {
+            my($args, $prec) = @_;
+            my $result = join '^', map $_->str($prec{'^'}), @$args;
+            $prec >= $prec{'^'} ? "($result)" : $result;
+        },
+        sum => sub {
+            my($args, $prec) = @_;
+            sprintf("\\sum_{%s=%s}^{%s}{%s}",
+                $args->[0]->str($prec{'='}),
+                $args->[1]->str($prec{'='}),
+                $args->[2]->str(0),
+                $args->[3]->str(0),
+            );
+        },
+    );
+    sub str {
+        my($self, $prec) = @_;
+        return $self->{str} //= do {
+            my $cb = $stringify{$self->type}
+                    or die "No stringify available for @{[ $self->type ]}";
+            $cb->($self->args, $prec // 0);
+        };
+    }
 }
 
 sub _clean {
@@ -427,10 +512,10 @@ sub clean {
     return $self->copy->_clean_copied;
 }
 
-sub str {
+sub bracketed {
     my($self) = @_;
     sprintf '[%s %s]', $self->type,
-            join ', ', map $_->str, @{ $self->args };
+            join ', ', map $_->bracketed, @{ $self->args };
 }
 
 sub locate {
@@ -696,7 +781,7 @@ package Axiom::Expr::Const {
             args => [ @{ $self->args } ],
         });
     }
-    sub str { join '/', @{ shift->args } }
+    sub bracketed { join '/', @{ shift->args } }
     sub rat {
         my($self) = @_;
         my $args = $self->args;
@@ -739,7 +824,7 @@ package Axiom::Expr::Name {
             $other;
         };
     }
-    sub str {
+    sub bracketed {
         my($self) = @_;
         return sprintf '%s %s%s', $self->bindtype, $self->name,
                 $self->binding ? "_" . $self->binding->id : "";

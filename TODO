@@ -1,8 +1,5 @@
 Stabilise enough to write tests
 
-Serialize expressions properly
-- we need this for arguments to derived rules
-
 Reduce explicit rules to just the rule name, discover the rest.
 - all but variable mappings first
 - varmaps are of various complexity:
