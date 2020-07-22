@@ -3,7 +3,6 @@ Stabilise enough to write tests
 Reduce explicit rules to just the rule name, discover the rest.
 - all but variable mappings first
 - varmaps are of various complexity:
-  - itervar: one variable, only x := e + x, x := e - x, with e independent of x
   - recurse: one variable, only x := x + e, x := ex, with e independent of x
   - induction: one variable
   - specify: one or more variables

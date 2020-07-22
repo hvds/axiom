@@ -30,14 +30,14 @@ factor: \Aa: \sum_{i=a}^{x + 1}{2^i} = 2^{x + 2} - 2^a
 condend: \Ab: (\Aa: \sum_{i=a}^b{2^i} = 2^{b + 1} - 2^a) -> (\Aa: \sum_{i=a}^{b + 1}{2^i} = 2^{b + 2} - 2^a)
 theorem Sum_pow_2; induction(a): \Aa: \Ab: \sum_{i=a}^b{2^i} = 2^{b + 1} - 2^a
 
-itervar(i := a + b - i): \Aa: \Ab: \sum_{i=a}^b{2^{a + b - i}} = 2^{b + 1} - 2^a
+itervar: \Aa: \Ab: \sum_{i=a}^b{2^{a + b - i}} = 2^{b + 1} - 2^a
 multiply: \Aa: \Ab: \sum_{i=a}^b{2^{a + b - i}} . 2^{-a - b} = (2^{b + 1} - 2^a) . 2^{-a - b}
 theorem Sum_pow_m2; distrib: \Aa: \Ab: \sum_{i=a}^b{2^{-i}} = 2^{1 - a} - 2^{-b}
 
 identity: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i} i }
 iterextend: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^{b + 1}{ 2^{i} i } - 2^{b + 1} (b + 1)
 iterextend: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a+1}^{b+1}{ 2^{i} i } - 2^{b + 1} (b + 1) + 2^{a} a
-itervar(i := i + 1): \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i + 1} (i + 1) } - 2^{b + 1} (b + 1) + 2^{a} a
+itervar: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i + 1} (i + 1) } - 2^{b + 1} (b + 1) + 2^{a} a
 distrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i + 1} i + 2^{i + 1} } - 2^{b + 1} (b + 1) + 2^{a} a
 unarydistrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2^{i + 1} i } + \sum_{i=a}^b{ 2^{i + 1} } - 2^{b + 1} (b + 1) + 2^{a} a
 distrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = \sum_{i=a}^b{ 2 . 2^{i} i } + \sum_{i=a}^b{ 2^{i + 1} } - 2^{b + 1} (b + 1) + 2^{a} a
@@ -52,7 +52,7 @@ multiply: \Aa: \Ab: -\sum_{i=a}^b{ 2^{i} i } = -2 \sum_{i=a}^b{ 2^{i} i } + 2^{b
 add: \Aa: \Ab: 2 \sum_{i=a}^b{ 2^{i} i } - \sum_{i=a}^b{ 2^{i} i } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
 theorem Sum_pow_2_i; factor: \Aa: \Ab: \sum_{i=a}^b{ 2^{i} i } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
 
-itervar(i := a + b - i): \Aa: \Ab: \sum_{i=a}^b{ 2^{a + b - i} (a + b - i) } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
+itervar: \Aa: \Ab: \sum_{i=a}^b{ 2^{a + b - i} (a + b - i) } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
 distrib: \Aa: \Ab: \sum_{i=a}^b{ 2^{a + b} . 2^{-i} (a + b - i) } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
 factor: \Aa: \Ab: 2^{a + b} \sum_{i=a}^b{ 2^{-i} (a + b - i) } = 2^{b + 1} (b - 1) - 2^{a} (a - 2)
 multiply: \Aa: \Ab: \sum_{i=a}^b{ 2^{-i} (a + b - i) } = 2^{1 - a} (b - 1) - 2^{-b} (a - 2)

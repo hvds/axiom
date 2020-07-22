@@ -36,35 +36,72 @@ RE
 
 sub derivere { <<'RE' }
     <rule: itervar>
-        itervar \( <[args=optline]> <[args=RemapExpr]> \)
+        itervar (?: \( <[args=line]>? \) )?
         (?{
-            $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 1);
-            splice @{ $MATCH{args} }, 1, 1, @{ $MATCH{args}[1] };
+            $MATCH{args}[$0] = $MATCH{args}[$0]{args} if $MATCH{args};
+            $MATCH{args} //= [ '' ];
         })
 RE
 
 sub derive {
     my($self, $args) = @_;
-    my($line, $cvar, $cexpr) = @$args;
+    my($line) = @$args;
     my $starting = $self->line($line);
     my $target = $self->expr;
     $target->resolve($self->dict);
     my $loc = $starting->diff($target);
 
-    # If the map is _not_ { i := from + to - i }, the diff point must be
-    # the sum itself, since from and to will change. If it _is_, the
-    # diff point will be a descendant (but that descendant may itself
-    # be a sum).
+    # If the map is _not_ { i := $from + $to - i }, the diff point must be
+    # the sum itself, since from and to will change, and in that case there
+    # are always two possibilities which we can only distinguish by the expr.
+    # If it _is_, the diff point will be a descendant (but that descendant
+    # may itself be a sum).
 
+    my @vargs;
+    my $try = sub {
+        @vargs = @_;
+        local $self->{rules} = [];
+        local $self->{working} = $self->{working};
+        return validate($self, \@vargs) && ! $self->working->diff($target);
+    };
     my $first = 1;
     while (1) {
         my $se = $starting->locate($loc);
-        if ($se->is_iter) {
-            local $self->{rules} = [];
-            local $self->{working} = $self->{working};
-            my @vargs = ($line, $loc, $cvar, $cexpr);
-            return \@vargs if validate($self, \@vargs)
-                    && ! $self->working->diff($target);
+        my $te = $target->locate($loc);
+        if ($se->is_iter && $se->type eq $te->type) {
+            my($var, $ofrom, $oto, $oexpr) = @{ $se->args };
+            my(undef, $nfrom, $nto, $nexpr) = @{ $te->args };
+            $var = $var->copy;
+            if ($first) {
+                my $diff = Axiom::Expr->new({
+                    type => 'pluslist',
+                    args => [
+                        $var->copy,
+                        $ofrom->copy,
+                        $nfrom->negate,
+                    ],
+                })->clean;
+                return \@vargs if $try->($line, $loc, $var, $diff);
+                $diff = Axiom::Expr->new({
+                    type => 'pluslist',
+                    args => [
+                        $nfrom->copy,
+                        $oto->negate,
+                        $var->negate,
+                    ],
+                })->clean;
+                return \@vargs if $try->($line, $loc, $var, $diff);
+            } else {
+                my $diff = Axiom::Expr->new({
+                    type => 'pluslist',
+                    args => [
+                        $oto->copy,
+                        $ofrom->copy,
+                        $var->negate,
+                    ],
+                })->clean;
+                return \@vargs if $try->($line, $loc, $var, $diff);
+            }
         }
         last unless @$loc;
         pop @$loc;
