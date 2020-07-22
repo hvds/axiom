@@ -112,6 +112,16 @@ sub recip {
             my($args, $prec) = @_;
             sprintf "\\E%s %s", map $_->str(0), @$args;
         },
+        equals => sub {
+            my($args, $prec) = @_;
+            my $result = sprintf "%s = %s", map $_->str($prec{'='}), @$args;
+            ($prec >= $prec{'='}) ? "($result)" : $result;
+        },
+        implies => sub {
+            my($args, $prec) = @_;
+            my $result = sprintf "%s -> %s", map $_->str($prec{'->'}), @$args;
+            ($prec >= $prec{'->'}) ? "($result)" : $result;
+        },
         integer => sub {
             my($args, $prec) = @_;
             my $result = "$args->[0]";
