@@ -482,6 +482,10 @@ sub _clean {
                 ) if $val->is_const;
             }
 
+            # 1^x -> x
+            return $val
+                    if $val->type eq 'integer' && $val->args->[0] eq '1';
+
             # pow(a, b+c) -> pow(a, b) x pow(a, c)
             return Axiom::Expr->new({
                 type => 'mullist',
