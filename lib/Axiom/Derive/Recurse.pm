@@ -46,80 +46,170 @@ RE
 
 sub derivere { <<'RE' }
     <rule: recurse>
-        recurse \( <[args=optline]>? <[args=pair]> \)
+        recurse (?: \( <[args=line]>? \) )?
         (?{
-            $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 1);
-            splice @{ $MATCH{args} }, 1, 1, @{ $MATCH{args}[1] };
+            $MATCH{args}[$0] = $MATCH{args}[$0]{args} if $MATCH{args};
+            $MATCH{args} //= [ '' ];
         })
 RE
 
+#
+# Find a mapping of the variable $var that transforms $left to $right.
+# If the reference to a mapping expression $mapr is defined, succeeds only
+# if that mapping is honoured; else sets $mapr to any mapping found.
+#
+# Currently very simplistic: will succeed only if a subtree of $right
+# exactly maps to each $var in $left, so will not for example find the
+# mapping C<a := a + 1> to map C<a + b> to C<a + 1 + b>. Also assumes
+# expression arguments appear in the same order in $left and $right.
+#
+sub _try_subst {
+    my($left, $right, $var, $mapr) = @_;
+    return 1 unless $left->diff($right);
+    if ($left->type eq $right->type && !$left->is_atom) {
+        my $la = $left->args;
+        my $ra = $right->args;
+        if (@$la == @$ra) {
+            for my $i (0 .. $#$la) {
+                return 0 unless _try_subst($la->[$i], $ra->[$i], $var, $mapr);
+            }
+            return 1;
+        }
+    }
+    return 0 if $left->diff($var);
+    if (!defined $$mapr) {
+        $$mapr = $right;
+        return 1;
+    }
+    return $right->diff($$mapr) ? 0 : 1;
+}
+
 sub derive {
     my($self, $args) = @_;
-    my($line, $var, $iter) = @$args;
+    my($line) = @$args;
     my $starting = $self->line($line);
     my $target = $self->expr;
     $target->resolve($self->dict);
 
+    # Find the LHS and RHS of the underlying expression; for the LHS, find
+    # locations of variables within it that are declared by an enfolding
+    # "forall".
     my $loc = [];
+    my(%id, @var);
     my $eq = $starting;
-    while ($eq->is_quant) {
+    while ($eq->type eq 'forall') {
         push @$loc, 2;
-        $eq = $eq->args->[1];
+        (my($var), $eq) = @{ $eq->args };
+        $id{$var->name} = $var->binding->id;
     }
     $eq->type eq 'equals' or die sprintf(
         "Don't know how to derive recurse over a %s\n", $eq->type,
     );
     my($lhs, $rhs) = @{ $eq->args };
-
-    my $subdict = $starting->dict_at($loc);
-    $_->resolve($subdict) for ($var, $iter);
-
-    my($plus, $times);
-    $plus = _subv($iter, $var);
-    $plus = undef unless $plus->is_independent($var);
-
-    if (!$plus) {
-        $times = _divv($iter, $var);
-        unless ($times->is_independent($var)) {
-            die sprintf(
-                "unable to resolve iterator '%s := %s' to derive recurse",
-                $var->rawexpr, $iter->rawexpr,
-            );
-        }
-    }
-
-    my @choice;
-    $target->walk_locn(sub {
-        my($e, $loc) = @_;
-        my $diff = $e->diff($lhs);
-        return if !$diff || !@$diff;
-        my $candidate = _candidate($lhs, $e, $var);
-        if ($candidate) {
-            push @choice, ($plus
-                ? Axiom::Expr->new({
-                    type => 'mullist',
-                    args => [ _subv($candidate, $var), $plus->recip ],
-                })
-                : Axiom::Expr->new({
-                    type => 'pow',
-                    args => [ _divv($candidate, $var), $times->recip ],
-                })
-            )->clean;
+    $lhs->walk_tree(sub {
+        my($e) = @_;
+        return unless $e->type eq 'name';
+        my $name = $e->name;
+        if (defined($id{$name}) && $e->binding->id == $id{$name}) {
+            delete $id{$name};
+            push @var, $e;
         }
         return;
     });
 
-    my %seen;
-    for my $choice (@choice) {
-        next if $seen{$choice->str}++;
+    # Now find mappings for any one of the variables found above that result
+    # in a subexpression of the RHS.
+    my @choice;
+    $rhs->walk_tree(sub {
+        my($e) = @_;
+        for my $v (@var) {
+            my $map = undef;
+            next unless _try_subst($lhs, $e, $v, \$map);
+            # FIXME: deduplicate
+            push @choice, [ $v, $map ] if $map;
+        }
+        return;
+    });
+
+    # Now similarly look for mappings that result in subexpressions of the RHS
+    # of the target: any such that can represent a recursed form of one of
+    # the mappings found above gives us a possibility to try.
+    my $teq = $target;
+    while ($teq->type eq 'forall') {
+        $teq = $teq->args->[1];
+    }
+    $teq->type eq 'equals' or die sprintf(
+        "Don't know how to derive recurse to give a %s\n", $teq->type,
+    );
+    my $trhs = $teq->args->[1];
+    my @result;
+    $trhs->walk_tree(sub {
+        my($e) = @_;
+        for my $v (@var) {
+            my $map = undef;
+            # FIXME: left and right are from different expressions,
+            # equivalent variables may not have the same id.
+            next unless _try_subst($lhs, $e, $v, \$map);
+            # FIXME: deduplicate
+            push @result, [ $v, $map ] if $map;
+        }
+        return;
+    });
+
+    my @vargs;
+    my $try = sub {
+        my($var, $map, $count) = @_;
+        $var = $var->copy;
+        $map = $map->copy;
+        @vargs = ($line, $var, $map, $count);
         local $self->{rules} = [];
         local $self->{working} = $self->working;
-        my @vargs = ($line, $var, $iter, $choice);
-        next unless validate($self, \@vargs);
-        next if $target->diff($self->working);
-        return \@vargs;
-    }
+        return 0 unless validate($self, \@vargs);
+        return 0 if $target->diff($self->working);
+        return 1;
+    };
 
+    for (@choice) {
+        my($var, $map) = @$_;
+
+        # We only support x -> x + e and x -> x . e for now.
+        my($plus, $times);
+        $plus = _subv($map, $var);
+        $plus = undef unless $plus->is_independent($var);
+        if (!$plus) {
+            $times = _divv($map, $var);
+            unless ($times->is_independent($var)) {
+                die sprintf(
+                    "unable to resolve iterator '%s := %s' to derive recurse",
+                    $var->str, $map->str,
+                );
+            }
+        }
+
+        for (@result) {
+            my($tvar, $tmap) = @$_;
+            next unless $var->name eq $tvar->name;
+            if ($plus) {
+                my $count = Axiom::Expr->new({
+                    type => 'mullist',
+                    args => [
+                        _subv($tmap, $var),
+                        $plus->recip,
+                    ],
+                })->clean;
+                return \@vargs if $try->($var, $map, $count);
+            } else {
+                my $count = Axiom::Expr->new({
+                    type => 'pow',
+                    args => [
+                        _divv($tmap, $var),
+                        $times->recip,
+                    ],
+                })->clean;
+                return \@vargs if $try->($var, $map, $count);
+            }
+        }
+    }
     die "don't know how to derive this recurse";
 }
 
