@@ -65,23 +65,25 @@ RE
 #
 sub _try_subst {
     my($left, $right, $var, $mapr) = @_;
-    return 1 unless $left->diff($right);
-    if ($left->type eq $right->type && !$left->is_atom) {
+    if ($left->is_atom) {
+        if ($left->diff($var)) {
+            return $left->diff($right) ? 0 : 1;
+        } elsif (!defined $$mapr) {
+            $$mapr = $right;
+            return 1;
+        } else {
+            return $right->diff($$mapr) ? 0 : 1;
+        }
+    } else {
+        return 0 unless $left->type eq $right->type;
         my $la = $left->args;
         my $ra = $right->args;
-        if (@$la == @$ra) {
-            for my $i (0 .. $#$la) {
-                return 0 unless _try_subst($la->[$i], $ra->[$i], $var, $mapr);
-            }
-            return 1;
+        return 0 unless @$la == @$ra;
+        for my $i (0 .. $#$la) {
+            return 0 unless _try_subst($la->[$i], $ra->[$i], $var, $mapr);
         }
-    }
-    return 0 if $left->diff($var);
-    if (!defined $$mapr) {
-        $$mapr = $right;
         return 1;
     }
-    return $right->diff($$mapr) ? 0 : 1;
 }
 
 sub derive {
