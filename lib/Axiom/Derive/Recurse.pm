@@ -48,7 +48,7 @@ sub derivere { <<'RE' }
     <rule: recurse>
         recurse (?: \( <[args=line]>? \) )?
         (?{
-            $MATCH{args}[$0] = $MATCH{args}[$0]{args} if $MATCH{args};
+            $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
             $MATCH{args} //= [ '' ];
         })
 RE
