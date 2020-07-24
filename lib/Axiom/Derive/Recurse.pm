@@ -130,7 +130,7 @@ sub derive {
         @vargs = ($line, $var, $map, $count);
         local $self->{rules} = [];
         local $self->{working} = $self->working;
-        return 0 unless validate($self, \@vargs);
+        return 0 unless eval { validate($self, \@vargs) };
         return 0 if $target->diff($self->working);
         return 1;
     };
