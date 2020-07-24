@@ -423,6 +423,7 @@ sub _find_mapping {
         return 0 unless @$la == @$ra;
         for my $i (0 .. $#$la) {
             return 0 unless _find_mapping($la->[$i], $ra->[$i], $vars, $map);
+            return 1 unless grep !defined, values %$map;
         }
         return 1;
     }
