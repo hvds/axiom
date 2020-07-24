@@ -36,34 +36,39 @@ sub rulere { <<'RE' }
 RE
 
 sub derivere { <<'RE' }
-    <rule: induction> induction \( <[args=Expr]> \)
+    <rule: induction> induction
+        (?{ $MATCH{args} = [] })
 RE
+
+sub _inputs {
+    my($self, $args) = @_;
+    # FIXME: one or both of these should be specifiable
+    my $starting = $self->working;
+    my $base = $self->context->lines->{$self->context->curline}[-2]->expr;
+    return +($starting, $base);
+}
 
 sub derive {
     my($self, $args) = @_;
-    # FIXME: derive base_expr too - determine $var, scan LHS of starting implies
-    # for locations of $var, then investigate them in priority order based on
-    # type of parent subexpr. Highest prio where $var appears alone in an
-    # easily matched location, eg as from/to of an iter, or a function arg.
-    # Not sure how to handle lower prios, but we don't need them yet.
-    # prio are standalone
-    my($base_expr) = @$args;
-    my $starting = $self->working;
+    my($starting, $base) = _inputs($self, $args);
     $starting->type eq 'forall' or die "cannot derive";
-    my $var = $starting->args->[0];
-    return [ $var, $base_expr ];
+    my($var, $se) = @{ $starting->args };
+    $se->type eq 'implies' or die "cannot derive";
+    $se = $se->args->[0];
+
+    my $map = $self->find_mapping($se, $base, [ $var ]);
+    return [ $var, $map->{$var->name} ] if $map;
+
+    die "can't derive this induction";
 }
 
 sub validate {
     my($self, $args) = @_;
     my($var, $base_expr) = @$args;
-    my $starting = $self->working;
-
-    # FIXME: source of base line should be explicit
-    my $base = $self->context->lines->{$self->context->curline}[-2]->expr;
-
+    my($starting, $base) = _inputs($self, $args);
     $starting->type eq 'forall' or die sprintf
             "Induction requires 'forall', not %s\n", $starting->type;
+
     my($ivar, $iexpr) = @{ $starting->args };
     $ivar->name eq $var->name or die sprintf(
         "Induction variable '%s' does not match '%s' found\n",

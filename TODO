@@ -3,7 +3,6 @@ Stabilise enough to write tests
 Reduce explicit rules to just the rule name, discover the rest.
 - all but variable mappings first
 - varmaps are of various complexity:
-  - induction: one variable
   - equate: zero or more variables, target expr at location to be discovered
 Remove explicit rules entirely, discover them.
 Discover rules even when we take multiple steps.
