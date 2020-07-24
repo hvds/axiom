@@ -387,4 +387,70 @@ sub new_vars {
     return [ sort keys %new ];
 }
 
+#
+# Find a mapping of the variables in the (name => id) hashref $vars that
+# transforms $left to $right.
+# If the mapping expression in the (name => expr) hashref $map is defined,
+# succeeds only if that mapping is honoured; else sets $map->{name} to any
+# mapping found.
+#
+# Currently very simplistic: will succeed only if a subtree of $right
+# exactly maps to each occurrence of a mapped var in $left, so will not
+# for example find the mapping C<a := a + 1> to map C<a + b> to C<a + 1 + b>.
+# Also assumes expression arguments appear in the same order in $left and
+# $right.
+#
+sub _find_mapping {
+    my($left, $right, $vars, $map) = @_;
+    if ($left->is_atom) {
+        return $left->diff($right) ? 0 : 1
+                unless $left->type eq 'name';
+        my $name = $left->name;
+        my $id = $left->binding->id;
+        return $left->diff($right) ? 0 : 1
+                unless defined $vars->{$name};
+        die "Name clash: mapped var $name found with conflicting binding"
+                unless $id == $vars->{$name};
+
+        return $right->diff($map->{$name})
+                if defined $map->{$name};
+        $map->{$name} = $right;
+        return 1;
+    } else {
+        return 0 unless $left->type eq $right->type;
+        my $la = $left->args;
+        my $ra = $right->args;
+        return 0 unless @$la == @$ra;
+        for my $i (0 .. $#$la) {
+            return 0 unless _find_mapping($la->[$i], $ra->[$i], $vars, $map);
+        }
+        return 1;
+    }
+}
+
+#
+# Finds a mapping of the variables listed in the arrayref $vars that
+# transforms the expression $left to $right. Returns undef on failure,
+# else a hashref mapping variable names to the appropriate mapping
+# expressions.
+#
+# The variables in $vars are expected to have names distinct from each
+# other, and from any other variables in the $left expression.
+#
+# FIXME: variables _not_ listed in $vars need to match left and right,
+# but may not have the same ids. Except if $left and $right are subexprs
+# of the same expression - so we'll need a flag to indicate that.
+#
+sub find_mapping {
+    my($self, $left, $right, $vars) = @_;
+    my %vars = map +($_->name => $_->binding->id), @$vars;
+    my %map = map +($_->name => undef), @$vars;
+    die "find_mapping: names clash in input vars"
+            unless @$vars == keys %vars;
+    return undef unless _find_mapping($left, $right, \%vars, \%map);
+    return undef if grep !defined, values %map;
+    $_ = $_->copy for values %map;
+    return \%map;
+}
+
 1;

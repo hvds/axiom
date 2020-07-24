@@ -53,39 +53,6 @@ sub derivere { <<'RE' }
         })
 RE
 
-#
-# Find a mapping of the variable $var that transforms $left to $right.
-# If the reference to a mapping expression $mapr is defined, succeeds only
-# if that mapping is honoured; else sets $mapr to any mapping found.
-#
-# Currently very simplistic: will succeed only if a subtree of $right
-# exactly maps to each $var in $left, so will not for example find the
-# mapping C<a := a + 1> to map C<a + b> to C<a + 1 + b>. Also assumes
-# expression arguments appear in the same order in $left and $right.
-#
-sub _try_subst {
-    my($left, $right, $var, $mapr) = @_;
-    if ($left->is_atom) {
-        if ($left->diff($var)) {
-            return $left->diff($right) ? 0 : 1;
-        } elsif (!defined $$mapr) {
-            $$mapr = $right;
-            return 1;
-        } else {
-            return $right->diff($$mapr) ? 0 : 1;
-        }
-    } else {
-        return 0 unless $left->type eq $right->type;
-        my $la = $left->args;
-        my $ra = $right->args;
-        return 0 unless @$la == @$ra;
-        for my $i (0 .. $#$la) {
-            return 0 unless _try_subst($la->[$i], $ra->[$i], $var, $mapr);
-        }
-        return 1;
-    }
-}
-
 sub derive {
     my($self, $args) = @_;
     my($line) = @$args;
@@ -125,10 +92,8 @@ sub derive {
     $rhs->walk_tree(sub {
         my($e) = @_;
         for my $v (@var) {
-            my $map = undef;
-            next unless _try_subst($lhs, $e, $v, \$map);
-            # FIXME: deduplicate
-            push @choice, [ $v, $map ] if $map;
+            my $map = $self->find_mapping($lhs, $e, [ $v ]);
+            push @choice, [ $v, $map->{$v->name} ] if $map;
         }
         return;
     });
@@ -148,12 +113,11 @@ sub derive {
     $trhs->walk_tree(sub {
         my($e) = @_;
         for my $v (@var) {
-            my $map = undef;
             # FIXME: left and right are from different expressions,
-            # equivalent variables may not have the same id.
-            next unless _try_subst($lhs, $e, $v, \$map);
+            # equivalent non-$v variables may not have the same id.
+            my $map = $self->find_mapping($lhs, $e, [ $v ]);
             # FIXME: deduplicate
-            push @result, [ $v, $map ] if $map;
+            push @result, [ $v, $map->{$v->name} ] if $map;
         }
         return;
     });
