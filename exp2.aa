@@ -4,7 +4,7 @@
 *func E
 *var n
 
-specify(exp.T2: b := 2): \Aa: E(a, 2) = n(a + 3) / 4 + \sum_{i=0}^1{ (1/2)^{i} E(a - 1, 2 - i) / 2 }
+specify(exp.T2): \Aa: E(a, 2) = n(a + 3) / 4 + \sum_{i=0}^1{ (1/2)^{i} E(a - 1, 2 - i) / 2 }
 iterexpand: \Aa: E(a, 2) = n(1 + (a - 1) / 4) + E(a - 1, 2) / 2 + E(a - 1, 1) / 4
 equate(exp1.Exp_a_1, { a := a - 1 }): \Aa: E(a, 2) = n(1 + (a - 1) / 4) + E(a - 1, 2) / 2 + n(a - 1 + 2^{1 - a}) / 4
 factor: \Aa: E(a, 2) = n(1 + (a - 1) / 4 + (a - 1 + 2^{1 - a}) / 4) + E(a - 1, 2) / 2
