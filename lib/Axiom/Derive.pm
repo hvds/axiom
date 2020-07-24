@@ -327,7 +327,7 @@ sub _mone {
 sub _linename {
     my($self, $line) = @_;
     return '' unless defined $line && length $line;
-    return "$line:";
+    return "$line: ";
 }
 
 sub _varmap {
