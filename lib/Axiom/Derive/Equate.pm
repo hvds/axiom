@@ -80,7 +80,9 @@ sub derive {
 sub validate {
     my($self, $args) = @_;
     my($line, $loc, $eqline, $map) = @$args;
-    my $starting = $self->line($line);
+    my $starting = $self->line($line)->copy;
+    $starting->resolve($self->dict);
+    my $dict = $starting->dict_at([]);
 
     my $expr = $starting->locate($loc);
     my $from = $self->line($eqline);
@@ -102,6 +104,17 @@ sub validate {
         $expr->resolve($to_dict);
         +($var->binding->id => $expr)
     } @{ $map->{args} // [] };
+    $from_expr->walk_tree(sub {
+        my($e) = @_;
+        return unless $e->has_newvar;
+        my $var = $e->args->[ $e->intro_newvar ];
+        my $id = $var->binding->id;
+        return if $vmap{$id};
+        my $nvar = $var->copy;
+        my $nbinding = $nvar->_resolve_new($dict);
+        $vmap{$id} = $nvar;
+        return;
+    });
     my $equate = $from_expr->subst_vars(\%vmap);
 
     my $repl;
