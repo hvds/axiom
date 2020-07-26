@@ -601,7 +601,7 @@ sub _dict_at {
 
 sub substitute {
     my($self, $location, $replace) = @_;
-# FIXME: must introduce and re-bind any local variables in $replace
+# CHECKME: do we need to introduce and re-bind any local variables in $replace?
     return $replace unless @$location;
     my($off, @subloc) = @$location;
     my $args = $self->args;
@@ -686,7 +686,7 @@ sub parse {
 
 sub _diff {
     my($self, $other, $map) = @_;
-    $map //= [];
+    $map //= {};
     $self->type eq $other->type or return [];
     my($sa, $oa) = ($self->args, $other->args);
     @$sa == @$oa or return [];
@@ -846,9 +846,16 @@ package Axiom::Expr::Name {
     sub _diff {
         my($self, $other, $map) = @_;
         return [] unless $self->type eq $other->type
-                && $self->bindtype eq $other->bindtype
-# FIXME: use the map
-                && $self->name eq $other->name;
+                && $self->bindtype eq $other->bindtype;
+        my($si, $oi) = map $_->binding->id, ($self, $other);
+        if (defined $map->{$si}) {
+            return [] unless $oi == $map->{$si};
+        } else {
+            return [] unless $self->name eq $other->name || $si == $oi;
+            return [] if defined $map->{"r$oi"};
+            $map->{$si} = $oi;
+            $map->{"r$oi"} = $si;
+        }
         return undef;
     }
     sub name { shift->args->[0] }
