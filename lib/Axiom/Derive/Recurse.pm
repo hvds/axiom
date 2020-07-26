@@ -219,7 +219,7 @@ sub validate {
     my $prod = _one();
     my $cur;
     for (0 .. $#$rloc) {
-        $cur = $_ ? $cur->args->[ $rloc->[$_ - 1] ] : $rhs;
+        $cur = $_ ? $cur->args->[ $rloc->[$_ - 1] - 1 ] : $rhs;
         my $type = $cur->type;
         if ($type eq 'pluslist') {
             next;
@@ -227,7 +227,7 @@ sub validate {
             $prod = $prod->negate;
             next;
         } elsif ($type eq 'mullist') {
-            my $next_rloc = $rloc->[$_];
+            my $next_rloc = $rloc->[$_] - 1;
             my $args = $cur->args;
             $prod = Axiom::Expr->new({
                 type => 'mullist',

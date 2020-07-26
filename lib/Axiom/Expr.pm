@@ -742,7 +742,7 @@ sub find_expr {
     my $args = $self->args;
     for my $i (0 .. $#$args) {
         my $loc = $args->[$i]->find_expr($expr);
-        return [ $i, @$loc ] if $loc;
+        return [ $i + 1, @$loc ] if $loc;
     }
     return undef;
 }
