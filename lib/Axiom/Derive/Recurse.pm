@@ -182,7 +182,9 @@ sub derive {
 sub validate {
     my($self, $args) = @_;
     my($line, $var, $iter, $count) = @$args;
-    my $starting = $self->line($line);
+    my $starting = $self->line($line)->copy;
+    $starting->resolve($self->dict);
+    my $source_dict = $starting->dict_at([]);
 
     my $loc = [];
     my $eq = $starting;
@@ -256,7 +258,15 @@ sub validate {
             })->negate,
         ],
     })->clean;
-    my $itervar = $self->new_local('i');
+    my $itervar = do {
+        my $binding = $source_dict->insert_local('i');
+        my $new = Axiom::Expr->new({
+            type => 'name',
+            args => [ $binding->name ],
+        });
+        $new->bind($binding);
+        $new;
+    };
     my $rest_iter = Axiom::Expr->new({
         type => 'sum',
         args => [
