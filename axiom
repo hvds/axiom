@@ -13,11 +13,14 @@ use Axiom::Context;
 my $term = Term::ReadLine->new('axiom');
 $term->ornaments(0);
 my $hs = Axiom::Context->new;
+my $opt_final;
 for my $arg (@ARGV) {
+    $opt_final = 1, next if $arg eq '-f';
     $arg = "*load $arg" if $arg !~ /^\*/;
     $hs->add($arg);
 }
 while (1) {
+    last if $opt_final;
     my $line = $term->readline($hs->curindex . '> ') // last;
     eval { $hs->add($line) };
     warn $@ if $@;
