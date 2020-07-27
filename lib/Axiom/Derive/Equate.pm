@@ -60,7 +60,8 @@ sub derive {
         local $self->{rules} = [];
         local $self->{working} = $self->working;
         return 0 unless eval { validate($self, \@vargs) };
-        return $self->working->diff($target) ? 0 : 1;
+        return 0 if $self->working->diff($target);
+        return 1;
     };
 
     my $final;
