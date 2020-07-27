@@ -74,7 +74,9 @@ sub derive {
 sub validate {
     my($self, $args) = @_;
     my($line, $loc) = @$args;
-    my $starting = $self->line($line);
+    my $starting = $self->line($line)->copy;
+    $starting->resolve($self->dict);
+    my $source_dict = $starting->dict_at([]);
 
     my $expr = $starting->locate($loc);
     my($arg, $repl);
@@ -104,8 +106,15 @@ sub validate {
         (my($var, $from, $to), $arg) = @{ $expr->args };
         if ($arg->type eq 'pluslist') {
             my $name = $var->name;
-            my @var = map $self->new_local($name),
-                    0 .. $#{ $arg->args };
+            my @var = map {
+                my $binding = $source_dict->insert_local($name);
+                my $new = Axiom::Expr->new({
+                    type => 'name',
+                    args => [ $name ],
+                });
+                $new->bind($binding);
+                $new;
+            } 0 .. $#{ $arg->args };
             $repl = Axiom::Expr->new({
                 type => 'pluslist',
                 args => [ map Axiom::Expr->new({

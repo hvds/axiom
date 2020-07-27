@@ -179,20 +179,6 @@ sub include {
     return $self;
 }
 
-# FIXME: these new vars are temporary, somehow we need to make them valid
-# while they're needed for comparison, then discard them.
-sub new_local {
-    my($self, $name) = @_;
-    my $subdict = $self->dict->subsidiary;
-    my $binding = $subdict->insert_local($name);
-    my $new = Axiom::Expr->new({
-        type => 'name',
-        args => [ $binding->name ],
-    });
-    $new->bind($binding);
-    return $new;
-}
-
 sub _rulere {
     use Regexp::Grammars;
     return state $gdrre = do {
