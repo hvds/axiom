@@ -1,5 +1,15 @@
 Stabilise enough to write tests
 
+Consider: require a single derivation per line - that means theorem naming
+becomes a separate step after derivation, but removes a wart around axioms
+and allows us to subclass the Derive object, which will let us abstract
+trial validations effectively.
+
+Consider: require Expr to specify a dict up front, require vars and funcs
+to resolve as we go, introduce global_ok to allow new globals, rewrite
+condstart to use that to remove the need for late resolving. That may all
+mean big changes to how we construct exprs dynamically.
+
 Remove explicit rules entirely, discover them.
 Discover rules even when we take multiple steps.
 
