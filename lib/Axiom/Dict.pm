@@ -141,7 +141,7 @@ sub copy {
     my $dict = $self->dict;
     my $bind = $self->bind;
     my $copy = ref($self)->new;
-    for my $name (sort { $dict->{$a}->id <=> $dict->{$b}->id } keys %$dict) {
+    for my $name (keys %$dict) {
         $copy->insert($name, $dict->{$name}->type);
     }
     return $copy;
