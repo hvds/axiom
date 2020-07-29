@@ -2,27 +2,152 @@
 use strict;
 use warnings;
 
-use Term::ReadLine;
-use Data::Dumper;
-$Data::Dumper::Indent = 1;
-$Data::Dumper::Sortkeys = 1;
-
 use lib 'lib';
-use Axiom::Context;
+use Axiom::Derive;
+use Axiom::Dict;
 
-my $term = Term::ReadLine->new('axiom');
-$term->ornaments(0);
-my $hs = Axiom::Context->new;
-my $opt_final;
-for my $arg (@ARGV) {
-    $opt_final = 1, next if $arg eq '-f';
-    $arg = "*load $arg" if $arg !~ /^\*/;
-    $hs->add($arg);
+my $dict = Axiom::Dict->new;
+our $hs = bless {
+    lines => { '' => [] },
+    named => {},
+    dict => $dict,
+    curline => '',
+}, 'Axiom::Context';
+{
+    my $sdict = $hs->{dict}->subsidiary;
+    my $hsa = bless {
+        lines => { '' => [] },
+        named => {},
+        dict => $sdict,
+        curline => '',
+    }, 'Axiom::Context';
+    $sdict->insert('E', 'func');
+    $sdict->insert('n', 'var');
+    my $derive = Axiom::Derive->new($hsa, '');
+    my $dsdict = $derive->{dict};
+    my $expr = Axiom::Expr->new({
+        type => 'forall',
+        args => [
+            _ea(),
+            Axiom::Expr->new({
+                type => 'equals',
+                args => [
+                    Axiom::Expr->new({
+                        type => 'function',
+                        args => [ _funcname($dsdict), _ei(0), _ea() ],
+                    }),
+                    Axiom::Expr->new({
+                        type => 'mullist',
+                        args => [ _ea(), _en() ],
+                    }),
+                ],
+            }),
+        ],
+    });
+    $derive->{expr} = $expr;
+    $expr->resolve($dsdict);
+    $hs->{named}->{"exp.A2b"} = $derive;
+    print "axiom 1\n";
 }
-while (1) {
-    last if $opt_final;
-    my $line = $term->readline($hs->curindex . '> ') // last;
-    eval { $hs->add($line) };
-    warn $@ if $@;
+
+$dict->insert('E', 'func');
+$dict->insert('n', 'var');
+
+my $derive = Axiom::Derive->new($hs, '');
+my $ddict = $derive->{dict};
+my $expr = Axiom::Expr->new({
+    type => 'forall',
+    args => [
+        _ea(),
+        Axiom::Expr->new({
+            type => 'equals',
+            args => [
+                Axiom::Expr->new({
+                    type => 'function',
+                    args => [ _funcname($ddict), _ea(), _ei(1) ],
+                }),
+                Axiom::Expr->new({
+                    type => 'mullist',
+                    args => [
+                        _ea(),
+                        Axiom::Expr->new({
+                            type => 'function',
+                            args => [ _funcname($ddict), _ei(0), _ei(1) ],
+                        }),
+                    ],
+                }),
+            ],
+        }),
+    ],
+});
+$derive->{expr} = $expr;
+$derive->{working} = $expr;
+$expr->resolve($ddict);
+push @{ $hs->curlines }, $derive;
+print "axiom 2\n";
+
+$derive = Axiom::Derive->new($hs, '');
+$ddict = $derive->{dict};
+$expr = Axiom::Expr->new({
+    type => 'forall',
+    args => [
+        _ea(),
+        Axiom::Expr->new({
+            type => 'equals',
+            args => [
+                Axiom::Expr->new({
+                    type => 'function',
+                    args => [ _funcname($ddict), _ea(), _ei(1) ],
+                }),
+                Axiom::Expr->new({
+                    type => 'mullist',
+                    args => [
+                        _ea(),
+                        _en(),
+                    ],
+                }),
+            ],
+        }),
+    ],
+});
+$derive->{expr} = $expr;
+$derive->derive;
+print "equate\n";
+
+sub _funcname {
+    my($dict) = @_;
+    my $func = Axiom::Expr->new({ type => 'name', args => [ 'E' ] });
+    $func->bind($dict->lookup('E'));
+    return $func;
 }
-print "\n";    # get past the last prompt
+sub _ea { Axiom::Expr->new({ type => 'name', args => [ 'a' ] }) }
+sub _en { Axiom::Expr->new({ type => 'name', args => [ 'n' ] }) }
+sub _ei { Axiom::Expr->new({ type => 'integer', args => [ "$_[0]" ] }) }
+
+package Axiom::Context {
+    sub dict { shift->{dict} }
+    sub curline { shift->{curline} }
+    sub curlines {
+        my($self) = @_;
+        return $self->{lines}{$self->curline} //= [];
+    }
+    sub curindex {
+        my($self) = @_;
+        return join '.', grep length, $self->curline, 0 + @{ $self->curlines };
+    }
+
+    sub last_expr {
+        my($self) = @_;
+        my $lines = $self->{lines}{$self->curline};
+        return undef unless @$lines;
+        return $lines->[-1]{expr};
+    }
+    sub line {
+        my($self, $name) = @_;
+        return $self->{named}->{$name};
+    }
+    sub expr {
+        my($self, $index) = @_;
+        return $self->{named}{$index}{expr};
+    }
+};
