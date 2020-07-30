@@ -384,7 +384,7 @@ package Axiom::Expr {
 package Axiom::Bind {
     sub new {
         my($class, $type, $name, $id) = @_;
-        return [ $type, $name, $id ];
+        return bless [ $type, $name, $id ], $class;
     }
 };
 
