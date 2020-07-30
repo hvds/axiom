@@ -1,31 +1,15 @@
-#!/opt/axiom-d/bin/perl
+#!/opt/v5.32.0-d/bin/perl
 use strict;
 use warnings;
 
-use lib 'lib';
-use Axiom::Derive;
-use Axiom::Dict;
-
 my $dict = Axiom::Dict->new;
-our $hs = bless {
-    lines => { '' => [] },
-    named => {},
-    dict => $dict,
-    curline => '',
-}, 'Axiom::Context';
+my $a1expr;
 {
-    my $sdict = $hs->{dict}->subsidiary;
-    my $hsa = bless {
-        lines => { '' => [] },
-        named => {},
-        dict => $sdict,
-        curline => '',
-    }, 'Axiom::Context';
+    my $sdict = $dict->subsidiary;
     $sdict->insert('E', 'func');
     $sdict->insert('n', 'var');
-    my $derive = Axiom::Derive->new($hsa, '');
-    my $dsdict = $derive->{dict};
-    my $expr = Axiom::Expr->new({
+    my $dsdict = $sdict->copy;
+    $a1expr = Axiom::Expr->new({
         type => 'forall',
         args => [
             _ea(),
@@ -44,51 +28,47 @@ our $hs = bless {
             }),
         ],
     });
-    $derive->{expr} = $expr;
-    $expr->resolve($dsdict);
-    $hs->{named}->{"exp.A2b"} = $derive;
+    $a1expr->resolve($dsdict);
     print "axiom 1\n";
 }
 
 $dict->insert('E', 'func');
 $dict->insert('n', 'var');
 
-my $derive = Axiom::Derive->new($hs, '');
-my $ddict = $derive->{dict};
-my $expr = Axiom::Expr->new({
-    type => 'forall',
-    args => [
-        _ea(),
-        Axiom::Expr->new({
-            type => 'equals',
-            args => [
-                Axiom::Expr->new({
-                    type => 'function',
-                    args => [ _funcname($ddict), _ea(), _ei(1) ],
-                }),
-                Axiom::Expr->new({
-                    type => 'mullist',
-                    args => [
-                        _ea(),
-                        Axiom::Expr->new({
-                            type => 'function',
-                            args => [ _funcname($ddict), _ei(0), _ei(1) ],
-                        }),
-                    ],
-                }),
-            ],
-        }),
-    ],
-});
-$derive->{expr} = $expr;
-$derive->{working} = $expr;
-$expr->resolve($ddict);
-push @{ $hs->curlines }, $derive;
-print "axiom 2\n";
+my $a2expr;
+{
+    my $ddict = $dict->copy;
+    $a2expr = Axiom::Expr->new({
+        type => 'forall',
+        args => [
+            _ea(),
+            Axiom::Expr->new({
+                type => 'equals',
+                args => [
+                    Axiom::Expr->new({
+                        type => 'function',
+                        args => [ _funcname($ddict), _ea(), _ei(1) ],
+                    }),
+                    Axiom::Expr->new({
+                        type => 'mullist',
+                        args => [
+                            _ea(),
+                            Axiom::Expr->new({
+                                type => 'function',
+                                args => [ _funcname($ddict), _ei(0), _ei(1) ],
+                            }),
+                        ],
+                    }),
+                ],
+            }),
+        ],
+    });
+    $a2expr->resolve($ddict);
+    print "axiom 2\n";
+}
 
-$derive = Axiom::Derive->new($hs, '');
-$ddict = $derive->{dict};
-$expr = Axiom::Expr->new({
+my $ddict = $dict->copy;
+my $expr = Axiom::Expr->new({
     type => 'forall',
     args => [
         _ea(),
@@ -110,9 +90,16 @@ $expr = Axiom::Expr->new({
         }),
     ],
 });
-$derive->{expr} = $expr;
-$derive->derive;
-print "equate\n";
+
+$expr->resolve($ddict);
+my $starting = $a2expr->copy;
+$starting->resolve($ddict);
+my $repl = $a1expr->args->[1]->args->[1]->subst_vars({
+    $a1expr->args->[0]->binding->[2] => _ei(1)
+});
+my $result = $starting->substitute([ 2, 2, 2 ], $repl);
+print $result->diff($expr) ? "ok\n" : "not ok\n";
+exit 0;
 
 sub _funcname {
     my($dict) = @_;
@@ -124,30 +111,379 @@ sub _ea { Axiom::Expr->new({ type => 'name', args => [ 'a' ] }) }
 sub _en { Axiom::Expr->new({ type => 'name', args => [ 'n' ] }) }
 sub _ei { Axiom::Expr->new({ type => 'integer', args => [ "$_[0]" ] }) }
 
-package Axiom::Context {
-    sub dict { shift->{dict} }
-    sub curline { shift->{curline} }
-    sub curlines {
-        my($self) = @_;
-        return $self->{lines}{$self->curline} //= [];
-    }
-    sub curindex {
-        my($self) = @_;
-        return join '.', grep length, $self->curline, 0 + @{ $self->curlines };
+package Axiom::Expr {
+    my %classtype; BEGIN { %classtype = (
+        integer => 'Axiom::Expr::Const',
+        name => 'Axiom::Expr::Name',
+        forall => 'Axiom::Expr::Quant',
+    ) }
+
+    sub new {
+        my($class, $hash) = @_;
+        my($type, $args) = @$hash{qw{ type args }};
+        if ($type eq 'mullist') {
+            return $args->[0] if @$args == 1;
+            $args = [ map {
+                $_->type eq $type ? @{ $_->args } : $_
+            } @$args ];
+        }
+        return bless {
+            type => $type,
+            args => $args,
+        }, $classtype{$type} // 'Axiom::Expr';
     }
 
-    sub last_expr {
+    sub args { shift->{args} }
+    sub type { shift->{type} }
+    sub is_atom { 0 }
+    sub is_quant { 0 }
+
+    sub is_neg {
         my($self) = @_;
-        my $lines = $self->{lines}{$self->curline};
-        return undef unless @$lines;
-        return $lines->[-1]{expr};
+        my $type = $self->type;
+        return $type eq 'negate' || (
+            $type eq 'mullist' && $self->args->[0]->is_neg
+        );
     }
-    sub line {
+    sub negate {
+        my($self) = @_;
+        my $type = $self->type;
+        if ($type eq 'negate') {
+            return $self->args->[0]->copy;
+        } elsif ($type eq 'mullist') {
+            my $other = $self->copy;
+            $other->args->[0] = $other->args->[0]->negate;
+            return $other;
+        }
+        return Axiom::Expr->new({
+            type => 'negate',
+            args => [ $self->copy ],
+        });
+    }
+
+    sub _clean {
+        my($self) = @_;
+        return undef if $self->is_atom;
+        my $type = $self->type;
+        my $args = $self->args;
+        for (@$args) {
+            my $new = $_->_clean // next;
+            $_ = $new;
+        }
+        if ($type eq 'mullist') {
+            my($const) = grep $args->[$_]->type eq 'integer', 0 .. $#$args;
+            return undef unless defined $const;
+            my $rat = $args->[ $const ]->args->[0];
+            if ($rat == 1) {
+                # a.1.b -> a.b
+                splice @$args, $const, 1;
+                return $self;
+            }
+            return undef;
+        }
+        return undef;
+    }
+
+    sub clean {
+        my($self) = @_;
+        $self = $self->copy;
+        return $self->_clean // $self;
+    }
+
+    sub copy {
+        my($self) = @_;
+        return $self->copy_with(sub { undef });
+    }
+
+    sub copy_with {
+        my($self, $with) = @_;
+        return $with->($self) // ref($self)->new({
+            type => $self->type,
+            args => [ map $_->copy_with($with), @{ $self->args } ],
+        });
+    }
+
+    sub substitute {
+        my($self, $location, $replace) = @_;
+        return $replace unless @$location;
+        my($off, @subloc) = @$location;
+        my $args = $self->args;
+        my @copy = map {
+            $_ == $off - 1
+                ? (@subloc
+                    ? $args->[$_]->substitute(\@subloc, $replace)
+                    : (($replace->type eq 'mullist'
+                            && $self->type eq $replace->type)
+                        ? @{ $replace->args }
+                        : $replace
+                    )
+                )
+                : $args->[$_]->copy
+        } 0 .. $#$args;
+        return ref($self)->new({ type => $self->type, args => \@copy });
+    }
+
+    sub subst_vars {
+        my($self, $map) = @_;
+        return $self->copy_with(sub {
+            my($other) = @_;
+            return undef unless $other->type eq 'name';
+            my $oi = $other->binding->[2];
+            return undef unless $map->{$oi};
+            return $map->{$oi}->copy;
+        });
+    }
+
+    sub _diff {
+        my($self, $other, $map) = @_;
+        $map //= {};
+        $self->type eq $other->type or return [];
+        my($sa, $oa) = ($self->args, $other->args);
+        @$sa == @$oa or return [];
+        my $diff;
+        for my $i (0 .. $#$sa) {
+            my $_diff = $sa->[$i]->_diff($oa->[$i], $map) // next;
+            return [] if $diff;
+            $diff = [ $i + 1, @{ $_diff } ];
+        }
+        return $diff;
+    }
+
+    sub diff {
+        my($self, $other, $pure) = @_;
+        my $map = {};
+        my $where = $self->_diff($other, $map);
+        return undef unless $where;
+        return $where if $pure;
+        return undef unless $self->clean->_diff($other->clean, $map);
+        return $where;
+    }
+
+    sub _resolve {
+        my($self, $dict) = @_;
+        $_->_resolve($dict) for @{ $self->args };
+        return;
+    }
+
+    sub resolve {
+        my($self, $dict) = @_;
+        $dict = $dict->clone;   # not copy, must preserve ids
+        $self->{dict} = $dict;  # store at top level of expr only
+        $self->_resolve($dict);
+        return;
+    }
+
+    package Axiom::Expr::Const {
+        our @ISA; BEGIN { @ISA = qw{Axiom::Expr} }
+        sub new {
+            my($class, $hash) = @_;
+            my $type = 'integer';
+            my $args = [ $hash->{args}[0] ];
+            return bless { type => $type, args => $args }, $class;
+        }
+        sub is_atom { 1 }
+        sub is_neg { shift->args->[0] < 0 }
+        sub negate {
+            my($self) = @_;
+            my $other = $self->copy;
+            $other->args->[0] = -$other->args->[0];
+            return $other;
+        }
+        sub copy_with {
+            my($self, $with) = @_;
+            return $with->($self) // ref($self)->new({
+                type => $self->type,
+                args => [ @{ $self->args } ],
+            });
+        }
+        sub _diff {
+            my($self, $other, $map) = @_;
+            my $type = $self->type;
+            return [] unless $type eq $other->type;
+            my($sa, $oa) = ($self->args, $other->args);
+            ($sa->[0] == $oa->[0]) or return [];
+            return undef;
+        }
+        sub _resolve { }
+    };
+
+    package Axiom::Expr::Name {
+        our @ISA; BEGIN { @ISA = qw{Axiom::Expr} }
+        sub new {
+            my($class, $hash) = @_;
+            return bless { type => 'name', args => $hash->{args} }, $class;
+        }
+        sub is_atom { 1 }
+        sub copy_with {
+            my($self, $with) = @_;
+            return $with->($self) // do {
+                my $other = ref($self)->new({
+                    type => $self->type,
+                    args => [ @{ $self->args } ],
+                });
+                $other->bind($self->binding);
+                $other;
+            };
+        }
+        sub _diff {
+            my($self, $other, $map) = @_;
+            return [] unless $self->type eq $other->type
+                    && $self->bindtype eq $other->bindtype;
+            my($si, $oi) = map $_->binding->[2], ($self, $other);
+            if (defined $map->{$si}) {
+                return [] unless $oi == $map->{$si};
+            } else {
+                return [] unless $self->name eq $other->name || $si == $oi;
+                return [] if defined $map->{"r$oi"};
+                $map->{$si} = $oi;
+                $map->{"r$oi"} = $si;
+            }
+            return undef;
+        }
+        sub name { shift->args->[0] }
+        sub bind {
+            my($self, $binding) = @_;
+            $self->{binding} = $binding;
+            return;
+        }
+        sub binding { shift->{binding} }
+        sub bindtype {
+            my($self) = @_;
+            return $self->binding->[0];
+        }
+        sub _resolve {
+            my($self, $dict) = @_;
+            my $binding = $self->binding;
+            return if $binding && $binding->[0] eq 'func';
+            $binding = $dict->lookup($self->name);
+            $self->bind($binding);
+            return;
+        }
+        sub _resolve_new {
+            my($self, $dict) = @_;
+            my $binding = $dict->introduce($self->name);
+            $self->bind($binding);
+            return $binding;
+        }
+    };
+
+    package Axiom::Expr::Quant {
+        our @ISA; BEGIN { @ISA = qw{Axiom::Expr} }
+        sub is_quant { 1 }
+        sub _resolve {
+            my($self, $dict) = @_;
+            my($var, $expr) = @{ $self->args };
+            my $bind = $var->_resolve_new($dict);
+            my $local = $dict->local_name($var->name, $bind);
+            $expr->_resolve($dict);
+            return;
+        }
+    };
+};
+
+package Axiom::Bind {
+    sub new {
+        my($class, $type, $name, $id) = @_;
+        return bless [ $type, $name, $id ], $class;
+    }
+};
+
+package Axiom::Dict {
+    sub new {
+        my($class) = @_;
+        return bless {
+            dict => {},
+            bind => [],
+        }, $class;
+    }
+
+    sub clone {
+        my($other) = @_;
+        my $self = ref($other)->new;
+        my($sd, $sb) = ($self->dict, $self->bind);
+        my($od, $ob) = ($other->dict, $other->bind);
+        my %tr;
+        @$sb = map {
+            my $b = Axiom::Bind->new(@$_);
+            $tr{$_} = $b;
+            $b;
+        } @$ob;
+        for my $name (keys %$od) {
+            $sd->{$name} = $tr{$od->{$name}} // $od->{$name};
+        }
+        return $self;
+    }
+
+    sub dict { shift->{dict} }
+    sub bind { shift->{bind} }
+
+    sub lookup {
         my($self, $name) = @_;
-        return $self->{named}->{$name};
+        return $self->dict->{$name};
     }
-    sub expr {
-        my($self, $index) = @_;
-        return $self->{named}{$index}{expr};
+
+    sub local_name {
+        my($self, $name, $bind) = @_;
+        return Axiom::Dict::LocalName->new($self->dict, $name, $bind);
     }
+
+    sub insert {
+        my($self, $name, $type) = @_;
+        my $id = @{ $self->bind };
+        my $bound = Axiom::Bind->new($type, $name, $id);
+        push @{ $self->bind }, $bound;
+        $self->dict->{$name} = $bound;
+        return;
+    }
+
+    sub insert_local {
+        my($self, $name) = @_;
+        my $dict = $self->dict;
+        ++$name while $dict->{$name};
+        $self->insert($name, 'local');
+        return $dict->{$name};
+    }
+
+    sub introduce {
+        my($self, $name) = @_;
+        my $id = @{ $self->bind };
+        my $bound = Axiom::Bind->new('local', $name, $id);
+        push @{ $self->bind }, $bound;
+        return $bound;
+    }
+
+    sub subsidiary {
+        my($self) = @_;
+        my $new = ref($self)->new;
+        $new->{bind} = $self->bind;
+        return $new;
+    }
+
+    sub copy {
+        my($self) = @_;
+        my $dict = $self->dict;
+        my $bind = $self->bind;
+        my $copy = ref($self)->new;
+        for my $name (keys %$dict) {
+            $copy->insert($name, $dict->{$name}->[0]);
+        }
+        return $copy;
+    }
+
+    package Axiom::Dict::LocalName {
+        sub new {
+            my($class, $dict, $name, $bind) = @_;
+            my $old = $dict->{$name};
+            my $restore = defined($old)
+                ? sub { $dict->{$name} = $old }
+                : sub { delete $dict->{$name} };
+            my $self = bless \$restore, $class;
+            $dict->{$name} = $bind;
+            return $self;
+        }
+        DESTROY {
+            my($self) = @_;
+            $$self->();
+        }
+    };
 };
