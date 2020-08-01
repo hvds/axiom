@@ -1,52 +1,9 @@
 #!/opt/v5.32.0-d/bin/perl
-
-my $dict = bless [ {}, [] ], 'Axiom::Dict';
+use strict ();
+my $dict = [ {} ];
 {
-    my $sdict = bless [ {}, [] ], 'Axiom::Dict';
-    $sdict->[1] = $dict->[1];
-    $sdict->[0]{'a'} = $sdict->[1][0] = [];
-    $sdict->[0]{'b'} = $sdict->[1][1] = [];
-    my $dsdict = $sdict->copy;
-    $dsdict->clone;
+    my %tr = map +($_ => 1), ([], []);
 }
-
-$dict->[0]{'a'} = $dict->[1][2] = [];
-$dict->[0]{'b'} = $dict->[1][3] = [];
-$dict->copy;
-exit 0;
-
-package Axiom::Dict {
-    sub new {
-        my($class) = @_;
-        return bless [ {}, [] ], 'Axiom::Dict';
-    }
-    sub dict { shift->[0] }
-    sub bind { shift->[1] }
-
-    sub clone {
-        my($other) = @_;
-        my $self = bless [ {}, [] ], 'Axiom::Dict';
-        my($sd, $sb) = @$self;
-        my($od, $ob) = @$other;
-        my %tr;
-        @$sb = map { $tr{$_} = [] } @$ob;
-        for my $name (keys %$od) {
-            $sd->{$name} = $tr{$od->{$name}} // $od->{$name};
-        }
-        return $self;
-    }
-
-    sub copy {
-        my($self) = @_;
-        my($dict, $bind) = @$self;
-        my $copy = ref($self)->new;
-my $first;
-        for my $name (keys %$dict) {
-print $name unless $first++;
-            my $bound = [];
-            push @{ $copy->[1] }, $bound;
-            $copy->[0]->{$name} = $bound;
-        }
-        return $copy;
-    }
-};
+$dict->[0]{'a'} = 1;
+$dict->[0]{'b'} = 1;
+print keys %{ $dict->[0] };
