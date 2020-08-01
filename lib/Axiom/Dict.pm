@@ -141,8 +141,15 @@ sub copy {
     my $dict = $self->dict;
     my $bind = $self->bind;
     my $copy = ref($self)->new;
-    for my $name (sort { $dict->{$a}->id <=> $dict->{$b}->id } keys %$dict) {
-        $copy->insert($name, $dict->{$name}->type);
+    my %rev = (reverse %$dict);
+    for my $binding (@$bind) {
+        my $name = delete $rev{$binding} or next;
+        $copy->insert($name, $binding->type);
+    }
+    if (keys %rev) {
+        die "Attempt to copy dictionary with foreign binding(s) for (@{[
+            join ', ', sort keys %rev
+        ]})";
     }
     return $copy;
 }
