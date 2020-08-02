@@ -22,8 +22,6 @@ corresponding C<condstart>; and I<expr2> is the last theorem proven.
 
 =cut
 
-*ruleparse = \&Axiom::Derive::rulere;
-
 sub rulename { 'condend' }
 
 sub rulere { <<'RE' }
@@ -42,19 +40,21 @@ sub _condstart {
 
 sub derive {
     my($self, $args) = @_;
-    my(@from, @to, %map);
-
     my $target = $self->expr;
     my $te = $target;
+    my @to;
     while ($te->is_quant) {
         push @to, $te->args->[0]->name;
         $te = $te->args->[1];
     }
 
-    my $from_rule = _condstart($self)->rules->[0];
-    $from_rule =~ ruleparse() or die "Can't re-parse <$from_rule>";
-    my $from_varlist = $/{rule}{condstart}{args}[0];
-    push @from, $_->name for @$from_varlist;
+    my @from = do {
+        my $dict2 = _condstart($self)->dict;
+        my $dict1 = $self->context->scope_dict;
+        my %known = %{ $dict2->dict };
+        delete $known{$_} for keys %{ $dict1->dict };
+        sort { $known{$a}->id <=> $known{$b}->id } keys %known;
+    };
 
     if (@from == 1 && @to == 1) {
         my $from = Axiom::Expr->new({ type => 'name', args => [ $from[0] ] });
