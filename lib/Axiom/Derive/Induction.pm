@@ -114,8 +114,8 @@ sub validate {
     });
     $self->working($result->copy);
 
-    push @{ $self->rules }, sprintf 'induction(%s, %s)',
-            $var->name, $base_expr->rawexpr;
+    $self->rule(sprintf 'induction(%s, %s)',
+            $var->name, $base_expr->rawexpr);
 
     return 1;
 }

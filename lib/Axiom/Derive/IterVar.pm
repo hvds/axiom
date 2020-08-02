@@ -52,7 +52,6 @@ sub derive {
     my @vargs;
     my $try = sub {
         @vargs = @_;
-        local $self->{rules} = [];
         local $self->{working} = $self->{working};
         return validate($self, \@vargs) && ! $self->working->diff($target);
     };
@@ -171,8 +170,7 @@ sub validate {
     $result->resolve($self->dict);
     $self->working($result);
 
-    push @{ $self->rules }, sprintf(
-        'itervar(%s%s, %s := %s)',
+    $self->rule(sprintf 'itervar(%s%s, %s := %s)',
         $self->_linename($line), join('.', @$loc),
         $cvar->name, $cexpr->rawexpr,
     );

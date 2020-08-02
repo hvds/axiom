@@ -50,7 +50,6 @@ sub derive {
     my $try = sub {
         my($loc, $expr) = @_;
         $result = [ $line, $loc, $expr->copy ];
-        local $self->{rules} = [];
         local $self->{working} = $self->{working};
         return 0 unless validate($self, $result);
         return $self->working->diff($target) ? 0 : 1;
@@ -151,8 +150,8 @@ sub validate {
     $result->resolve($self->dict);
     $self->working($result);
 
-    push @{ $self->rules }, sprintf 'factor(%s%s, %s)',
-            $self->_linename($line), join('.', @$loc), $expr->rawexpr;
+    $self->rule(sprintf 'factor(%s%s, %s)',
+            $self->_linename($line), join('.', @$loc), $expr->rawexpr);
 
     return 1;
 }

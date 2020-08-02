@@ -83,7 +83,7 @@ sub new {
         context => $context,
         source => $source,
         dict => $context->dict->copy,
-        rules => [],
+        rule => [],
         working => $context->last_expr,
         working_name => [],
         scope => 0,
@@ -96,10 +96,14 @@ sub is_derived { 1 }
 
 sub context { shift->{context} }
 sub source { shift->{source} }
-sub rules { shift->{rules} }
 sub expr { shift->{expr} }
 sub dict { shift->{dict} }
 sub rawexpr { shift->{rawexpr} }
+sub rule {
+    my($self, $new) = @_;
+    $self->{rule} = $new if @_ > 1;
+    return $self->{rule};
+}
 sub working {
     my($self, $new) = @_;
     $self->{working} = $new if @_ > 1;
@@ -116,7 +120,7 @@ sub introduce {
 }
 sub str {
     my($self) = @_;
-    return sprintf '%s: %s', join('; ', @{ $self->rules }), $self->rawexpr;
+    return sprintf '%s: %s', $self->rule, $self->rawexpr;
 }
 sub line {
     my($self, $index) = @_;

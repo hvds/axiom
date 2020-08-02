@@ -91,9 +91,7 @@ sub validate {
     my $result = $starting->substitute($loc, $repl);
     $result->resolve($self->dict);
     $self->working($result);
-
-    push @{ $self->rules }, sprintf 'add(%s%s)',
-            $self->_linename($line), $expr->rawexpr;
+    $self->rule(sprintf 'add(%s%s)', $self->_linename($line), $expr->rawexpr);
 
     return 1;
 }

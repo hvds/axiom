@@ -100,8 +100,8 @@ sub validate {
     $result->resolve($self->dict);
     $self->working($result);
 
-    push @{ $self->rules }, sprintf 'iterexpand(%s%s)',
-            $self->_linename($line), join('.', @$loc);
+    $self->rule(sprintf 'iterexpand(%s%s)',
+            $self->_linename($line), join('.', @$loc));
 
     return 1;
 }

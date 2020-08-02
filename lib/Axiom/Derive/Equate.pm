@@ -54,7 +54,7 @@ sub derive {
         @vargs = ($line, $loc, $eqline, { args => [
             map +{ args => [ $_->copy, $map->{$_->name} ] }, @vars,
         ] });
-        local $self->{rules} = [];
+        local $self->{rule};
         local $self->{working} = $self->working;
         return 0 unless eval { validate($self, \@vargs) };
         return 0 if $self->working->diff($target);
@@ -131,9 +131,9 @@ sub validate {
     my $result = $starting->substitute($loc, $repl);
     $self->working($result);
 
-    push @{ $self->rules }, sprintf 'equate(%s%s, %s, %s)',
+    $self->rule(sprintf 'equate(%s%s, %s, %s)',
             $self->_linename($line), join('.', @$loc),
-            $eqline, $self->_varmap($map);
+            $eqline, $self->_varmap($map));
 
     return 1;
 }

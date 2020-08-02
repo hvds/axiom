@@ -61,7 +61,6 @@ sub derive {
         my $eargs = $e->args;
         for my $from (0 .. $#$eargs) {
             next if $from == $over;
-            local $self->{rules} = [];
             local $self->{working} = $self->{working};
             my @vargs = ($line, $loc, $from + 1, $over + 1);
             next unless eval { validate($self, \@vargs) };
@@ -130,8 +129,8 @@ sub validate {
     $result->resolve($self->dict);
     $self->working($result);
 
-    push @{ $self->rules }, sprintf 'distrib(%s%s, %s, %s)',
-            $self->_linename($line), join('.', @$loc), $from, $over;
+    $self->rule(sprintf 'distrib(%s%s, %s, %s)',
+            $self->_linename($line), join('.', @$loc), $from, $over);
 
     return 1;
 }

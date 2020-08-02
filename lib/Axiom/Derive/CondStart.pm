@@ -47,8 +47,8 @@ sub validate {
     $self->{dict} = $dict;
     $self->scope(1);
 
-    push @{ $self->rules }, sprintf 'condstart({ %s })',
-            join ', ', map $_->name, @$varlist;
+    $self->rule(sprintf 'condstart({ %s })',
+            join ', ', map $_->name, @$varlist);
 
     return 1;
 }

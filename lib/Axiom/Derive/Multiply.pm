@@ -88,8 +88,8 @@ sub validate {
     $result->resolve($self->dict);
     $self->working($result);
 
-    push @{ $self->rules }, sprintf 'multiply(%s%s)',
-            $self->_linename($line), $expr->rawexpr;
+    $self->rule(sprintf 'multiply(%s%s)',
+            $self->_linename($line), $expr->rawexpr);
 
     return 1;
 }

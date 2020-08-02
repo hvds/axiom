@@ -93,7 +93,7 @@ sub validate {
     $self->working($result);
     $self->scope(-1);
 
-    push @{ $self->rules }, sprintf 'condend(%s)', $self->_varmap($map);
+    $self->rule(sprintf 'condend(%s)', $self->_varmap($map));
 
     return 1;
 }

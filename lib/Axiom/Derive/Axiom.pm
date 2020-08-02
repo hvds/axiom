@@ -43,9 +43,9 @@ sub validate {
     $self->working($self->expr);
     if (@$args) {
         push @{ $self->working_name }, $args->[0];
-        push @{ $self->rules }, "axiom $args->[0]";
+        $self->rule("axiom $args->[0]");
     } else {
-        push @{ $self->rules }, 'axiom';
+        $self->rule('axiom');
     }
     return 1;
 }

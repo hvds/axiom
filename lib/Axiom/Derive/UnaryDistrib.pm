@@ -57,7 +57,6 @@ sub derive {
 
     for my $loc (@choice) {
         my @vargs = ($line, $loc);
-        local $self->{rules} = [];
         local $self->{working} = $self->{working};
         next unless eval { validate($self, \@vargs) };
         next if $self->working->diff($target);
@@ -133,8 +132,8 @@ sub validate {
     $result->resolve($self->dict);
     $self->working($result);
 
-    push @{ $self->rules }, sprintf 'unarydistrib(%s%s)',
-            $self->_linename($line), join('.', @$loc);
+    $self->rule(sprintf 'unarydistrib(%s%s)',
+            $self->_linename($line), join('.', @$loc));
 
     return 1;
 }

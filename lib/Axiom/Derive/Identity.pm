@@ -69,8 +69,8 @@ sub validate {
     $result->resolve($self->dict);
     $self->working($result);
 
-    push @{ $self->rules }, sprintf 'identity({ %s }, %s)',
-            join(', ', map $_->name, @$varlist), $expr->rawexpr;
+    $self->rule(sprintf 'identity({ %s }, %s)',
+            join(', ', map $_->name, @$varlist), $expr->rawexpr);
 
     return 1;
 }

@@ -34,9 +34,9 @@ sub validate {
     my($self, $args) = @_;
     if (@$args) {
         push @{ $self->working_name }, $args->[0];
-        push @{ $self->rules }, "theorem $args->[0]";
+        $self->rule("theorem $args->[0]");
     } else {
-        push @{ $self->rules }, 'theorem';
+        $self->rule('theorem');
     }
     return 1;
 }

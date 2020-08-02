@@ -125,7 +125,6 @@ sub derive {
         $var = $var->copy;
         $map = $map->copy;
         @vargs = ($line, $var, $map, $count);
-        local $self->{rules} = [];
         local $self->{working} = $self->working;
         return 0 unless eval { validate($self, \@vargs) };
         return 0 if $target->diff($self->working);
@@ -324,8 +323,7 @@ sub validate {
     $result->resolve($self->dict);
     $self->working($result);
 
-    push @{ $self->rules }, sprintf(
-        'recurse(%s%s := %s, %s)',
+    $self->rule(sprintf 'recurse(%s%s := %s, %s)',
         $self->_linename($line), $var->name, $iter->rawexpr, $count->rawexpr,
     );
 

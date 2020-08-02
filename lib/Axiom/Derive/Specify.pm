@@ -103,8 +103,8 @@ sub validate {
     my $result = $starting->substitute($loc, $repl);
     $self->working($result);
 
-    push @{ $self->rules }, sprintf 'specify(%s%s, %s)',
-            $self->_linename($line), $var->rawexpr, $value->rawexpr;
+    $self->rule(sprintf 'specify(%s%s, %s)',
+            $self->_linename($line), $var->rawexpr, $value->rawexpr);
 
     return 1;
 }
