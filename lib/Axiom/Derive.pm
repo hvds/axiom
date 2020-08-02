@@ -133,20 +133,18 @@ sub scope {
 sub derive {
     my($class, $line, $context, $debug) = @_;
     my $self = $class->new($context, $line);
-    my @rules;
     my $dre = derivere($debug);
 
     my $local = Axiom::Expr->local_dict($self->dict);
-    while ($line =~ s{$dre}{}) {
-        my($rule, $value) = %{ $/{rule} };
-        push @rules, [ $rule, $value->{args} ];
-    }
+    die "Can't parse derivation: $line"
+            unless $line =~ s{$dre}{};
+    my($rule, $value) = %{ $/{rule} };
     $line =~ s/^\s+//;
 
     my $expr = Axiom::Expr->parse($self->dict, $line, $debug) or return;
     $self->{rawexpr} = $line;
     $self->{expr} = $expr;
-    $self->validate(\@rules) or return;
+    $self->validate($rule, $value->{args}) or return;
     return $self;
 }
 
@@ -154,16 +152,13 @@ my %include_rule = map +($_ => 1), qw{ axiom lemma theorem };
 sub include {
     my($class, $line, $context, $debug) = @_;
     my $self = $class->new($context, $line);
-    my @rules;
     my $dre = derivere($debug);
 
     my $local = Axiom::Expr->local_dict($self->dict);
-    while ($line =~ s{$dre}{}) {
-        my($rule, $value) = %{ $/{rule} };
-        next unless $include_rule{$rule};
-        push @rules, [ $rule, $value->{args} ];
-    }
-    return unless @rules;
+    die "Can't parse derivation: $line"
+            unless $line =~ s{$dre}{};
+    my($rule, $value) = %{ $/{rule} };
+    return unless $include_rule{$rule};
     $line =~ s/^\s+//;
 
     my $expr = Axiom::Expr->parse($self->dict, $line, $debug) or return;
@@ -172,7 +167,7 @@ sub include {
 
     $expr->resolve($self->dict);
     $self->working($expr);
-    $self->validate(\@rules);
+    $self->validate($rule, $value->{args}) or return;
 
     return $self;
 }
@@ -223,12 +218,12 @@ sub derivere {
             <extends: Axiom::Derive>
             <nocontext:>
             <debug: match>
-            ^ <rule> [:;]
+            ^ <rule> :
         }x)
         : (state $dre = qr{
             <extends: Axiom::Derive>
             <nocontext:>
-            ^ <rule> [:;]
+            ^ <rule> :
         }x);
 }
 
@@ -272,12 +267,9 @@ sub _varmap {
     state %validate_for = map +($_->{name} => $_->{validate}), @{ classes() };
     state %derive_for = map +($_->{name} => $_->{derive}), @{ classes() };
     sub validate {
-        my($self, $rules) = @_;
-        for my $rule (@$rules) {
-            my($type, $args) = @$rule;
-            my $vargs = $derive_for{$type}->($self, $args);
-            return unless $validate_for{$type}->($self, $vargs);
-        }
+        my($self, $type, $args) = @_;
+        my $vargs = $derive_for{$type}->($self, $args);
+        return unless $validate_for{$type}->($self, $vargs);
         my $expr = $self->expr;
         $expr->resolve($self->dict);
         my $diff = $expr->diff($self->working);

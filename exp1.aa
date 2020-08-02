@@ -20,4 +20,5 @@ factor: \Aa: E(a, 1) = n(a(2 - 2^{1 - a}) - \sum_{i=0}^{a-1}{ 2^{-i} i } + 2) / 
 equate(sum.Sum_pow_m2_i): \Aa: E(a, 1) = n(a(2 - 2^{1 - a}) + 2^{1 - a} (a + 1)) / 2
 distrib: \Aa: E(a, 1) = n(2a - 2^{1 - a} a + 2^{1 - a} (a + 1)) / 2
 distrib: \Aa: E(a, 1) = n(2a + 2^{1 - a}) / 2
-theorem Exp_a_1: distrib: \Aa: E(a, 1) = n(a + 2^{-a})
+distrib: \Aa: E(a, 1) = n(a + 2^{-a})
+theorem Exp_a_1: \Aa: E(a, 1) = n(a + 2^{-a})

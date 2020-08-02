@@ -30,4 +30,5 @@ factor: \Aa: E(a, 2) = n(2 . 2^{-a} + a(1 - 2^{-a}) - (1 - 2^{-a}(a + 1)) + (1 /
 factor: \Aa: E(a, 2) = n(2 . 2^{-a} + a(1 - 2^{-a}) + 2^{-a}(a + 1) - 2^{-a} + a 2^{-a} / 2)
 distrib: \Aa: E(a, 2) = n(2 . 2^{-a} + a(1 - 2^{-a}) + a 2^{-a} + a 2^{-a} / 2)
 distrib: \Aa: E(a, 2) = n(2 . 2^{-a} + a + a 2^{-a} / 2)
-theorem Exp_a_2: factor: \Aa: E(a, 2) = n(a + 2^{-a}(a / 2 + 2))
+factor: \Aa: E(a, 2) = n(a + 2^{-a}(a / 2 + 2))
+theorem Exp_a_2: \Aa: E(a, 2) = n(a + 2^{-a}(a / 2 + 2))
