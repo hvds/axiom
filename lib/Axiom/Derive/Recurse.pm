@@ -37,13 +37,6 @@ more structures we need to support for the RHS.
 
 sub rulename { 'recurse' }
 
-sub rulere { <<'RE' }
-    <rule: recurse>
-        recurse \( <[args=optline]> <[args=pair]> , <[args=Expr]> \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 1) })
-        (?{ splice @{ $MATCH{args} }, 1, 1, @{ $MATCH{args}[1] } })
-RE
-
 sub derivere { <<'RE' }
     <rule: recurse>
         recurse (?: \( <[args=line]>? \) )?

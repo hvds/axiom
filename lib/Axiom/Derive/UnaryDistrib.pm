@@ -24,12 +24,6 @@ C<pluslist> or C<mullist>, and type C<sum> distributing over a C<pluslist>.
 
 sub rulename { 'unarydistrib' }
 
-sub rulere { <<'RE' }
-    <rule: unarydistrib>
-        unarydistrib \( <[args=optline]> <[args=location]> \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
-RE
-
 sub derivere { <<'RE' }
     <rule: unarydistrib>
         unarydistrib (?: \( <[args=line]>? \) )?

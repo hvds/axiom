@@ -25,12 +25,6 @@ The equality may be wrapped in an arbitrary number of quantifiers.
 
 sub rulename { 'add' }
 
-sub rulere { <<'RE' }
-    <rule: add>
-        add \( <[args=optline]> <[args=Expr]> \)
-        (?{ $MATCH{args}[0] = $MATCH{args}[0]{args} })
-RE
-
 sub derivere { <<'RE' }
     <rule: add>
         add (?: \( <[args=line]>? \) )?

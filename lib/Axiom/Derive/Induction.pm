@@ -31,10 +31,6 @@ the domain is, which requires some degree of support for sets).
 
 sub rulename { 'induction' }
 
-sub rulere { <<'RE' }
-    <rule: induction> induction \( <[args=Variable]> , <[args=Expr]> \)
-RE
-
 sub derivere { <<'RE' }
     <rule: induction> induction
         (?{ $MATCH{args} = [] })

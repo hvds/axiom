@@ -23,7 +23,7 @@ the given name.
 
 sub rulename { 'axiom' }
 
-sub rulere { <<'RE' }
+sub derivere { <<'RE' }
     <rule: axiom> axiom (?:
         <[args=rulename]>
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
@@ -31,8 +31,6 @@ sub rulere { <<'RE' }
         <args=(?{ [] })>
     )
 RE
-
-*derivere = \&rulere;
 
 sub derive {
     my($self, $args) = @_;

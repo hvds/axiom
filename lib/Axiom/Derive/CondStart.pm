@@ -20,11 +20,6 @@ as free variables for the scope of the conditional proof.
 
 sub rulename { 'condstart' }
 
-sub rulere { <<'RE' }
-    <rule: condstart> condstart \( <[args=varlist]> \)
-        (?{ $MATCH{args}[0] = $MATCH{args}[0]{args} })
-RE
-
 sub derivere { <<'RE' }
     <rule: condstart> condstart <args=(?{ [] })>
 RE

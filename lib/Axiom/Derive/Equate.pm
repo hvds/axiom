@@ -20,13 +20,6 @@ substituting C<a, b, ...> as necessary via the I<varmap>.
 
 sub rulename { 'equate' }
 
-sub rulere { <<'RE' }
-    <rule: equate>
-        equate \( <[args=optline]> <[args=location]> ,
-                <[args=line]> (?: , <[args=varmap]> )? \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 2) })
-RE
-
 sub derivere { <<'RE' }
     <rule: equate>
         equate \( <[args=optline]> <[args=line]> \)

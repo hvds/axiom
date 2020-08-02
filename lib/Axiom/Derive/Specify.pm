@@ -21,13 +21,6 @@ new theorem C< P(x) >.
 
 sub rulename { 'specify' }
 
-sub rulere { <<'RE' }
-    <rule: specify> specify \( <[args=optline]> <[args=pair]> \)
-        (?{ @{ $MATCH{args} } = (
-            $MATCH{args}[0]{args}, @{ $MATCH{args}[1]{args} }
-        ) })
-RE
-
 sub derivere { <<'RE' }
     <rule: specify>
         specify (?: \( <[args=line]>? \) )?

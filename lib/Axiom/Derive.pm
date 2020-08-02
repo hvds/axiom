@@ -45,14 +45,12 @@ sub classes {
         my $class = $_;
         eval qq{ use $class; 1; } or die $@;
         my $name = $class->rulename;
-        my $rulere = $class->rulere;
         my $validate = $class->can('validate');
         my $derivere = $class->derivere;
         my $derive = $class->can('derive');
         +{
             class => $class,
             name => $name,
-            rulere => $rulere,
             validate => $validate,
             derivere => $derivere,
             derive => $derive,
@@ -177,61 +175,6 @@ sub include {
     $self->validate(\@rules);
 
     return $self;
-}
-
-sub _rulere {
-    use Regexp::Grammars;
-    return state $gdrre = do {
-        my $classes = classes();
-        my $indent = " " x 4;
-        my $names = join "\n$indent| ",
-                map sprintf('<%s>', $_->{name}), @$classes;
-        my $rules = join "", map $_->{rulere}, @$classes;
-        qr{
-<grammar: Axiom::Derive::Validate>
-<extends: Axiom::Expr>
-<nocontext:>
-<debug: same>
-
-<rule: rule> (?:
-    @{[ $names ]}
-)
-@{[ $rules ]}
-
-<rule: varmap> (?: \{ (?: <[args=pair]>* % , )? \} )
-<rule: pair> <[args=Variable]> := <[args=Expr]>
-<rule: varlist> \{ <[args=Variable]>* % , <.ws>? \}
-
-<token: optline>
-    <args=line> : <args=(?{ $MATCH{args}{args} })>
-    | <args=(?{ '' })>
-<token: line>
-    <args=(?: \d+ (?: \. \d+ )* )>
-    | <args=rulename> <args=(?{ $MATCH{args}{args} })>
-<token: rulename> <args=(?:(?:[a-z]+\.)?[A-Z]\w*(?!\w))>
-<token: location> <[args=arg]>+ % \.
-<token: arg> \d+
-<token: num> -?\d+
-        }x;
-    };
-}
-BEGIN { _rulere() }
-
-sub rulere {
-    use Regexp::Grammars;
-    my($debug) = @_;
-    return $debug
-        ? (state $drre = qr{
-            <extends: Axiom::Derive::Validate>
-            <nocontext:>
-            <debug: match>
-            ^ <rule> \z
-        }x)
-        : (state $rre = qr{
-            <extends: Axiom::Derive::Validate>
-            <nocontext:>
-            ^ <rule> \z
-        }x);
 }
 
 sub _derivere {

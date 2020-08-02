@@ -25,15 +25,6 @@ will construct C< x = \sum_{i=0}^{n-1}{ y^i } >.
 
 sub rulename { 'itervar' }
 
-sub rulere { <<'RE' }
-    <rule: itervar>
-        itervar \(
-            <[args=optline]> <[args=location]> , <[args=RemapExpr]>
-        \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 2) })
-        (?{ splice @{ $MATCH{args} }, 2, 1, @{ $MATCH{args}[2] } })
-RE
-
 sub derivere { <<'RE' }
     <rule: itervar>
         itervar (?: \( <[args=line]>? \) )?

@@ -20,11 +20,6 @@ Constructs a theorem of the form C< \Aa: \Ab: ... expr = expr >.
 
 sub rulename { 'identity' }
 
-sub rulere { <<'RE' }
-    <rule: identity> identity \( <[args=varlist]> , <[args=Expr]> \)
-        (?{ $MATCH{args}[0] = $MATCH{args}[0]{args} })
-RE
-
 sub derivere { <<'RE' }
     <rule: identity> identity <args=(?{ [] })>
 RE

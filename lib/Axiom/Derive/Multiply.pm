@@ -21,12 +21,6 @@ C< P . expr = Q . expr >.
 
 sub rulename { 'multiply' }
 
-sub rulere { <<'RE' }
-    <rule: multiply>
-        multiply \( <[args=optline]> <[args=Expr]> \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
-RE
-
 sub derivere { <<'RE' }
     <rule: multiply>
         multiply (?: \( <[args=line]>? \) )?

@@ -27,14 +27,6 @@ with type C<pluslist> or C<sum> at I<arg2>.
 
 sub rulename { 'distrib' }
 
-sub rulere { <<'RE' }
-    <rule: distrib>
-        distrib \(
-            <[args=optline]> <[args=location]> , <[args=arg]> , <[args=arg]>
-        \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
-RE
-
 sub derivere { <<'RE' }
     <rule: distrib>
         distrib (?: \( <arg=line>? \) )?

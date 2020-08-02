@@ -28,12 +28,6 @@ TODO: we currently support only factoring from type C<pluslist> or C<sum>.
 
 sub rulename { 'factor' }
 
-sub rulere { <<'RE' }
-    <rule: factor>
-        factor \( <[args=optline]> <[args=location]> , <[args=Expr]> \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
-RE
-
 sub derivere { <<'RE' }
     <rule: factor>
         factor (?: \( <[args=line]>? \) )?

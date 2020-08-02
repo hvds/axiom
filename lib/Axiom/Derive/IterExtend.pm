@@ -30,13 +30,6 @@ TODO: currently supports only type C<sum>.
 
 sub rulename { 'iterextend' }
 
-sub rulere { <<'RE' }
-    <rule: iterextend>
-        iterextend \( <[args=optline]> <[args=location]> ,
-                <[args=num]> (?: , <[args=num]> )? \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
-RE
-
 sub derivere { <<'RE' }
     <rule: iterextend>
         iterextend (?: \( <[args=line]>? \) )?

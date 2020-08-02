@@ -29,12 +29,6 @@ expression does not depend on the iterator variable.
 
 sub rulename { 'iterexpand' }
 
-sub rulere { <<'RE' }
-    <rule: iterexpand>
-        iterexpand \( <[args=optline]> <[args=location]> \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
-RE
-
 sub derivere { <<'RE' }
     <rule: iterexpand>
         iterexpand (?: \( <[args=line]>? \) )?

@@ -19,12 +19,10 @@ to later by the given name.
 
 sub rulename { 'theorem' }
 
-sub rulere { <<'RE' }
+sub derivere { <<'RE' }
     <rule: theorem> theorem (?: <[args=rulename]> | <args=(?{ [] })> )
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
 RE
-
-*derivere = \&rulere;
 
 sub derive {
     my($self, $args) = @_;

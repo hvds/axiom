@@ -24,10 +24,6 @@ corresponding C<condstart>; and I<expr2> is the last theorem proven.
 
 sub rulename { 'condend' }
 
-sub rulere { <<'RE' }
-    <rule: condend> condend \( <[args=varmap]> \)
-RE
-
 sub derivere { <<'RE' }
     <rule: condend> condend <args=(?{ [] })>
 RE
