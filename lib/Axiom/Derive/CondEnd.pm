@@ -12,7 +12,8 @@ Axiom::Derive::CondEnd - close a Conditional Proof scope
 
 =head1 USAGE
 
-  condend ( varmap )
+  derive: condend
+  rule: [ varmap ]
 
 Ends a conditional proof, constructing a new theorem of the form
 C<< \Aa: \Ab: ... expr1 -> expr2 >>. Each of the free variables introduced

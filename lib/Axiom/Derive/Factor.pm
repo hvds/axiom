@@ -12,7 +12,8 @@ Axiom::Derive::Factor - rearrange a subexpression by factoring
 
 =head1 USAGE
 
-  factor ( optline, location, expr )
+  derive: factor ( line? )
+  rule: [ line, location, expr ]
 
 Factors the given I<expr> out of the subexpression at I<location>.
 
@@ -20,6 +21,7 @@ Eg given C< x = 2/y + 3/y(y+1) + 1 >, C< factor(2, 1/y) > will construct
 C< x = (1 / y)(2 + 3/(y + 1) + y) >.
 
 TODO: we currently support only factoring from type C<pluslist> or C<sum>.
+TODO: we currently only derive a single term to factor.
 
 =cut
 

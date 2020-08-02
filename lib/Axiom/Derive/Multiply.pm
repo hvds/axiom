@@ -12,7 +12,8 @@ Axiom::Derive::Multiply - multiply both sides of an equate by some expr
 
 =head1 USAGE
 
-  multiply ( optline, expr )
+  derive: multiply ( line? )
+  rule: [ line, expr ]
 
 Given a prior theorem of the form C< P = Q >, constructs the new theorem
 C< P . expr = Q . expr >.

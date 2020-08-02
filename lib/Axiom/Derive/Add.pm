@@ -14,7 +14,8 @@ Axiom::Derive::Add - add an expression to both sides of a theorem
 
 =head1 USAGE
 
-  add ( optline, expr )
+  derive: add ( line? )
+  rule: [ line, expr ]
 
 Given a prior theorem of the form C< P = Q >, constructs the new theorem
 C< P + expr = Q + expr >.

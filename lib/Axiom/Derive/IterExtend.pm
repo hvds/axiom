@@ -12,7 +12,8 @@ Axiom::Derive::IterExtend - change the range of an iterator
 
 =head1 USAGE
 
-  iterextend ( optline, location, which, dir )
+  derive: iterextend ( line? )
+  rule: [ line, location, which, dir ]
 
 Modifies the iterator at I<location> by adding or removing one element,
 at either the I<from> or the I<to> end.

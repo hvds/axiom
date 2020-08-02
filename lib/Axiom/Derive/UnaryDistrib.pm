@@ -13,7 +13,8 @@ Axiom::Derive::UnaryDistrib - distribute an operator over its argument
 
 =head1 USAGE
 
-  unarydistrib ( optline, location )
+  derive: unarydistrib ( line? )
+  rule: [ line, location ]
 
 Distribute the unary operator at the given I<location>. 
 

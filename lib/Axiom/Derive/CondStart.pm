@@ -10,7 +10,8 @@ Axiom::Derive::CondStart - open new scope for Conditional Proof
 
 =head1 USAGE
 
-  condstart ( varlist )
+  derive: condstart
+  rule: [ varlist ]
 
 Starts a conditional proof, introducing the resulting expression as
 temporarily axiomatic. The variables listed in I<varlist> are introduced

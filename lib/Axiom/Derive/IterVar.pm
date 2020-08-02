@@ -12,7 +12,8 @@ Axiom::Derive::IterVar - rebase an iterator
 
 =head1 USAGE
 
-  itervar ( optline, location, var := expr )
+  derive: itervar ( line? )
+  rule: [ line, location, var, expr ]
 
 Rebases the iterator variable I<var> for the iterator at I<location>,
 rewriting it to I<expr>. Allows for C< var := E + var > or C< var := E - var >

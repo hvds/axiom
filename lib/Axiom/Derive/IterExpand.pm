@@ -12,7 +12,8 @@ Axiom::Derive::IterExpand - write out an iterator in full
 
 =head1 USAGE
 
-  iterexpand ( optline, location )
+  derive: iterexpand ( line? )
+  rule: [ line, location ]
 
 Fully expands the iterator at I<location>. Requires that the range of
 the iterator is constant and finite.

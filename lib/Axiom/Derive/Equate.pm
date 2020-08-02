@@ -10,11 +10,15 @@ Axiom::Derive::Equate - substitute from an equality
 
 =head1 USAGE
 
-  equate ( optline, location, line, varmap )
+  derive: equate ( line?, eqline )
+  rule: [ line, location, eqline, varmap ]
 
-Given a prior theorem I<line> of the form C< P(a, b, ...) = Q(a, b, ... ) >,
-attempts to substitute P for Q (or Q for P) at I<location> in the I<optline>,
+Given a prior theorem I<eqline> of the form C< P(a, b, ...) = Q(a, b, ... ) >,
+attempts to substitute P for Q (or Q for P) at I<location> in I<line>,
 substituting C<a, b, ...> as necessary via the I<varmap>.
+
+FIXME: rule args should specify which side of I<eqline> is to be used,
+rather than deriving that each time in validate.
 
 =cut
 

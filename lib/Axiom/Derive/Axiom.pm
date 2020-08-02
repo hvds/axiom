@@ -14,7 +14,8 @@ Axiom::Derive::Axiom - introduce an axiom
 
 =head1 USAGE
 
-  axiom ( name )
+  derive: axiom ( name? )
+  rule: [ name? ]
 
 Always valid, the resulting expression is accepted as an axiom with
 the given name.

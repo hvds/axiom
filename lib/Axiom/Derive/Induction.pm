@@ -12,7 +12,8 @@ Axiom::Derive::Induction - derive a new theorem by induction
 
 =head1 USAGE
 
-  induction ( var, expr )
+  derive: induction
+  rule: [ var, expr ]
 
 Applies induction to the last two theorems; these are expected to be of
 the form C< P(base) > and C<< \Ax: P(x) -> P(x + 1) >>. The specified

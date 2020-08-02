@@ -12,7 +12,8 @@ Axiom::Derive::Distrib - derive new theorem by distributing some operator
 
 =head1 USAGE
 
-  distrib ( optline, location, arg1, arg2 )
+  derive: distrib ( line? )
+  rule: [ line, location, arg1, arg2 ]
 
 For the subexpression at the given I<location>, distribute the expression
 at its I<arg1>th argument over its I<arg2>th argument.

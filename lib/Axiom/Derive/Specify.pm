@@ -12,7 +12,8 @@ Axiom::Derive::Specify - fix a specific value for a universal quantifier
 
 =head1 USAGE
 
-  specify ( optline, var := expr )
+  derive: specify ( line? )
+  rule: [ line, var, expr ]
 
 Given a prior theorem of the form C< \Aa: P(a) >, constructs the
 new theorem C< P(x) >.

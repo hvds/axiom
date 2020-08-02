@@ -12,7 +12,8 @@ Axiom::Derive::Identity - introduce theorem X = X
 
 =head1 USAGE
 
-  identity ( varlist, expr )
+  derive: identity
+  rule: [ varlist, expr ]
 
 Constructs a theorem of the form C< \Aa: \Ab: ... expr = expr >.
 

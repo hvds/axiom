@@ -12,9 +12,10 @@ Axiom::Derive::Recurse - recursively apply a mapping equality
 
 =head1 USAGE
 
-  recurse ( optline, var := expr1, expr2 )
+  derive: recurse ( line? )
+  rule: [ line, var, expr1, expr2 ]
 
-Given an I<optline> equating some function C<f> of I<var> to some function
+Given a I<line> equating some function C<f> of I<var> to some function
 of C<f> of I<expr1>, recursively evaluates the result of substituting the
 same equality into the right hand side I<expr2> times.
 
@@ -29,6 +30,9 @@ C< f(x) = f(0) + \sum_{i=0}^{x - 1}{ 1 } >.
 TODO: currently supports I<expr1> only of the forms C< x := x + a >
 and C< x := ax >; could handle C< x := ax + b >. Not sure if there are
 more structures we need to support for the RHS.
+
+FIXME: include the location at which to find f(expr1) in the rule args,
+instead of deriving that in validate.
 
 =cut
 

@@ -10,7 +10,8 @@ Axiom::Derive::Theorem - name a theorem being derived
 
 =head1 USAGE
 
-  theorem ( name )
+  derive: theorem ( name? )
+  rule: [ name? ]
 
 The final result of this derivation, once validated, can be referred
 to later by the given name.
