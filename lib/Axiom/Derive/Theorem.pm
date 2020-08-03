@@ -33,8 +33,9 @@ sub derive {
 sub validate {
     my($self, $args) = @_;
     if (@$args) {
-        push @{ $self->working_name }, $args->[0];
-        $self->rule("theorem $args->[0]");
+        my($name) = @$args;
+        $self->name($name);
+        $self->rule("theorem $name");
     } else {
         $self->rule('theorem');
     }

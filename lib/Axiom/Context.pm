@@ -133,7 +133,8 @@ sub add {
     } else {
         $self->add_line($derive);
     }
-    for my $name (@{ $derive->working_name }) {
+    my $name = $derive->name;
+    if (defined $name) {
         warn "Replacing name '$name'\n" if defined $self->named->{$name};
         $self->named->{$name} = $derive;
         push @{ $self->onamed }, $name;

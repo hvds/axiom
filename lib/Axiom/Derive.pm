@@ -85,7 +85,6 @@ sub new {
         dict => $context->dict->copy,
         rule => [],
         working => $context->last_expr,
-        working_name => [],
         scope => 0,
     };
     weaken $self->{context};
@@ -109,7 +108,11 @@ sub working {
     $self->{working} = $new if @_ > 1;
     return $self->{working};
 }
-sub working_name { shift->{working_name} }
+sub name {
+    my($self, $new) = @_;
+    $self->{name} = $new if @_ > 1;
+    return $self->{name};
+}
 sub lookup {
     my($self, $name) = @_;
     return $self->dict->lookup($name);
