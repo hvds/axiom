@@ -40,21 +40,11 @@ L<Axiom::Derive::Recurse>
 
 =cut
 
-sub classes {
-    state @class = map {
+my %class; BEGIN {
+    %class = map {
         my $class = $_;
         eval qq{ use $class; 1; } or die $@;
-        my $name = $class->rulename;
-        my $validate = $class->can('validate');
-        my $derivere = $class->derivere;
-        my $derive = $class->can('derive');
-        +{
-            class => $class,
-            name => $name,
-            validate => $validate,
-            derivere => $derivere,
-            derive => $derive,
-        };
+        +($class->rulename => $class),
     } qw{
         Axiom::Derive::Axiom
         Axiom::Derive::Theorem
@@ -74,7 +64,6 @@ sub classes {
         Axiom::Derive::IterVar
         Axiom::Derive::Recurse
     };
-    \@class;
 }
 
 sub new {
@@ -182,11 +171,9 @@ sub include {
 sub _derivere {
     use Regexp::Grammars;
     return state $gddre = do {
-        my $classes = classes();
         my $indent = " " x 4;
-        my $names = join "\n$indent| ",
-                map sprintf('<%s>', $_->{name}), @$classes;
-        my $rules = join "", map $_->{derivere}, @$classes;
+        my $names = join "\n$indent| ", map sprintf('<%s>', $_), keys %class;
+        my $rules = join "", map $_->derivere, values %class;
         qr{
 <grammar: Axiom::Derive>
 <extends: Axiom::Expr>
@@ -271,8 +258,8 @@ sub _varmap {
 }
 
 {
-    state %validate_for = map +($_->{name} => $_->{validate}), @{ classes() };
-    state %derive_for = map +($_->{name} => $_->{derive}), @{ classes() };
+    state %validate_for = map +($_ => $class{$_}->can('validate')), keys %class;
+    state %derive_for = map +($_ => $class{$_}->can('derive')), keys %class;
     sub validate {
         my($self, $type, $args) = @_;
         my $vargs = $derive_for{$type}->($self, $args);
