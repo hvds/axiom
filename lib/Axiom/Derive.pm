@@ -75,7 +75,7 @@ sub new {
         rule => [],
         working => $context->last_expr,
         scope => 0,
-    };
+    }, $class;
     weaken $self->{context};
     return $self;
 }
