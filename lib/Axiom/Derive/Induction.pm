@@ -48,33 +48,34 @@ sub _inputs {
 sub derive {
     my($self, $args) = @_;
     my($starting, $base) = _inputs($self, $args);
-    $starting->type eq 'forall' or die "cannot derive";
+    $starting->type eq 'forall' or return $self->set_error('cannot derive');
     my($var, $se) = @{ $starting->args };
-    $se->type eq 'implies' or die "cannot derive";
+    $se->type eq 'implies' or return $self->set_error('cannot derive');
     $se = $se->args->[0];
 
     my $map = $self->find_mapping($se, $base, [ $var ]);
     return [ $var, $map->{$var->name} ] if $map;
 
-    die "can't derive this induction";
+    return $self->set_error("can't derive this induction");
 }
 
 sub validate {
     my($self, $args) = @_;
     my($var, $base_expr) = @$args;
     my($starting, $base) = _inputs($self, $args);
-    $starting->type eq 'forall' or die sprintf
-            "Induction requires 'forall', not %s\n", $starting->type;
+    $starting->type eq 'forall' or return $self->set_error(sprintf(
+        "Induction requires 'forall', not %s\n", $starting->type,
+    ));
 
     my($ivar, $iexpr) = @{ $starting->args };
-    $ivar->name eq $var->name or die sprintf(
+    $ivar->name eq $var->name or return $self->set_error(sprintf(
         "Induction variable '%s' does not match '%s' found\n",
         $var->name, $ivar->name,
-    );
-    $iexpr->type eq 'implies' or die sprintf(
+    ));
+    $iexpr->type eq 'implies' or return $self->set_error(sprintf(
         "Induction requires 'implies', not '%s' in forall\n",
         $iexpr->type,
-    );
+    ));
     my($result, $next) = @{ $iexpr->args };
 
     # Allow the base_expr to reference any names resolvable at
@@ -87,8 +88,10 @@ sub validate {
     my $expect_base = $result->subst_var($ivar, $base_expr);
     my $diff = $expect_base->diff($base);
     if ($diff) {
-        die sprintf "base expressions differ at\n  %s\n  %s\n",
-                map $_->locate($diff)->str, $expect_base, $base;
+        return $self->set_error(sprintf(
+            "base expressions differ at\n  %s\n  %s\n",
+            map $_->locate($diff)->str, $expect_base, $base,
+        ));
     }
 
     # The next_expr may resolve the same set of names as above,
@@ -102,8 +105,10 @@ sub validate {
     my $expect_next = $result->subst_var($ivar, $next_expr);
     $diff = $expect_next->diff($next);
     if ($diff) {
-        die sprintf "next expressions differ at\n  %s\n  %s\n",
-                map $_->locate($diff)->str, $expect_next, $next;
+        return $self->set_error(sprintf(
+            "next expressions differ at\n  %s\n  %s\n",
+            map $_->locate($diff)->str, $expect_next, $next,
+        ));
     }
 
     # FIXME: attach 'var >= base_expr -> ...' unless that covers

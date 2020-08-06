@@ -63,12 +63,12 @@ sub derive {
             next if $from == $over;
             local $self->{working} = $self->{working};
             my @vargs = ($line, $loc, $from + 1, $over + 1);
-            next unless eval { validate($self, \@vargs) };
+            $self->clear_error, next unless validate($self, \@vargs);
             next if $self->working->diff($target);
             return \@vargs;
         }
     }
-    die "No match found to derive distrib";
+    return $self->set_error('No match found to derive distrib');
 }
 
 sub validate {
@@ -77,10 +77,12 @@ sub validate {
     my $starting = $self->line($line);
 
     my $expr = $starting->locate($loc);
-    my $efrom = $expr->args->[$from - 1]
-            // die sprintf "arg %s missing in %s\n", $from, $expr->str;
-    my $eover = $expr->args->[$over - 1]
-            // die sprintf "arg %s missing in %s\n", $over, $expr->str;
+    my $efrom = $expr->args->[$from - 1] or return $self->set_error(sprintf(
+        "arg %s missing in %s\n", $from, $expr->str,
+    ));
+    my $eover = $expr->args->[$over - 1] or return $self->set_error(sprintf(
+        "arg %s missing in %s\n", $over, $expr->str,
+    ));
 
     my $repl;
     if ($expr->type eq 'mullist'
@@ -121,8 +123,10 @@ sub validate {
             } 0 .. $#{ $expr->args } ],
         });
     } else {
-        die sprintf "don't know how to distribute a %s over a %s\n",
-                $efrom->type, $eover->type;
+        return $self->set_error(sprintf(
+            "don't know how to distribute a %s over a %s\n",
+            $efrom->type, $eover->type,
+        ));
     }
 
     my $result = $starting->substitute($loc, $repl);

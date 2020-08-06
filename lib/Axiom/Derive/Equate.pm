@@ -44,9 +44,9 @@ sub derive {
         (my($var), $from_expr) = @{ $from_expr->args };
         push @vars, $var;
     }
-    $from_expr->type eq 'equals' or die sprintf(
+    $from_expr->type eq 'equals' or return $self->set_error(sprintf(
         "Can't equate() with a %s\n", $from_expr->type,
-    );
+    ));
 
     my @vargs;
     my $try = sub {
@@ -56,7 +56,8 @@ sub derive {
         ] });
         local $self->{rule};
         local $self->{working} = $self->working;
-        return 0 unless eval { validate($self, \@vargs) };
+        # FIXME: validate can die in eg $expr->resolve($to_dict)
+        $self->clear_error, return 0 unless eval { validate($self, \@vargs) };
         return 0 if $self->working->diff($target);
         return 1;
     };
@@ -72,7 +73,7 @@ sub derive {
         }
     });
     return $final if $final;
-    die "don't know how to derive this equate";
+    return $self->set_error("don't know how to derive this equate");
 }
 
 sub validate {
@@ -90,9 +91,9 @@ sub validate {
         push @$from_loc, 2;
         $from_expr = $from_expr->args->[1];
     }
-    $from_expr->type eq 'equals' or die sprintf(
+    $from_expr->type eq 'equals' or return $self->set_error(sprintf(
         "Can't equate() with a %s\n", $from_expr->type,
-    );
+    ));
     my $from_dict = $from->dict_at($from_loc);
     my $to_dict = $starting->dict_at($loc);
 
@@ -122,10 +123,10 @@ sub validate {
     } elsif (! $expr->diff($right)) {
         $repl = $left;
     } else {
-        die sprintf(
+        return $self->set_error(sprintf(
             "Neither side of equate %s matches target %s\n",
             $equate->str, $expr->str,
-        );
+        ));
     }
 
     my $result = $starting->substitute($loc, $repl);

@@ -68,9 +68,9 @@ sub derive {
         (my($var), $eq) = @{ $eq->args };
         $id{$var->name} = $var->binding->id;
     }
-    $eq->type eq 'equals' or die sprintf(
+    $eq->type eq 'equals' or return $self->set_error(sprintf(
         "Don't know how to derive recurse over a %s\n", $eq->type,
-    );
+    ));
     my($lhs, $rhs) = @{ $eq->args };
     $lhs->walk_tree(sub {
         my($e) = @_;
@@ -102,9 +102,9 @@ sub derive {
     while ($teq->type eq 'forall') {
         $teq = $teq->args->[1];
     }
-    $teq->type eq 'equals' or die sprintf(
+    $teq->type eq 'equals' or return $self->set_error(sprintf(
         "Don't know how to derive recurse to give a %s\n", $teq->type,
-    );
+    ));
     my $trhs = $teq->args->[1];
     my @result;
     $trhs->walk_tree(sub {
@@ -126,7 +126,7 @@ sub derive {
         $map = $map->copy;
         @vargs = ($line, $var, $map, $count);
         local $self->{working} = $self->working;
-        return 0 unless eval { validate($self, \@vargs) };
+        $self->clear_error, return 0 unless validate($self, \@vargs);
         return 0 if $target->diff($self->working);
         return 1;
     };
@@ -141,10 +141,10 @@ sub derive {
         if (!$plus) {
             $times = _divv($map, $var);
             unless ($times->is_independent($var)) {
-                die sprintf(
+                return $self->set_error(sprintf(
                     "unable to resolve iterator '%s := %s' to derive recurse",
                     $var->str, $map->str,
-                );
+                ));
             }
         }
 
@@ -172,7 +172,7 @@ sub derive {
             }
         }
     }
-    die "don't know how to derive this recurse";
+    return $self->set_error("don't know how to derive this recurse");
 }
 
 sub validate {
@@ -197,23 +197,24 @@ sub validate {
     # n times to give
     #  f(x) = a^n f(g^n(x)) + sum_0^{n-1}{ a^i (bh(g^i(x)) + c) }
 
-    $eq->type eq 'equals' or die sprintf(
+    $eq->type eq 'equals' or return $self->set_error(sprintf(
         "Don't know how to apply recurse over a %s\n", $eq->type,
-    );
+    ));
     my($lhs, $rhs) = @{ $eq->args };
-    my $base_pow = _f_pow($var, $iter, $count) or die sprintf(
-        "Don't know how to recurse iteration %s := %s\n",
-        $var->name, $iter->rawexpr,
-    );
+    my $base_pow = _f_pow($var, $iter, $count)
+            or return $self->set_error(sprintf(
+                "Don't know how to recurse iteration %s := %s\n",
+                $var->name, $iter->rawexpr,
+            ));
 
-    $lhs->is_independent($var) and die sprintf(
+    $lhs->is_independent($var) and return $self->set_error(sprintf(
         "LHS of recurse expression is independent of %s\n", $var->name,
-    );
+    ));
     my $expect = $lhs->subst_var($var, $iter);
-    my $rloc = $rhs->find_expr($expect) or die sprintf(
+    my $rloc = $rhs->find_expr($expect) or return $self->set_error(sprintf(
         "Unable to find %s in %s\n",
         $expect->str, $rhs->str,
-    );
+    ));
     my $prod = _one();
     my $cur;
     for (0 .. $#$rloc) {
@@ -236,10 +237,10 @@ sub validate {
             $prod = $prod->recip;
             next;
         } else {
-            die sprintf(
+            return $self->set_error(sprintf(
                 "Don't know how to recurse %s with RHS structure %s\n",
                 $expect->str, $cur->str,
-            );
+            ));
         }
     }
 

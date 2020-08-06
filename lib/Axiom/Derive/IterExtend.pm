@@ -111,7 +111,7 @@ sub derive {
 
         return [ $line, $loc, $fn ? -1 : 1, $fn || $tn ];
     }
-    die "don't know how to derive this";
+    return $self->set_error("don't know how to derive this");
 }
 
 sub validate {
@@ -163,7 +163,9 @@ sub validate {
             ],
         });
     } else {
-        die sprintf "Don't know how to extend a %s\n", $iter->type;
+        return $self->set_error(sprintf(
+            "Don't know how to extend a %s\n", $iter->type,
+        ));
     }
 
     my $result = $starting->substitute($loc, $repl);

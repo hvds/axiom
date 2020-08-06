@@ -54,7 +54,8 @@ sub derive {
 
     my @var = @var{ sort keys %var };
     # FIXME: why does specify only allow a single var to be fixed?
-    die "Too many vars for specify" if @var > 1;
+    return $self->set_error("Too many vars for specify")
+            if @var > 1;
 
     my $mapping = $self->find_mapping($seq, $teq, \@var);
     # if we didn't find it, maybe one side has been simplified to the point
@@ -70,7 +71,7 @@ sub derive {
         }
     }
     return [ $line, $var[0], $mapping->{ $var[0]->name } ] if $mapping;
-    die "don't know how to derive this specify";
+    return $self->set_error("don't know how to derive this specify");
 }
 
 sub validate {
@@ -81,9 +82,9 @@ sub validate {
     my $expr = $starting;
     my $loc = [];
     while (1) {
-        $expr->type eq 'forall' or die sprintf(
+        $expr->type eq 'forall' or return $self->set_error(sprintf(
             'Need forall for specify(), not %s', $expr->type,
-        );
+        ));
         my($fvar, $fexpr) = @{ $expr->args };
         if ($fvar->name ne $var->name) {
             push @$loc, 2;

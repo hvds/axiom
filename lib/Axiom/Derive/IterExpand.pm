@@ -74,7 +74,7 @@ sub derive {
             }
         }
     }
-    die "don't know how to derive";
+    return $self->set_error("don't know how to derive");
 }
 
 sub validate {
@@ -84,8 +84,9 @@ sub validate {
 
     my $iter = $starting->locate($loc);
     my $repl;
-    die sprintf "Cannot iterate over a %s\n", $iter->type
-            unless $iter->is_iter;
+    return $self->set_error(sprintf(
+        "Cannot iterate over a %s\n", $iter->type,
+    )) unless $iter->is_iter;
 
     if ($iter->type eq 'sum') {
         $repl = Axiom::Expr->new({
@@ -93,7 +94,9 @@ sub validate {
             args => [ map $iter->value_at($_), @{ $iter->range } ],
         });
     } else {
-        die sprintf "don't know how to expand a %s\n", $iter->type;
+        return $self->set_error(sprintf(
+            "don't know how to expand a %s\n", $iter->type,
+        ));
     }
 
     my $result = $starting->substitute($loc, $repl);

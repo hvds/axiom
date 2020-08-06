@@ -58,11 +58,11 @@ sub derive {
     for my $loc (@choice) {
         my @vargs = ($line, $loc);
         local $self->{working} = $self->{working};
-        next unless eval { validate($self, \@vargs) };
+        $self->clear_error, next unless validate($self, \@vargs);
         next if $self->working->diff($target);
         return \@vargs;
     }
-    die "don't know how to derive this unarydistrib";
+    return $self->set_error("don't know how to derive this unarydistrib");
 }
 
 sub validate {
@@ -124,8 +124,10 @@ sub validate {
         }
     }
     unless ($repl) {
-        die sprintf "don't know how to distribute a %s%s\n",
-            $expr->type, $arg ? ' over a ' . $arg->type : '';
+        return $self->set_error(sprintf(
+            "don't know how to distribute a %s%s\n",
+            $expr->type, $arg ? ' over a ' . $arg->type : '',
+        ));
     }
 
     my $result = $starting->substitute($loc, $repl);

@@ -67,7 +67,8 @@ sub derive {
     };
 
     my @choice = do {
-        my $l = $starting->diff($target, 1) or die "no diff, factor not needed";
+        my $l = $starting->diff($target, 1)
+                or return $self->set_error('no diff, factor not needed');
         ([ $l, $starting->locate($l) ]);
     };
     while (@choice) {
@@ -110,7 +111,7 @@ sub derive {
             next;
         }
     }
-    die "don't know how to derive this";
+    return $self->set_error("don't know how to derive this");
 }
 
 sub validate {
@@ -143,7 +144,9 @@ sub validate {
             }) ],
         });
     } else {
-        die sprintf "don't know how to factor a %s\n", $targ->type;
+        return $self->set_error(sprintf(
+            "don't know how to factor a %s\n", $targ->type,
+        ));
     }
 
     my $result = $starting->substitute($loc, $repl);

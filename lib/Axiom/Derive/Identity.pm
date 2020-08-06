@@ -38,7 +38,8 @@ sub derive {
         $expr = $expr->args->[1];
         push @$loc, 2;
     }
-    $expr->type eq 'equals' or die "no equals to derive to";
+    $expr->type eq 'equals'
+            or return $self->set_error('no equals to derive to');
     $expr = $expr->args->[0];
     my $raw = $expr->rawexpr;
     $raw =~ s/\s+\z//;

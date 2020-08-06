@@ -45,11 +45,14 @@ sub derive {
     while ($from->is_quant) {
         push @$loc, 2;
         $from = $from->args->[1];
-        $to->is_quant or die "mismatched quantifiers";
+        $to->is_quant
+                or return $self->set_error('mismatched quantifiers');
         $to = $to->args->[1];
     }
-    $from->type eq 'equals' or die "No equals to derive from";
-    $to->type eq 'equals' or die "No equals to derive to";
+    $from->type eq 'equals'
+            or return $self->set_error('No equals to derive from');
+    $to->type eq 'equals'
+            or return $self->set_error('No equals to derive to');
     my $expr = Axiom::Expr->new({
         type => 'pluslist',
         args => [
@@ -76,9 +79,9 @@ sub validate {
         push @$loc, 2;
         $eq = $eq->args->[1];
     }
-    $eq->type eq 'equals' or die sprintf(
+    $eq->type eq 'equals' or return $self->set_error(sprintf(
         "don't know how to add to a %s\n", $eq->type
-    );
+    ));
 
     my $repl = Axiom::Expr->new({
         type => $eq->type,

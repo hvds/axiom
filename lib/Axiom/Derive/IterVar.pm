@@ -98,7 +98,7 @@ sub derive {
         pop @$loc;
         $first = 0;
     }
-    die "don't know how to derive this itervar";
+    return $self->set_error("don't know how to derive this itervar");
 }
 
 sub validate {
@@ -107,10 +107,10 @@ sub validate {
     my $starting = $self->line($line);
 
     my $iter = $starting->locate($loc);
-    $iter->is_iter or die sprintf(
+    $iter->is_iter or return $self->set_error(sprintf(
         "Don't know how to change iter var on a non-iterator %s\n",
         $iter->type,
-    );
+    ));
     my($var, $from, $to, $expr) = @{ $iter->args };
 
     {
@@ -160,10 +160,10 @@ sub validate {
             ],
         });
     } else {
-        die sprintf(
+        return $self->set_error(sprintf(
             "Don't know how to change iter var with expression %s := %s\n",
             $cvar->name, $cexpr->rawexpr,
-        );
+        ));
     }
 
     my $result = $starting->substitute($loc, $repl);

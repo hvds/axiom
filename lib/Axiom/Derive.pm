@@ -126,6 +126,16 @@ sub scope {
     return $self->{scope};
 }
 
+sub set_error {
+    my($self, $error) = @_;
+    $self->{error} = $error;
+    return 0;
+}
+sub clear_error {
+    my($self) = @_;
+    return delete $self->{error};
+}
+
 sub derive {
     my($class, $line, $context, $debug) = @_;
     my $self = $class->new($context, $line);
@@ -262,8 +272,10 @@ sub _varmap {
     state %derive_for = map +($_ => $class{$_}->can('derive')), keys %class;
     sub validate {
         my($self, $type, $args) = @_;
-        my $vargs = $derive_for{$type}->($self, $args);
-        return unless $validate_for{$type}->($self, $vargs);
+        my $vargs = $derive_for{$type}->($self, $args)
+                or die $self->clear_error;
+        $validate_for{$type}->($self, $vargs)
+                or die $self->clear_error;
         my $expr = $self->expr;
         $expr->resolve($self->dict);
         my $diff = $expr->diff($self->working);
