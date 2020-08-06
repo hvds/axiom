@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 
 =head1 NAME
@@ -30,14 +31,15 @@ TODO: we currently only derive a single term to factor.
 
 sub rulename { 'factor' }
 
-sub derivere { <<'RE' }
-    <rule: factor>
-        factor (?: \( <[args=line]>? \) )?
+sub derive_args {
+    q{
+        (?: \( <[args=line]>? \) )?
         (?{
             $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
             $MATCH{args} //= [ '' ];
         })
-RE
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
@@ -46,13 +48,11 @@ sub derive {
     my $target = $self->expr;
     $target->resolve($self->dict);
 
-    my $result;
     my $try = sub {
         my($loc, $expr) = @_;
-        $result = [ $line, $loc, $expr->copy ];
-        local $self->{working} = $self->{working};
-        return 0 unless validate($self, $result);
-        return $self->working->diff($target) ? 0 : 1;
+        return 1 if $self->validate([ $line, $loc, $expr->copy ]);
+        $self->clear_error;
+        return 0;
     };
     my $try_all = sub {
         my($loc, $all) = @_;
@@ -81,12 +81,11 @@ sub derive {
         if ($e->type eq 'pluslist') {
             for my $ae (@$a) {
                 if ($ae->type eq 'mullist') {
-                    return $result if $try_all->($loc, $ae->args);
+                    return 1 if $try_all->($loc, $ae->args);
                 } elsif ($ae->type eq 'negate') {
-                    return $result
-                            if $try->($loc, _mone());
+                    return 1 if $try->($loc, _mone());
                 } else {
-                    return $result if $try->($loc, $ae);
+                    return 1 if $try->($loc, $ae);
                 }
             }
             next;
@@ -95,13 +94,13 @@ sub derive {
             my($v, $se) = @$a[0, 3];
           retry_sum:
             if ($se->is_independent($v)) {
-                return $result if $try->($loc, $se);
+                return 1 if $try->($loc, $se);
             }
             if ($se->type eq 'mullist') {
                 my @ind = grep $_->is_independent($v), @{ $se->args };
-                return $result if $try_all->($loc, \@ind);
+                return 1 if $try_all->($loc, \@ind);
             } elsif ($se->type eq 'negate') {
-                return $result if $try->($loc, _mone());
+                return 1 if $try->($loc, _mone());
                 $se = $se->args->[0];
                 goto retry_sum;
             } elsif ($se->type eq 'pluslist') {
@@ -151,8 +150,7 @@ sub validate {
 
     my $result = $starting->substitute($loc, $repl);
     $result->resolve($self->dict);
-    $self->working($result);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'factor(%s%s, %s)',
             $self->_linename($line), join('.', @$loc), $expr->rawexpr);
 

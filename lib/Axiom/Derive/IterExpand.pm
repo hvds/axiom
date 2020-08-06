@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 
 =head1 NAME
@@ -30,14 +31,15 @@ expression does not depend on the iterator variable.
 
 sub rulename { 'iterexpand' }
 
-sub derivere { <<'RE' }
-    <rule: iterexpand>
-        iterexpand (?: \( <[args=line]>? \) )?
+sub derive_args {
+    q{
+        (?: \( <[args=line]>? \) )?
         (?{
             $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
             $MATCH{args} //= [ '' ];
         })
-RE
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
@@ -48,14 +50,14 @@ sub derive {
     my $loc = $starting->diff($target);
     my $sfrom = $starting->locate($loc);
     if ($sfrom->is_iter) {
-        return [ $line, $loc ];
+        return $self->validate([ $line, $loc ]);
     }
 
     if ($sfrom->is_list) {
         my $afrom = $sfrom->args;
         my @i = grep $afrom->[$_]->is_iter, 0 .. $#$afrom;
         if (@i == 1) {
-            return [ $line, [ @$loc, $i[0] + 1 ] ];
+            return $self->validate([ $line, [ @$loc, $i[0] + 1 ] ]);
         }
         my $sto = $target->locate($loc);
         if ($sto->type eq $sfrom->type) {
@@ -70,7 +72,7 @@ sub derive {
                 last if @i == 1;
             }
             if (@i == 1) {
-                return [ $line, [ @$loc, $i[0] + 1 ] ];
+                return $self->validate([ $line, [ @$loc, $i[0] + 1 ] ]);
             }
         }
     }
@@ -101,8 +103,7 @@ sub validate {
 
     my $result = $starting->substitute($loc, $repl);
     $result->resolve($self->dict);
-    $self->working($result);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'iterexpand(%s%s)',
             $self->_linename($line), join('.', @$loc));
 

@@ -81,6 +81,7 @@ sub new {
 }
 
 sub is_derived { 1 }
+sub late_resolve { 0 }
 
 sub context { shift->{context} }
 sub source { shift->{source} }
@@ -136,64 +137,71 @@ sub clear_error {
     return delete $self->{error};
 }
 
+{
+    my %derive_args; END { %derive_args = () }
+    sub _derive_args {
+        my($class) = @_;
+        use Regexp::Grammars;
+        return $derive_args{$class} //= do {
+            my $rule = $class->rulename;
+            my $args = $class->derive_args;
+            qr{
+                <extends: Axiom::Derive>
+                <nocontext:>
+                ^ \s* $rule \s* $args \s* : \s* <expr=Relation> \s* \z
+            }x;
+        };
+    }
+}
+
 sub derive {
-    my($class, $line, $context, $debug) = @_;
-    my $self = $class->new($context, $line);
-    my $dre = derivere($debug);
-
-    my $local = Axiom::Expr->local_dict($self->dict);
-    die "Can't parse derivation: $line"
-            unless $line =~ s{$dre}{};
-    my($rule, $value) = %{ $/{rule} };
-    $line =~ s/^\s+//;
-
-    my $expr = Axiom::Expr->parse($self->dict, $line, $debug) or return;
-    $self->{rawexpr} = $line;
+    my($class, $source, $context, $debug) = @_;
+    my($name) = ($source =~ /^\s*(\w+)/)
+            or die "Can't find rule: $source";
+    $class = $class{$name}
+            or die "Unknown rule '$name' in $source";
+    my $self = $class->new($context, $source, $debug);
+    {
+        my $local = Axiom::Expr->local_dict($self->dict);
+        $source =~ _derive_args($class)
+                or die "Can't parse derivation: $source";
+    }
+    my($args, $expr) = @/{qw{ args expr }};
+    $expr->resolve($self->dict) unless $self->late_resolve;
+    $self->{rawexpr} = $expr->rawexpr;
     $self->{expr} = $expr;
-    $self->validate($rule, $value->{args}) or return;
+    die $self->clear_error unless $self->derive($args);
     return $self;
 }
 
-my %include_rule = map +($_ => 1), qw{ axiom lemma theorem };
 sub include {
-    my($class, $line, $context, $debug) = @_;
-    my $self = $class->new($context, $line);
-    my $dre = derivere($debug);
-
-    my $local = Axiom::Expr->local_dict($self->dict);
-    die "Can't parse derivation: $line"
-            unless $line =~ s{$dre}{};
-    my($rule, $value) = %{ $/{rule} };
-    return unless $include_rule{$rule};
-    $line =~ s/^\s+//;
-
-    my $expr = Axiom::Expr->parse($self->dict, $line, $debug) or return;
-    $self->{rawexpr} = $line;
-    $self->{expr} = $expr;
-
+    my($class, $source, $context, $debug) = @_;
+    my($name) = ($source =~ /^\s*(\w+)/)
+            or die "Can't find rule: $source";
+    $class = $class{$name}
+            or die "Unknown rule '$name' in $source";
+    return undef if $class->can('include') == \&include;
+    my $self = $class->new($context, $source, $debug);
+    {
+        my $local = Axiom::Expr->local_dict($self->dict);
+        $source =~ _derive_args($class)
+                or die "Can't parse derivation: $source";
+    }
+    my($args, $expr) = @/{qw{ args expr }};
     $expr->resolve($self->dict);
-    $self->working($expr);
-    $self->validate($rule, $value->{args}) or return;
-
+    $self->{rawexpr} = $expr->rawexpr;
+    $self->{expr} = $expr;
+    die $self->clear_error unless $self->include($args);
     return $self;
 }
 
-sub _derivere {
+sub derivere {
     use Regexp::Grammars;
-    return state $gddre = do {
-        my $indent = " " x 4;
-        my $names = join "\n$indent| ", map sprintf('<%s>', $_), keys %class;
-        my $rules = join "", map $_->derivere, values %class;
-        qr{
+    return state $dre = qr{
 <grammar: Axiom::Derive>
 <extends: Axiom::Expr>
 <nocontext:>
 <debug: same>
-
-<rule: rule> (?:
-    @{[ $names ]}
-)
-@{[ $rules ]}
 
 <rule: varmap> (?: \{ (?: <[args=pair]>* % , )? \} )
 <rule: pair> <[args=Variable]> := <[args=Expr]>
@@ -209,27 +217,9 @@ sub _derivere {
 <token: location> <[args=arg]>+ % \.
 <token: arg> \d+
 <token: num> -?\d+
-        }x;
-    };
+    }x;
 }
-BEGIN { _derivere() }
-
-sub derivere {
-    use Regexp::Grammars;
-    my($debug) = @_;
-    return $debug
-        ? (state $ddre = qr{
-            <extends: Axiom::Derive>
-            <nocontext:>
-            <debug: match>
-            ^ <rule> :
-        }x)
-        : (state $dre = qr{
-            <extends: Axiom::Derive>
-            <nocontext:>
-            ^ <rule> :
-        }x);
-}
+BEGIN { derivere() }
 
 sub _zero {
     return Axiom::Expr->new({
@@ -267,23 +257,18 @@ sub _varmap {
     } @{ $map->{args} };
 }
 
-{
-    state %validate_for = map +($_ => $class{$_}->can('validate')), keys %class;
-    state %derive_for = map +($_ => $class{$_}->can('derive')), keys %class;
-    sub validate {
-        my($self, $type, $args) = @_;
-        my $vargs = $derive_for{$type}->($self, $args)
-                or die $self->clear_error;
-        $validate_for{$type}->($self, $vargs)
-                or die $self->clear_error;
-        my $expr = $self->expr;
-        $expr->resolve($self->dict);
-        my $diff = $expr->diff($self->working);
-        return $self unless $diff;
-        die sprintf "Expressions differ at\n  %s\n  %s\nclean:\n  %s\n  %s\n",
-                map($_->locate($diff)->str, $expr, $self->working),
-                map $_->str, $expr->clean, $self->working->clean;
+sub validate_diff {
+    my($self, $result) = @_;
+    my $expr = $self->expr;
+    if (my $diff = $result->diff($expr)) {
+        return $self->set_error(sprintf(
+            "Expressions differ at\n  %s\n  %s\nclean:\n  %s\n  %s\n",
+            map($_->locate($diff)->str, $expr, $result),
+            map $_->str, $expr->clean, $result->clean,
+        ));
     }
+    $self->working($result);
+    return 1;
 }
 
 sub _new_vars {

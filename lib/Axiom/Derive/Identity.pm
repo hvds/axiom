@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 
 =head1 NAME
@@ -21,9 +22,11 @@ Constructs a theorem of the form C< \Aa: \Ab: ... expr = expr >.
 
 sub rulename { 'identity' }
 
-sub derivere { <<'RE' }
-    <rule: identity> identity <args=(?{ [] })>
-RE
+sub derive_args {
+    q{
+        <args=(?{ [] })>
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
@@ -46,10 +49,10 @@ sub derive {
     $expr = $expr->copy;
     $expr->{''} = $raw;
     $expr->resolve($target->dict_at($loc));
-    return [
+    return $self->validate([
         [ map Axiom::Expr->new({ type => 'name', args => [ $_ ] }), @vars ],
         $expr,
-    ];
+    ]);
 }
 
 sub validate {
@@ -68,8 +71,7 @@ sub validate {
     }
 
     $result->resolve($self->dict);
-    $self->working($result);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'identity({ %s }, %s)',
             join(', ', map $_->name, @$varlist), $expr->rawexpr);
 

@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 use List::Util qw{ first };
 
@@ -25,14 +26,15 @@ C<pluslist> or C<mullist>, and type C<sum> distributing over a C<pluslist>.
 
 sub rulename { 'unarydistrib' }
 
-sub derivere { <<'RE' }
-    <rule: unarydistrib>
-        unarydistrib (?: \( <[args=line]>? \) )?
+sub derive_args {
+    q{
+        (?: \( <[args=line]>? \) )?
         (?{
             $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
             $MATCH{args} //= [ '' ];
         })
-RE
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
@@ -56,11 +58,8 @@ sub derive {
     });
 
     for my $loc (@choice) {
-        my @vargs = ($line, $loc);
-        local $self->{working} = $self->{working};
-        $self->clear_error, next unless validate($self, \@vargs);
-        next if $self->working->diff($target);
-        return \@vargs;
+        return 1 if $self->validate([ $line, $loc ]);
+        $self->clear_error;
     }
     return $self->set_error("don't know how to derive this unarydistrib");
 }
@@ -132,8 +131,7 @@ sub validate {
 
     my $result = $starting->substitute($loc, $repl);
     $result->resolve($self->dict);
-    $self->working($result);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'unarydistrib(%s%s)',
             $self->_linename($line), join('.', @$loc));
 

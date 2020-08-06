@@ -4,6 +4,8 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
+
 =head1 NAME
 
 Axiom::Derive::Theorem - name a theorem being derived
@@ -20,24 +22,34 @@ to later by the given name.
 
 sub rulename { 'theorem' }
 
-sub derivere { <<'RE' }
-    <rule: theorem> theorem (?: <[args=rulename]> | <args=(?{ [] })> )
+sub derive_args {
+    q{
+        (?: <[args=rulename]> | <args=(?{ [] })> )
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
-RE
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
-    return $args;
+    return $self->validate($args);
+}
+
+sub include {
+    my($self, $args) = @_;
+    return $self->validate($args, 1);
 }
 
 sub validate {
-    my($self, $args) = @_;
+    my($self, $args, $including) = @_;
     if (@$args) {
         my($name) = @$args;
         $self->name($name);
         $self->rule("theorem $name");
     } else {
         $self->rule('theorem');
+    }
+    unless ($including) {
+        $self->validate_diff($self->working) or return;
     }
     return 1;
 }

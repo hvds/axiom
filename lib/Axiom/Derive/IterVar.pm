@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 
 =head1 NAME
@@ -26,14 +27,15 @@ will construct C< x = \sum_{i=0}^{n-1}{ y^i } >.
 
 sub rulename { 'itervar' }
 
-sub derivere { <<'RE' }
-    <rule: itervar>
-        itervar (?: \( <[args=line]>? \) )?
+sub derive_args {
+    q{
+        (?: \( <[args=line]>? \) )?
         (?{
             $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
             $MATCH{args} //= [ '' ];
         })
-RE
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
@@ -49,11 +51,11 @@ sub derive {
     # If it _is_, the diff point will be a descendant (but that descendant
     # may itself be a sum).
 
-    my @vargs;
     my $try = sub {
-        @vargs = @_;
-        local $self->{working} = $self->{working};
-        return validate($self, \@vargs) && ! $self->working->diff($target);
+        my($var, $diff) = @_;
+        return 1 if $self->validate([ $line, $loc, $var, $diff ]);
+        $self->clear_error;
+        return 0;
     };
     my $first = 1;
     while (1) {
@@ -72,7 +74,7 @@ sub derive {
                         $nfrom->negate,
                     ],
                 })->clean;
-                return \@vargs if $try->($line, $loc, $var, $diff);
+                return 1 if $try->($var, $diff);
                 $diff = Axiom::Expr->new({
                     type => 'pluslist',
                     args => [
@@ -81,7 +83,7 @@ sub derive {
                         $var->negate,
                     ],
                 })->clean;
-                return \@vargs if $try->($line, $loc, $var, $diff);
+                return 1 if $try->($var, $diff);
             } else {
                 my $diff = Axiom::Expr->new({
                     type => 'pluslist',
@@ -91,7 +93,7 @@ sub derive {
                         $var->negate,
                     ],
                 })->clean;
-                return \@vargs if $try->($line, $loc, $var, $diff);
+                return 1 if $try->($var, $diff);
             }
         }
         last unless @$loc;
@@ -168,8 +170,7 @@ sub validate {
 
     my $result = $starting->substitute($loc, $repl);
     $result->resolve($self->dict);
-    $self->working($result);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'itervar(%s%s, %s := %s)',
         $self->_linename($line), join('.', @$loc),
         $cvar->name, $cexpr->rawexpr,

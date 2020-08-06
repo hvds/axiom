@@ -4,6 +4,9 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
+use Axiom::Expr;
+
 =head1 NAME
 
 Axiom::Derive::CondStart - open new scope for Conditional Proof
@@ -21,16 +24,20 @@ as free variables for the scope of the conditional proof.
 
 sub rulename { 'condstart' }
 
-sub derivere { <<'RE' }
-    <rule: condstart> condstart <args=(?{ [] })>
-RE
+sub derive_args {
+    q{
+        <args=(?{ [] })>
+    };
+}
+
+sub late_resolve { 1 }
 
 sub derive {
     my($self, $args) = @_;
-    return [ [
+    return $self->validate([ [
         map Axiom::Expr->new({ type => 'name', args => [ $_ ] }),
                 @{ $self->new_vars($self->expr) }
-    ] ];
+    ] ]);
 }
 
 sub validate {
@@ -42,11 +49,9 @@ sub validate {
 
     my $result = $self->expr;
     $result->resolve($dict);
-    $self->working($self->expr);
-
+    $self->validate_diff($result) or return;
     $self->{dict} = $dict;
     $self->scope(1);
-
     $self->rule(sprintf 'condstart({ %s })',
             join ', ', map $_->name, @$varlist);
 

@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 
 =head1 NAME
@@ -31,14 +32,15 @@ TODO: currently supports only type C<sum>.
 
 sub rulename { 'iterextend' }
 
-sub derivere { <<'RE' }
-    <rule: iterextend>
-        iterextend (?: \( <[args=line]>? \) )?
+sub derive_args {
+    q{
+        (?: \( <[args=line]>? \) )?
         (?{
             $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
             $MATCH{args} //= [ '' ];
         })
-RE
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
@@ -109,7 +111,7 @@ sub derive {
         # FIXME: could generate multiple iterextend validations
         last unless abs($fn) + abs($tn) == 1;
 
-        return [ $line, $loc, $fn ? -1 : 1, $fn || $tn ];
+        return $self->validate([ $line, $loc, $fn ? -1 : 1, $fn || $tn ]);
     }
     return $self->set_error("don't know how to derive this");
 }
@@ -170,8 +172,7 @@ sub validate {
 
     my $result = $starting->substitute($loc, $repl);
     $result->resolve($self->dict);
-    $self->working($result);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'iterextend(%s%s, %s, %s)',
             $self->_linename($line), join('.', @$loc), $which, $dir);
 

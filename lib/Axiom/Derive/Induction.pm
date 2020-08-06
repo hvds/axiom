@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 
 =head1 NAME
@@ -32,10 +33,11 @@ the domain is, which requires some degree of support for sets).
 
 sub rulename { 'induction' }
 
-sub derivere { <<'RE' }
-    <rule: induction> induction
-        (?{ $MATCH{args} = [] })
-RE
+sub derive_args {
+    q{
+        <args=(?{ [] })>
+    };
+}
 
 sub _inputs {
     my($self, $args) = @_;
@@ -54,7 +56,7 @@ sub derive {
     $se = $se->args->[0];
 
     my $map = $self->find_mapping($se, $base, [ $var ]);
-    return [ $var, $map->{$var->name} ] if $map;
+    return $self->validate([ $var, $map->{$var->name} ]) if $map;
 
     return $self->set_error("can't derive this induction");
 }
@@ -115,10 +117,9 @@ sub validate {
     # the whole domain of the var.
     $result = Axiom::Expr->new({
         type => 'forall',
-        args => [ $ivar->copy, $result ],
+        args => [ $ivar->copy, $result->copy ],
     });
-    $self->working($result->copy);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'induction(%s, %s)',
             $var->name, $base_expr->rawexpr);
 

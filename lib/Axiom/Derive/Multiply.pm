@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 
 =head1 NAME
@@ -22,14 +23,15 @@ C< P . expr = Q . expr >.
 
 sub rulename { 'multiply' }
 
-sub derivere { <<'RE' }
-    <rule: multiply>
-        multiply (?: \( <[args=line]>? \) )?
+sub derive_args {
+    q{
+        (?: \( <[args=line]>? \) )?
         (?{
             $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
             $MATCH{args} //= [ '' ];
         })
-RE
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
@@ -61,7 +63,7 @@ sub derive {
     });
     $expr->resolve($from_base->dict_at($loc));
     $expr = $expr->clean;
-    return [ $line, $expr ];
+    return $self->validate([ $line, $expr ]);
 }
 
 sub validate {
@@ -89,8 +91,7 @@ sub validate {
 
     my $result = $starting->substitute($loc, $repl);
     $result->resolve($self->dict);
-    $self->working($result);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'multiply(%s%s)',
             $self->_linename($line), $expr->rawexpr);
 

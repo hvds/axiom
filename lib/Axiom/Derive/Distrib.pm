@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 
 =head1 NAME
@@ -28,14 +29,15 @@ with type C<pluslist> or C<sum> at I<arg2>.
 
 sub rulename { 'distrib' }
 
-sub derivere { <<'RE' }
-    <rule: distrib>
-        distrib (?: \( <arg=line>? \) )?
+sub derive_args {
+    q{
+        (?: \( <arg=line>? \) )?
         (?{
             $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
             $MATCH{args} //= [ '' ];
         })
-RE
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
@@ -61,11 +63,8 @@ sub derive {
         my $eargs = $e->args;
         for my $from (0 .. $#$eargs) {
             next if $from == $over;
-            local $self->{working} = $self->{working};
-            my @vargs = ($line, $loc, $from + 1, $over + 1);
-            $self->clear_error, next unless validate($self, \@vargs);
-            next if $self->working->diff($target);
-            return \@vargs;
+            return 1 if $self->validate([ $line, $loc, $from + 1, $over + 1 ]);
+            $self->clear_error;
         }
     }
     return $self->set_error('No match found to derive distrib');
@@ -131,8 +130,7 @@ sub validate {
 
     my $result = $starting->substitute($loc, $repl);
     $result->resolve($self->dict);
-    $self->working($result);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'distrib(%s%s, %s, %s)',
             $self->_linename($line), join('.', @$loc), $from, $over);
 

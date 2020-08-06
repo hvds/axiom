@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 
 =head1 NAME
@@ -25,9 +26,11 @@ corresponding C<condstart>; and I<expr2> is the last theorem proven.
 
 sub rulename { 'condend' }
 
-sub derivere { <<'RE' }
-    <rule: condend> condend <args=(?{ [] })>
-RE
+sub derive_args {
+    q{
+        <args=(?{ [] })>
+    };
+}
 
 sub _condstart {
     my($self) = @_;
@@ -46,7 +49,7 @@ sub derive {
     }
 
     my @from = do {
-        my $dict2 = _condstart($self)->dict;
+        my $dict2 = $self->_condstart->dict;
         my $dict1 = $self->context->scope_dict;
         my %known = %{ $dict2->dict };
         delete $known{$_} for keys %{ $dict1->dict };
@@ -58,7 +61,7 @@ sub derive {
         $from->{''} = $from[0];
         my $to = Axiom::Expr->new({ type => 'name', args => [ $to[0] ] });
         $to->{''} = $to[0];
-        return [ { args => [ { args => [ $from, $to ] } ] } ];
+        return $self->validate([ { args => [ { args => [ $from, $to ] } ] } ]);
     }
     die "not yet";
 }
@@ -90,9 +93,8 @@ sub validate {
 
     my $dict = $self->context->scope_dict;
     $result->resolve($dict);
-    $self->working($result);
+    $self->validate_diff($result) or return;
     $self->scope(-1);
-
     $self->rule(sprintf 'condend(%s)', $self->_varmap($map));
 
     return 1;

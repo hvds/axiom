@@ -1,9 +1,8 @@
 Stabilise enough to write tests
 
-Consider: require a single derivation per line - that means theorem naming
-becomes a separate step after derivation, but removes a wart around axioms
-and allows us to subclass the Derive object, which will let us abstract
-trial validations effectively.
+Consider adding a formalized description of args/types; use these to construct
+the derive-args regexp; save only the validate args as the "rule", and
+automate stringification.
 
 Consider: require Expr to specify a dict up front, require vars and funcs
 to resolve as we go, introduce global_ok to allow new globals, rewrite

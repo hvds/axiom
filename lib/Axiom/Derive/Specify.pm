@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 
 =head1 NAME
@@ -22,14 +23,15 @@ new theorem C< P(x) >.
 
 sub rulename { 'specify' }
 
-sub derivere { <<'RE' }
-    <rule: specify>
-        specify (?: \( <[args=line]>? \) )?
+sub derive_args {
+    q{
+        (?: \( <[args=line]>? \) )?
         (?{
             $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
             $MATCH{args} //= [ '' ];
         })
-RE
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
@@ -70,7 +72,8 @@ sub derive {
             }
         }
     }
-    return [ $line, $var[0], $mapping->{ $var[0]->name } ] if $mapping;
+    return $self->validate([ $line, $var[0], $mapping->{ $var[0]->name } ])
+            if $mapping;
     return $self->set_error("don't know how to derive this specify");
 }
 
@@ -102,8 +105,7 @@ sub validate {
 
     my $repl = $expr->subst_var($var, $value);
     my $result = $starting->substitute($loc, $repl);
-    $self->working($result);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'specify(%s%s, %s)',
             $self->_linename($line), $var->rawexpr, $value->rawexpr);
 

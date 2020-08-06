@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
 
 =head1 NAME
@@ -41,14 +42,15 @@ instead of deriving that in validate.
 
 sub rulename { 'recurse' }
 
-sub derivere { <<'RE' }
-    <rule: recurse>
-        recurse (?: \( <[args=line]>? \) )?
+sub derive_args {
+    q{
+        (?: \( <[args=line]>? \) )?
         (?{
             $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
             $MATCH{args} //= [ '' ];
         })
-RE
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
@@ -119,16 +121,11 @@ sub derive {
         return;
     });
 
-    my @vargs;
     my $try = sub {
         my($var, $map, $count) = @_;
-        $var = $var->copy;
-        $map = $map->copy;
-        @vargs = ($line, $var, $map, $count);
-        local $self->{working} = $self->working;
-        $self->clear_error, return 0 unless validate($self, \@vargs);
-        return 0 if $target->diff($self->working);
-        return 1;
+        return 1 if $self->validate([ $line, $var->copy, $map->copy, $count ]);
+        $self->clear_error;
+        return 0;
     };
 
     for (@choice) {
@@ -159,7 +156,7 @@ sub derive {
                         $plus->recip,
                     ],
                 })->clean;
-                return \@vargs if $try->($var, $map, $count);
+                return 1 if $try->($var, $map, $count);
             } else {
                 my $count = Axiom::Expr->new({
                     type => 'pow',
@@ -168,7 +165,7 @@ sub derive {
                         $times->recip,
                     ],
                 })->clean;
-                return \@vargs if $try->($var, $map, $count);
+                return 1 if $try->($var, $map, $count);
             }
         }
     }
@@ -322,8 +319,7 @@ sub validate {
 
     my $result = $starting->substitute($loc, $repl);
     $result->resolve($self->dict);
-    $self->working($result);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'recurse(%s%s := %s, %s)',
         $self->_linename($line), $var->name, $iter->rawexpr, $count->rawexpr,
     );

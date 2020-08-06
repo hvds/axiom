@@ -4,9 +4,8 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
 use Axiom::Expr;
-use Scalar::Util qw{ weaken };
-use List::Util qw{ first };
 
 =head1 NAME
 
@@ -24,19 +23,23 @@ the given name.
 
 sub rulename { 'axiom' }
 
-sub derivere { <<'RE' }
-    <rule: axiom> axiom (?:
-        <[args=rulename]>
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
-    |
-        <args=(?{ [] })>
-    )
-RE
+sub derive_args {
+    q{
+        (?:
+            <[args=rulename]>
+            (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
+        |
+            <args=(?{ [] })>
+        )
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
-    return $args;
+    return $self->validate($args);
 }
+
+*include = \&derive;
 
 sub validate {
     my($self, $args) = @_;

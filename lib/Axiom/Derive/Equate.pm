@@ -4,6 +4,8 @@ use v5.10;
 use strict;
 use warnings;
 
+use parent qw{ Axiom::Derive };
+
 =head1 NAME
 
 Axiom::Derive::Equate - substitute from an equality
@@ -24,11 +26,12 @@ rather than deriving that each time in validate.
 
 sub rulename { 'equate' }
 
-sub derivere { <<'RE' }
-    <rule: equate>
-        equate \( <[args=optline]> <[args=line]> \)
+sub derive_args {
+    q{
+        \( <[args=optline]> \s* <[args=line]> \)
         (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
-RE
+    };
+}
 
 sub derive {
     my($self, $args) = @_;
@@ -48,31 +51,23 @@ sub derive {
         "Can't equate() with a %s\n", $from_expr->type,
     ));
 
-    my @vargs;
-    my $try = sub {
-        my($loc, $map) = @_;
-        @vargs = ($line, $loc, $eqline, { args => [
-            map +{ args => [ $_->copy, $map->{$_->name} ] }, @vars,
-        ] });
-        local $self->{rule};
-        local $self->{working} = $self->working;
-        # FIXME: validate can die in eg $expr->resolve($to_dict)
-        $self->clear_error, return 0 unless eval { validate($self, \@vargs) };
-        return 0 if $self->working->diff($target);
-        return 1;
-    };
-
-    my $final;
+    my $valid;
     $starting->walk_locn(sub {
-        return if $final;
+        return if $valid;
         my($se, $loc) = @_;
         for my $from (@{ $from_expr->args }) {
             my $map = $self->find_mapping($from, $se, \@vars)
                     or next;
-            $final = \@vargs if $try->($loc, $map);
+            my @vargs = ($line, $loc, $eqline, { args => [
+                map +{ args => [ $_->copy, $map->{$_->name} ] }, @vars,
+            ] });
+            # FIXME: validate can die in eg $expr->resolve($to_dict)
+            $valid = eval { $self->validate(\@vargs) };
+            $self->clear_error;
+            last if $valid;
         }
     });
-    return $final if $final;
+    return 1 if $valid;
     return $self->set_error("don't know how to derive this equate");
 }
 
@@ -130,8 +125,7 @@ sub validate {
     }
 
     my $result = $starting->substitute($loc, $repl);
-    $self->working($result);
-
+    $self->validate_diff($result) or return;
     $self->rule(sprintf 'equate(%s%s, %s, %s)',
             $self->_linename($line), join('.', @$loc),
             $eqline, $self->_varmap($map));
