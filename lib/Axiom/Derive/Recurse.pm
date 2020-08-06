@@ -346,55 +346,6 @@ sub _divv {
     })->clean;
 }
 
-# We want to find a subexpression E of the target that represents some number
-# of iterations of the var := iter mapping on the lhs of the source. So we
-# need to be able to match up all aspects of the lhs that are independent
-# of var, and then solve _f_pow(var, iter, n) = F for n.
-sub _candidate {
-    my($lhs, $e, $var) = @_;
-    return $e if ! $lhs->diff($var);
-    return undef if $lhs->is_atom;
-    return undef if $lhs->type ne $e->type;
-    my($la, $ea) = ($lhs->args, $e->args);
-    if (! $lhs->is_list) {
-        for (0 .. $#$la) {
-            my($le, $ee) = ($la->[$_], $ea->[$_]);
-            if ($le->is_independent($var)) {
-                return undef if $le->diff($ee);
-                next;
-            }
-            return _candidate($le, $ee, $var);
-        }
-    }
-    my @la = @$la;
-    my @ea = @$ea;
-  LHS_ARG:
-    for my $li (0 .. $#la) {
-        my $le = $la[$li];
-        if ($le->is_independent($var)) {
-            for my $ei (0 .. $#ea) {
-                next if $le->diff($ea[$ei]);
-                splice @la, $li, 1;
-                splice @ea, $ei, 1;
-                redo LHS_ARG;
-            }
-            return undef;
-        }
-    }
-    # remaining @la are each dependent on $var
-    if (@la == 1) {
-        my $eremain = (@ea == 1) ? $ea[0] : Axiom::Expr->new({
-            type => $e->type,
-            args => [ map $_->copy, @ea ],
-        });
-        return _candidate($la[0], $eremain, $var);
-    }
-    die sprintf(
-        "don't know how to derive recurse candidate for:\n  %s\n  %s\n",
-        $lhs->str, $e->str,
-    );
-}
-
 # Given (x, f(x), n) return f^x(n) if we know how to construct it, else undef.
 sub _f_pow {
     my($var, $iter, $count) = @_;
