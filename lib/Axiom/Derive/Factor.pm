@@ -48,8 +48,10 @@ sub derive {
     my $target = $self->expr;
     $target->resolve($self->dict);
 
+    my %seen_at_loc;
     my $try = sub {
         my($loc, $expr) = @_;
+        return 0 if $seen_at_loc{$expr->str}++;
         return 1 if $self->validate([ $line, $loc, $expr->copy ]);
         $self->clear_error;
         return 0;
@@ -78,6 +80,7 @@ sub derive {
             push @choice, map [ [ @$loc, $_ + 1 ], $a->[$_] ], 0 .. $#$a;
             next;
         }
+        %seen_at_loc = ();
         if ($e->type eq 'pluslist') {
             for my $ae (@$a) {
                 if ($ae->type eq 'mullist') {
