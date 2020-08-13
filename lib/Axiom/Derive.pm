@@ -299,6 +299,18 @@ sub new_vars {
     return [ sort keys %new ];
 }
 
+sub _all_vars {
+    my($expr) = @_;
+    my %v;
+    $expr->walk_tree(sub {
+        my($e) = @_;
+        $v{$e->binding->id} = $e
+                if $e->type eq 'name' && $e->bindtype ne 'func';
+        return;
+    });
+    return [ values %v ];
+}
+
 #
 # Find a mapping of the variables in the (name => id) hashref $vars that
 # transforms $left to $right.
@@ -307,10 +319,10 @@ sub new_vars {
 # mapping found.
 #
 # Currently very simplistic: will succeed only if a subtree of $right
-# exactly maps to each occurrence of a mapped var in $left, so will not
-# for example find the mapping C<a := a + 1> to map C<a + b> to C<a + 1 + b>.
-# Also assumes expression arguments appear in the same order in $left and
-# $right.
+# exactly maps to each occurrence of a mapped var in $left, or if the LHS
+# is a plus- or mul-list for which all but one of the arguments map to
+# arguments on the RHS; so it will not # for example find the mapping
+# C<a := a + 1> to map C<a + b> to C<a + 1 + b>.
 #
 sub _find_mapping {
     my($left, $right, $vars, $map) = @_;
@@ -328,17 +340,46 @@ sub _find_mapping {
                 if defined $map->{$name};
         $map->{$name} = $right;
         return 1;
-    } else {
-        return 0 unless $left->type eq $right->type;
-        my $la = $left->args;
-        my $ra = $right->args;
-        return 0 unless @$la == @$ra;
-        for my $i (0 .. $#$la) {
-            return 0 unless _find_mapping($la->[$i], $ra->[$i], $vars, $map);
+    }
+    my @la = @{ $left->args };
+    my @ra = @{ $right->args };
+    if ($left->type ne $right->type) {
+        return 0 unless $left->is_list;
+        @ra = ($right);
+    }
+    if (! $left->is_list) {
+        return 0 unless @la == @ra;
+        for my $i (0 .. $#la) {
+            return 0 unless _find_mapping($la[$i], $ra[$i], $vars, $map);
             return 1 unless grep !defined, values %$map;
         }
         return 1;
     }
+  LEFT_ARG:
+    for (my $li = 0; $li < @la; ++$li) {
+        my $la = $la[$li] // next;
+        my $v = _all_vars($la);
+        next if grep +($vars->{$_->name} // -1) == $_->binding->id, @$v;
+        for my $ri (0 .. $#ra) {
+            my $ra = $ra[$ri];
+            next if $la->diff($ra);
+            splice @la, $li, 1;
+            splice @ra, $ri, 1;
+            redo LEFT_ARG;
+        }
+        return 0;
+    }
+    return 0 unless @la == 1;
+    my $newleft = $la[0];
+    my $newright = @ra ? Axiom::Expr->new({
+            type => $right->type,
+            args => \@ra,
+        })
+        : $left->type eq 'pluslist' ? _zero()
+        : $left->type eq 'mullist' ? _one()
+        : die "logic error";
+
+    return _find_mapping($newleft, $newright, $vars, $map);
 }
 
 #
