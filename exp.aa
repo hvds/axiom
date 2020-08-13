@@ -16,8 +16,6 @@ recurse: \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} (n / 2 + E(a - 1, b -
 equate(A2a): \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} (n / 2 + E(a - 1, b - i) / 2) } + 2^{-b} . an
 distrib: \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} n / 2 + (1/2)^{i} E(a - 1, b - i) / 2 } + 2^{-b} . an
 unarydistrib: \Aa: \Ab: E(a, b) = \sum_{i=0}^{b - 1}{ (1/2)^{i} n / 2 } + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + 2^{-b} . an
-factor: \Aa: \Ab: E(a, b) = n \sum_{i=0}^{b - 1}{ (1/2)^{i} / 2 } + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + 2^{-b} . an
-factor: \Aa: \Ab: E(a, b) = (n / 2) . \sum_{i=0}^{b - 1}{ 2^{-i} } + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + 2^{-b} . an
 equate(sum.Sum_pow_m2): \Aa: \Ab: E(a, b) = (n / 2)(2 - 2^{1 - b}) + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + 2^{-b} . an
 factor: \Aa: \Ab: E(a, b) = n(1 - 2^{-b}) + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 } + 2^{-b} . an
 factor: \Aa: \Ab: E(a, b) = n(1 + (a - 1) 2^{-b}) + \sum_{i=0}^{b - 1}{ (1/2)^{i} E(a - 1, b - i) / 2 }

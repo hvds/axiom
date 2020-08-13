@@ -13,7 +13,6 @@ factor: \Aa: E(a, 1) = (n / 2) \sum_{i=0}^{a-1}{ 2^{-i} (a - i + 1)} + 2^{-a} n
 factor: \Aa: E(a, 1) = n(\sum_{i=0}^{a-1}{ 2^{-i} (a - i + 1)} + 2^{1 - a}) / 2
 distrib: \Aa: E(a, 1) = n(\sum_{i=0}^{a-1}{ 2^{-i} a - 2^{-i} i + 2^{-i} } + 2^{1 - a}) / 2
 unarydistrib: \Aa: E(a, 1) = n(\sum_{i=0}^{a-1}{ 2^{-i} a } + \sum_{i=0}^{a-1}{ -2^{-i} i } + \sum_{i=0}^{a-1}{ 2^{-i} } + 2^{1 - a}) / 2
-factor: \Aa: E(a, 1) = n(a \sum_{i=0}^{a-1}{ 2^{-i} } + \sum_{i=0}^{a-1}{ -2^{-i} i } + \sum_{i=0}^{a-1}{ 2^{-i} } + 2^{1 - a}) / 2
 equate(sum.Sum_pow_m2): \Aa: E(a, 1) = n(a(2 - 2^{1 - a}) + \sum_{i=0}^{a-1}{ -2^{-i} i } + \sum_{i=0}^{a-1}{ 2^{-i} } + 2^{1 - a}) / 2
 equate(sum.Sum_pow_m2): \Aa: E(a, 1) = n(a(2 - 2^{1 - a}) + \sum_{i=0}^{a-1}{ -2^{-i} i } + 2) / 2
 factor: \Aa: E(a, 1) = n(a(2 - 2^{1 - a}) - \sum_{i=0}^{a-1}{ 2^{-i} i } + 2) / 2
