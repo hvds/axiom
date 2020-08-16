@@ -92,6 +92,14 @@ sub recip {
     if ($type eq 'recip') {
         return $self->args->[0]->copy;
     }
+    if ($self->is_const) {
+        return Axiom::Expr::Const->new_rat(1 / $self->rat);
+    }
+    if ($type eq 'pow') {
+        my $other = $self->copy;
+        $other->args->[0] = $other->args->[0]->recip;
+        return $other;
+    }
     return Axiom::Expr->new({
         type => 'recip',
         args => [ $self->copy ],
@@ -421,7 +429,7 @@ sub _clean {
             for my $d (0 .. $#$args - 1) {
                 my $dr = $args->[$d]->recip;
                 for my $m ($d + 1 .. $#$args) {
-                    if (!$dr->diff($args->[$m])) {
+                    if (!$dr->diff($args->[$m], 1)) {
                         # x(a, b, c, 1/b) -> x(a, c)
                         for (sort { $b <=> $a } $d, $m) {
                             splice @$args, $_, 1;
