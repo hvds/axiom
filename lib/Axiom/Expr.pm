@@ -70,9 +70,15 @@ sub negate {
     my $type = $self->type;
     if ($type eq 'negate') {
         return $self->args->[0]->copy;
-    } elsif ($type eq 'mullist') {
+    }
+    if ($type eq 'mullist') {
         my $other = $self->copy;
         $other->args->[0] = $other->args->[0]->negate;
+        if ($other->args->[0]->type eq 'integer'
+                && $other->args->[0]->rat == 1) {
+            shift @{ $other->args };
+            $other = $other->args->[0] if @{ $other->args } == 1;
+        }
         return $other;
     }
     return Axiom::Expr->new({
@@ -278,7 +284,7 @@ sub _clean {
                 for my $m (@minus) {
                     my $nm = $args->[$m]->negate;
                     for my $p (@plus) {
-                        next if $nm->diff($args->[$p]);
+                        next if $nm->diff($args->[$p], 1);
                         # +(a, b, c, -b) -> +(a, c)
                         for (sort { $b <=> $a } $m, $p) {
                             splice @$args, $_, 1;
