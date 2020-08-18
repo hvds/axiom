@@ -387,13 +387,6 @@ sub _clean {
                 splice(@$args, $_, 1) for reverse @const;
                 splice(@$args, $const[0], 0, $repl) if $repl;
                 return $self;
-            } elsif (@const == 1) {
-                my $rat = $args->[ $const[0] ]->rat;
-                if ($rat == 1) {
-                    # a.1.b -> a.b
-                    splice @$args, $const[0], 1;
-                    return $self;
-                }
             }
 
             if (@neg) {
