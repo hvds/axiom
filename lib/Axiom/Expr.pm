@@ -377,9 +377,14 @@ sub _clean {
                 }
             }
 
+            # 3.(-a).(-b).(-c) -> (-3)abc
+            # (-a).b -> (-1).ab
+            $args->[$_] = $args->[$_]->negate for @neg;
+
             if (@const > 1) {
                 my $prod = Math::BigRat->new(1);
                 $prod *= $_->rat for @$args[@const];
+                $prod = -$prod if @neg & 1;
                 my $repl = ($prod == 1)
                     ? undef
                     : Axiom::Expr::Const->new_rat($prod);
@@ -390,17 +395,15 @@ sub _clean {
             }
 
             if (@neg) {
-                # 3.(-a).(-b).(-c) -> (-3)abc
-                # (-a).b -> (-1).ab
-                $args->[$_] = $args->[$_]->negate for @neg;
                 if (@neg & 1) {
-                    unless (@const) {
-                        unshift @$args, Axiom::Expr::Const->new_rat(
-                            Math::BigRat->new('1')
-                        );
-                        @const = (0);
+                    if (@const) {
+                        $args->[ $const[0] ] = $args->[ $const[0] ]->negate;
+                    } else {
+                        unshift @$args, Axiom::Expr->new({
+                            type => 'integer',
+                            args => [ '-1' ],
+                        });
                     }
-                    $args->[ $const[0] ] = $args->[ $const[0] ]->negate;
                 }
                 return $self;
             }
