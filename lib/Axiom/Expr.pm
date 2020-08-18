@@ -289,6 +289,10 @@ sub _clean {
                 return $self;
             }
 
+            # FIXME: +(a, a) -> x(a, 2); +(a, ca) -> x(a, eval(c+1));
+            # +(c1a, c2a) -> x(a, eval(c1+c2)), parallel to similar
+            # work for mullist.
+
             my(@con, @plus, @minus) = ();
             for (0 .. $#$args) {
                 push @{
@@ -431,16 +435,66 @@ sub _clean {
                 });
             }
 
-            for my $d (0 .. $#$args - 1) {
-                my $dr = $args->[$d]->recip;
-                for my $m ($d + 1 .. $#$args) {
-                    if (!$dr->diff($args->[$m], 1)) {
-                        # x(a, b, c, 1/b) -> x(a, c)
-                        for (sort { $b <=> $a } $d, $m) {
-                            splice @$args, $_, 1;
-                        }
-                        return $self;
+            # collate powers
+            my @split = map {
+                my $e = $_;
+                my $en = 1;
+                my $ep = Math::BigRat->new(1);
+                my $epe;
+                if ($e->is_neg) {
+                    $e = $e->negate;
+                    $en = -1;
+                }
+                if ($e->type eq 'pow') {
+                    ($e, my $p) = @{ $e->args };
+                    if ($p->is_const) {
+                        $ep *= $p->rat;
+                    } else {
+                        $epe = $p;
                     }
+                }
+                if ($e->is_recip) {
+                    $e = $e->recip;
+                    if ($epe) {
+                        $epe = $epe->negate;
+                    } else {
+                        $ep = -$ep;
+                    }
+                }
+                [ $e, $en, $ep, $epe ];
+            } @$args;
+            for my $ai (0 .. $#$args - 1) {
+                my($a, $an, $ap, $ape) = @{ $split[$ai] };
+                my @found;
+                for my $bi ($ai + 1 .. $#$args) {
+                    my($b, $bn, $bp, $bpe) = @{ $split[$bi] };
+                    next if $a->diff($b, 1);
+                    # avoid combining 2 . 2^a into 2^(1+a)
+                    next if $a->is_const && (defined($ape) != defined($bpe));
+
+                    push @found, $bi;
+                    $an *= $bn;
+                    if ($ape || $bpe) {
+                        $ape //= Axiom::Expr::Const->new_rat($ap);
+                        $bpe //= Axiom::Expr::Const->new_rat($bp);
+                        $ape = Axiom::Expr->new({
+                            type => 'pluslist',
+                            args => [ $ape->copy, $bpe->copy ],
+                        })->clean;
+                    } else {
+                        $ap += $bp;
+                    }
+                }
+                if (@found) {
+                    splice @$args, $_, 1 for reverse @found;
+                    $ape //= Axiom::Expr::Const->new_rat($ap);
+                    my $repl = Axiom::Expr->new({
+                        type => 'pow',
+                        args => [ $a->copy, $ape->copy ],
+                    });
+                    $repl = $repl->negate if $an < 0;
+                    $args->[$ai] = $repl->clean;
+                    return $self;
                 }
             }
 
@@ -493,9 +547,18 @@ sub _clean {
         },
         pow => sub {
             my($val, $pow) = @{ $args };
-            # x^1 -> x
             if ($pow->type eq 'integer') {
+                # x^0 -> 1
+                # FIXME: take evasive action if x can be 0
+                return Axiom::Expr->new({
+                    type => 'integer',
+                    args => [ '1' ],
+                }) if $pow->args->[0] eq '0';
+
+                # x^1 -> x
                 return $val if $pow->args->[0] eq '1';
+
+                # c1^c2 -> eval(c1^c2)
                 return Axiom::Expr::Const->new_rat(
                     $val->rat ** $pow->args->[0]
                 ) if $val->is_const;
@@ -504,17 +567,6 @@ sub _clean {
             # 1^x -> x
             return $val
                     if $val->type eq 'integer' && $val->args->[0] eq '1';
-
-            # pow(a, b+c) -> pow(a, b) x pow(a, c)
-            return Axiom::Expr->new({
-                type => 'mullist',
-                args => [
-                    map Axiom::Expr->new({
-                        type => 'pow',
-                        args => [ $val->copy, $_ ],
-                    })->clean, @{ $pow->{args} }
-                ],
-            }) if $pow->type eq 'pluslist';
 
             # pow(a, -b) -> 1 / pow(a, b)
             return Axiom::Expr->new({
@@ -525,7 +577,42 @@ sub _clean {
                 }) ],
             }) if $pow->is_neg;
 
-            # TODO: 0^x (x != 0), x^0 (x != 0)
+            # pow(c1, c2 + x) -> eval(c1^c2) . pow(c1, x)
+            if ($val->is_const && $pow->type eq 'pluslist') {
+                my $pc = $pow->args->[0];
+                if ($pc->type eq 'integer') {
+                    my $pv = $pc->args->[0];
+                    my $pargs = $pow->args;
+                    return Axiom::Expr->new({
+                        type => 'mullist',
+                        args => [
+                            Axiom::Expr::Const->new_rat($val->rat ** $pv),
+                            Axiom::Expr->new({
+                                type => 'pow',
+                                args => [
+                                    $val->copy,
+                                    Axiom::Expr->new({
+                                        type => 'pluslist',
+                                        args => [ @$pargs[1 .. $#$pargs] ],
+                                    }),
+                                ],
+                            }),
+                        ],
+                    });
+                }
+            }
+
+            if ($val->is_neg && $pow->type eq 'integer') {
+                # pow(-a, 2c) -> pow(a, 2c); pow(-a, 2c+1) -> -pow(a, 2c+1)
+                my $rest = Axiom::Expr->new({
+                    type => 'pow',
+                    args => [ $val->negate, $pow->copy ],
+                });
+                return $rest->negate if $pow->args->[0] & 1;
+                return $rest;
+            }
+
+            # TODO: 0^x (x != 0)
             return undef;
         },
     }->{$type};
