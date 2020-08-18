@@ -20,7 +20,9 @@ Axiom::Derive::UnaryDistrib - distribute an operator over its argument
 Distribute the unary operator at the given I<location>. 
 
 TODO: we currently support only type C<negate> distributing over a
-C<pluslist> or C<mullist>, and type C<sum> distributing over a C<pluslist>.
+C<pluslist> or C<mullist>, type C<sum> distributing over a C<pluslist>,
+and type C<pow> distributing over a C<pluslist> with positive integer
+power.
 
 =cut
 
@@ -53,6 +55,11 @@ sub derive {
         } elsif ($expr->type eq 'sum') {
             my $subtype = $expr->args->[3]->type;
             push @choice, $loc if $subtype eq 'pluslist';
+        } elsif ($expr->type eq 'pow') {
+            my($val, $pow) = @{ $expr->args };
+            push @choice, $loc if $val->type eq 'pluslist'
+                    && $pow->type eq 'integer'
+                    && $pow->rat > 0;
         }
         return;
     });
@@ -121,6 +128,76 @@ sub validate {
                 }), 0 .. $#{ $arg->args } ],
             });
         }
+    } elsif ($expr->type eq 'pow') {
+        my($val, $pow) = @{ $expr->args };
+        $val->type eq 'pluslist' or return $self->set_error(sprintf(
+            "don't know how to distribute a pow over a %s\n",
+            $val->type,
+        ));
+        $pow->type eq 'integer' or return $self->set_error(sprintf(
+            "don't know how to distribute a pow with a type %s power\n",
+            $pow->type,
+        ));
+        my $p = $pow->args->[0];
+        $p >= 0 or return $self->set_error(sprintf(
+            "don't know how to distribute a pow with a negate power\n",
+        ));
+        my $base = _fact($p);
+        my @pargs;
+        my @i = (0) x $p;
+      POW_LOOP:
+        while (1) {
+            my $count = $base;
+            my @margs;
+            my $last;
+            my $lastpow;
+            my $take = sub {
+                if (defined $last) {
+                    my $arg = $val->args->[$last];
+                    push @margs, ($lastpow == 1)
+                        ? $arg->copy
+                        : Axiom::Expr->new({
+                            type => 'pow',
+                            args => [
+                                $arg->copy,
+                                Axiom::Expr->new({
+                                    type => 'integer',
+                                    args => [ "$lastpow" ],
+                                })
+                            ],
+                        });
+                    $count /= _fact($lastpow);
+                    $lastpow = 0;
+                }
+                $last = $_;
+            };
+            for (@i) {
+                $take->() if $_ != ($last // -1);
+                $last = $_;
+                ++$lastpow;
+            }
+            $take->();
+            unshift @margs, Axiom::Expr->new({
+                type => 'integer',
+                args => [ "$count" ],
+            }) unless $count == 1;
+            push @pargs, Axiom::Expr->new({
+                type => 'mullist',
+                args => \@margs,
+            });
+
+            my $index = $#i;
+            while (1) {
+                last POW_LOOP if $index < 0;
+                --$index, next if ++$i[$index] >= @{ $val->args };
+                $i[$_] = $i[$index] for $index +1 .. $#i;
+                last;
+            }
+        }
+        $repl = Axiom::Expr->new({
+            type => 'pluslist',
+            args => \@pargs,
+        });
     }
     unless ($repl) {
         return $self->set_error(sprintf(
@@ -136,6 +213,14 @@ sub validate {
             $self->_linename($line), join('.', @$loc));
 
     return 1;
+}
+
+{
+    my @fact; BEGIN { @fact = (1, 1) }
+    sub _fact {
+        my($n) = @_;
+        return $fact[$n] //= $n * _fact($n - 1);
+    }
 }
 
 1;
