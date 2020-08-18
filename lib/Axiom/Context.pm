@@ -234,6 +234,8 @@ sub apply_directive {
         $self->apply_directive('*list') unless $quiet;
         return;
     } elsif ($line =~ /^\*import\s*(\S.+)\z/) {
+        return if $self->{importing};
+
         my $file = $1;
         my $named = $self->named;
         my $onamed = $self->onamed;
