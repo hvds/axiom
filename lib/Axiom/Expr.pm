@@ -86,6 +86,15 @@ sub negate {
         args => [ $self->copy ],
     });
 }
+sub is_recip {
+    my($self) = @_;
+    my $type = $self->type;
+    return $type eq 'recip' || (
+        $type eq 'rational' && (
+            $self->args->[0] eq '1' || $self->args->[0] eq '-1'
+        )
+    );
+}
 sub recip {
     my($self) = @_;
     my $type = $self->type;
