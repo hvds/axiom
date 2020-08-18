@@ -12,9 +12,6 @@ mean big changes to how we construct exprs dynamically.
 Remove explicit rules entirely, discover them.
 Discover rules even when we take multiple steps.
 
-Performance:
-- deriving factor is very slow
-
 Sets, type checking, inequalities, constraints.
 - \Aa \e \Z, a > 10: ...
 
