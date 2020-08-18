@@ -78,3 +78,12 @@ distrib: \Aa: \Ab: \Ac: \sum_{i=a}^b{ 2^{-i} ci } = -2^{1 - a} (b - 1)c + 2^{-b}
 factor: \Aa: \Ab: \Ac: \sum_{i=a}^b{ 2^{-i} ci } = 2^{1 - a} (a + 1)c + 2^{-b} (a - 2)c - 2^{-b} ac - 2^{-b} bc
 factor: \Aa: \Ab: \Ac: \sum_{i=a}^b{ 2^{-i} ci } = 2^{1 - a} (a + 1)c - 2^{-b} (b + 2)c
 theorem Sum_pow_m2_i: \Aa: \Ab: \Ac: \sum_{i=a}^b{ 2^{-i} ci } = 2^{1 - a} (a + 1)c - 2^{-b} (b + 2)c
+
+# TODO:
+# theorem Sum_pow_n: \Ab: \Ac: \An: \sum_{i=1}^b{ c i^n } = c m! \sum_{i=0}^n{ B(i) n^{n + 1 - i} / b! / (n + 1 - b)! }
+# where B(n) is the Bernoulli number B+_n:
+# axiom Bernoulli_n: \An: B(n) = \sum_{i=0}^n{ \sum_{j=0}^i{ (-1)^j i! / j! / (i - j)! (j + 1)^n / (i + 1) }
+# or derived from the recursive definition:
+#   axiom Bernoulli_n: \An: \sum_{i=0}^n{ B(i) (n + 1)! / i! / (n + 1 - i)! } = n + 1
+# .. with B(0) = 1
+# Also need corresponding sum of 2^{-i} i^n.
