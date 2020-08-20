@@ -186,8 +186,12 @@ sub apply_directive {
             local $derive->{context};
             print Dumper($derive);
         }
+        print $derive->bracketed, "\n";
         print $derive->rawexpr, "\n";
         print $derive->str, "\n";
+        my $clean = $derive->clean;
+        print "(clean) ", $clean->bracketed, "\n";
+        print "(clean) ", $clean->str, "\n";
         return;
     } elsif ($line =~ bindre()) {
         my $type = $/{Type};
