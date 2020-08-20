@@ -49,10 +49,15 @@ sub derive {
     my $target = $self->expr;
     $target->resolve($self->dict);
 
-    my $loca;
+    my($loca, $lasteq);
     my $find_iter = sub {
         my($self, $loc) = @_;
-        push @$loca, $loc if $self->is_iter;
+        # FIXME: other relations are (or will be) available
+        $lasteq = $loc if $self->type eq 'equals';
+        if ($self->is_iter) {
+            my $side = $loc->[0 + @$lasteq];
+            push @{ $loca->[$side] }, $loc;
+        }
         return;
     };
     my(@sloc, @tloc);
@@ -61,26 +66,34 @@ sub derive {
     $loca = \@tloc;
     $target->walk_locn($find_iter);
 
-    T: for (my $ti = 0; $ti < @tloc; ++$ti) {
-        my $te = $target->locate($tloc[$ti]);
-        for my $si (0 .. $#sloc) {
-            my $se = $starting->locate($sloc[$si]);
-            next if $se->diff($te);
-            splice @sloc, $si, 1;
-            splice @tloc, $ti, 1;
-            redo T;
+    for my $side (1 .. 2) {
+        my($sside, $tside) = ($sloc[$side], $tloc[$side]);
+        next unless $sside && $tside;
+        T: for (my $ti = 0; $ti < @$tside; ++$ti) {
+            last if $ti >= @$tside;
+            my $te = $target->locate($tside->[$ti]);
+            for my $si (0 .. $#$sside) {
+                my $se = $starting->locate($sside->[$si]);
+                next if $se->diff($te);
+                splice @$sside, $si, 1;
+                splice @$tside, $ti, 1;
+                redo T;
+            }
         }
     }
 
-    while (@sloc == 1 && @tloc == 1) {
-        my $loc = $sloc[0];
+    for my $side (1 .. 2) {
+        my($sside, $tside) = ($sloc[$side], $tloc[$side]);
+        next unless $sside && $tside
+                && @$sside == 1 && @$tside == 1;
+        my $loc = $sside->[0];
         my $se = $starting->locate($loc);
-        my $te = $target->locate($tloc[0]);
-        last if $se->type ne $te->type;
+        my $te = $target->locate($tside->[0]);
+        next if $se->type ne $te->type;
 
         my($sv, $sfrom, $sto, $sexpr) = @{ $se->args };
         my($tv, $tfrom, $tto, $texpr) = @{ $te->args };
-        last if $sexpr->diff($texpr);
+        next if $sexpr->diff($texpr);
 
         my $from = Axiom::Expr->new({
             type => 'pluslist',
@@ -92,7 +105,7 @@ sub derive {
                 }),
             ],
         })->clean;
-        last unless $from->type eq 'integer';
+        next unless $from->type eq 'integer';
 
         my $to = Axiom::Expr->new({
             type => 'pluslist',
@@ -104,14 +117,15 @@ sub derive {
                 }),
             ],
         })->clean;
-        last unless $to->type eq 'integer';
+        next unless $to->type eq 'integer';
 
         my $fn = $from->args->[0];
         my $tn = $to->args->[0];
         # FIXME: could generate multiple iterextend validations
-        last unless abs($fn) + abs($tn) == 1;
+        next unless abs($fn) + abs($tn) == 1;
 
-        return $self->validate([ $line, $loc, $fn ? -1 : 1, $fn || $tn ]);
+        return 1 if $self->validate([ $line, $loc, $fn ? -1 : 1, $fn || $tn ]);
+        warn $self->clear_error;
     }
     return $self->set_error("don't know how to derive this");
 }
