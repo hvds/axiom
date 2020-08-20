@@ -336,7 +336,7 @@ sub _find_mapping {
         die "Name clash: mapped var $name found with conflicting binding"
                 unless $id == $vars->{$name};
 
-        return $right->diff($map->{$name})
+        return $right->diff($map->{$name}) ? 0 : 1
                 if defined $map->{$name};
         $map->{$name} = $right;
         return 1;
