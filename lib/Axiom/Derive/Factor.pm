@@ -133,13 +133,28 @@ sub validate {
 
     my $repl;
     if ($targ->type eq 'pluslist') {
+        my(@div, @nondiv);
+        for my $a (@{ $targ->args }) {
+            my $ad = _trydiv($a, $expr);
+            if ($ad) {
+                push @div, $ad;
+            } else {
+                push @nondiv, $a;
+            }
+        }
         $repl = Axiom::Expr->new({
             type => 'mullist',
             args => [ $expr, Axiom::Expr->new({
                 type => 'pluslist',
-                args => [ map _div($_, $expr), @{ $targ->args } ],
+                args => \@div,
             }) ],
         });
+        if (@nondiv) {
+            $repl = Axiom::Expr->new({
+                type => 'pluslist',
+                args => [ $repl, map $_->copy, @nondiv ],
+            });
+        }
     } elsif ($targ->type eq 'sum') {
         $repl = Axiom::Expr->new({
             type => 'mullist',
@@ -164,6 +179,21 @@ sub validate {
             $self->_linename($line), join('.', @$loc), $expr->rawexpr);
 
     return 1;
+}
+
+sub _trydiv {
+    my($e1, $e2) = @_;
+    return _div($e1, $e2) if $e2->is_const || $e2->type eq 'recip';
+    return _one() if !$e1->diff($e2);
+    my @e = ($e1);
+    while (@e) {
+        my $e = shift @e;
+        return _div($e1, $e2) if !$e->diff($e2);
+        push(@e, $e->args->[0]), next if $e->type eq 'negate';
+        push(@e, $e->args->[0]), next if $e->type eq 'pow';
+        push(@e, @{ $e->args }), next if $e->type eq 'mullist';
+    }
+    return undef;
 }
 
 sub _div {
