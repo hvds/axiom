@@ -64,6 +64,9 @@ sub derive {
                 return 1 if $try->($loc, _mone());
                 return 1 if $try->($loc, $this->args->[0]);
             }
+            if ($this->type eq 'pow') {
+                return 1 if $try->($loc, $this->args->[0]);
+            }
         }
         return 0;
     };
@@ -87,6 +90,9 @@ sub derive {
                     return 1 if $try_all->($loc, $ae->args);
                 } elsif ($ae->type eq 'negate') {
                     return 1 if $try->($loc, _mone());
+                } elsif ($ae->type eq 'pow') {
+                    return 1 if $try->($loc, $ae);
+                    return 1 if $try->($loc, $ae->args->[0]);
                 } else {
                     return 1 if $try->($loc, $ae);
                 }
