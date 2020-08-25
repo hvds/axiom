@@ -259,7 +259,6 @@ sub _clean {
             # +(x) -> x
             return $args->[0] if @$args == 1;
 
-            my @const = ();
             for (my $i = 0; $i < @$args; ++$i) {
                 my $arg = $args->[$i];
                 if ($arg->type eq 'pluslist') {
@@ -273,26 +272,61 @@ sub _clean {
                         splice @$args, $i, 1;
                         return $self;
                     }
-                    push @const, $i;
                 }
             }
 
-            if (@const > 1) {
-                # +(a, c1, b, c2) -> +(a, eval(c1+c2), b)
-                my $sum = Math::BigRat->new(0);
-                $sum += $_->rat for @$args[@const];
-                my $repl = ($sum == 0)
-                    ? undef
-                    : Axiom::Expr::Const->new_rat($sum);
-                splice(@$args, $_, 1) for reverse @const;
-                splice(@$args, $const[0], 0, $repl) if $repl;
-                return $self;
+            # collate const multiples of the same things
+            my @split = map {
+                my $e = $_;
+                my $em = Math::BigRat->new(1);
+                if ($e->type eq 'negate') {
+                    $em = -$em;
+                    $e = $e->args->[0];
+                }
+                if ($e->type eq 'mullist') {
+                    my $ea = $e->args;
+                    if ($ea->[0]->is_const) {
+                        $em *= $ea->[0]->rat;
+                        $e = (@$ea > 2)
+                            ? Axiom::Expr->new({
+                                type => 'mullist',
+                                args => [ map $_->copy, @$ea[1 .. $#$ea] ],
+                            })
+                            : $ea->[1];
+                    }
+                }
+                if ($e->is_const) {
+                    $em *= $e->rat;
+                    $e = undef;
+                }
+                [ $e, $em ];
+            } @$args;
+
+            for my $ai (0 .. $#$args - 1) {
+                my($a, $am) = @{ $split[$ai] };
+                my @found;
+                for my $bi ($ai + 1 .. $#$args) {
+                    my($b, $bm) = @{ $split[$bi] };
+                    next if defined($a) != defined($b);
+                    next if defined($a) && $a->diff($b, 1);
+                    push @found, $bi;
+                    $am += $bm;
+                }
+                if (@found) {
+                    splice @$args, $_, 1 for reverse @found;
+                    my $mult = Axiom::Expr::Const->new_rat($am);
+                    my $repl = defined($a) ? do {
+                        my $mulargs = $a->type eq 'mullist' ? $a->args : [ $a ];
+                        Axiom::Expr->new({
+                            type => 'mullist',
+                            args => [ $mult, map $_->copy, @$mulargs ],
+                        });
+                    } : $mult;
+                    $args->[$ai] = $repl->clean;
+                    return $self;
+                }
             }
-
-            # FIXME: +(a, a) -> x(a, 2); +(a, ca) -> x(a, eval(c+1));
-            # +(c1a, c2a) -> x(a, eval(c1+c2)), parallel to similar
-            # work for mullist.
-
+                
             my(@con, @plus, @minus) = ();
             for (0 .. $#$args) {
                 push @{
