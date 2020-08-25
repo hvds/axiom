@@ -369,17 +369,24 @@ sub _find_mapping {
         }
         return 0;
     }
-    return 0 unless @la == 1;
-    my $newleft = $la[0];
-    my $newright = @ra ? Axiom::Expr->new({
-            type => $right->type,
-            args => \@ra,
-        })
-        : $left->type eq 'pluslist' ? _zero()
-        : $left->type eq 'mullist' ? _one()
-        : die "logic error";
+    if (@la != @ra) {
+        return 0 unless @la == 1;
+        my $newleft = $la[0];
+        my $newright = @ra ? Axiom::Expr->new({
+                type => $right->type,
+                args => \@ra,
+            })
+            : $left->type eq 'pluslist' ? _zero()
+            : $left->type eq 'mullist' ? _one()
+            : die "logic error";
 
-    return _find_mapping($newleft, $newright, $vars, $map);
+        return _find_mapping($newleft, $newright, $vars, $map);
+    }
+    # assume they line up in order
+    for my $i (0 .. $#la) {
+        return 0 unless _find_mapping($la[$i], $ra[$i], $vars, $map);
+    }
+    return 1;
 }
 
 #
