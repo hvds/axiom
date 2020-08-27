@@ -308,7 +308,7 @@ sub _clean {
                 for my $bi ($ai + 1 .. $#$args) {
                     my($b, $bm) = @{ $split[$bi] };
                     next if defined($a) != defined($b);
-                    next if defined($a) && $a->diff($b, 1);
+                    next if defined($a) && $a->diff($b, 1, 1);
                     push @found, $bi;
                     $am += $bm;
                 }
@@ -502,7 +502,7 @@ sub _clean {
                 my @found;
                 for my $bi ($ai + 1 .. $#$args) {
                     my($b, $bn, $bp, $bpe) = @{ $split[$bi] };
-                    next if $a->diff($b, 1);
+                    next if $a->diff($b, 1, 1);
                     # avoid combining 2 . 2^a into 2^(1+a)
                     next if $a->is_const && (defined($ape) != defined($bpe));
 
@@ -825,7 +825,7 @@ sub parse {
 }
 
 sub _diff {
-    my($self, $other, $map) = @_;
+    my($self, $other, $map, $exact) = @_;
     $map //= {};
     $self->type eq $other->type or return [];
     my($sa, $oa) = ($self->args, $other->args);
@@ -833,7 +833,7 @@ sub _diff {
     my $diff;
     if ($self->is_list) {
         my @sd = map {
-            my $this_diff = $sa->[$_]->_diff($oa->[$_], $map);
+            my $this_diff = $sa->[$_]->_diff($oa->[$_], $map, $exact);
             $this_diff ? [ $_, $this_diff ] : ();
         } 0 .. $#$sa;
         if (@sd > 1) {
@@ -842,7 +842,8 @@ sub _diff {
             for (my $si = 0; $si < @sd; ++$si) {
                 my $s = $sa->[$sd[$si][0]];
                 for (my $oi = 0; $oi < @od; ++$oi) {
-                    next if $s->_diff($oa->[$od[$oi][0]]);
+                    # FIXME: why does passing $map in here cause failures?
+                    next if $s->_diff($oa->[$od[$oi][0]], undef, $exact);
                     splice @sd, $si, 1;
                     splice @od, $oi, 1;
                     last DiffListPair if $si >= @sd;
@@ -856,8 +857,17 @@ sub _diff {
         $diff = [ $sd[0][0] + 1, @{ $sd[0][1] } ]
                 if @sd;
     } else {
+        # turn off exact for the introduction of a new variable, so
+        # we can map [sum local i_1 f(i_1)] to [sum local i_2 f(i_2)]
+        # without trying to map [local i_1] to [local i_2] otherwise.
+        if ($exact && $self->has_newvar) {
+            my $intro = $self->intro_newvar;
+            # ignore return, this is just to set the mapping
+            $sa->[$intro]->_diff($oa->[$intro], $map, 0);
+        }
+
         for my $i (0 .. $#$sa) {
-            my $_diff = $sa->[$i]->_diff($oa->[$i], $map) // next;
+            my $_diff = $sa->[$i]->_diff($oa->[$i], $map, $exact) // next;
             return [] if $diff;
             $diff = [ $i + 1, @{ $_diff } ];
         }
@@ -866,18 +876,18 @@ sub _diff {
 }
 
 sub diff {
-    my($self, $other, $pure) = @_;
+    my($self, $other, $pure, $exact) = @_;
     my $map = {};
-    my $where = $self->_diff($other, $map);
+    my $where = $self->_diff($other, $map, $exact);
     return undef unless $where;
     return $where if $pure;
-    return undef unless $self->clean->_diff($other->clean, $map);
+    return undef unless $self->clean->_diff($other->clean, $map, $exact);
     return $where;
 }
 
 sub find_expr {
     my($self, $expr) = @_;
-    return [] if !$self->_diff($expr);
+    return [] if !$self->_diff($expr, {}, 0);
     return undef if $self->is_atom;
     my $args = $self->args;
     for my $i (0 .. $#$args) {
@@ -945,7 +955,7 @@ package Axiom::Expr::Const {
         );
     }
     sub _diff {
-        my($self, $other, $map) = @_;
+        my($self, $other, $map, $exact) = @_;
         my $type = $self->type;
         return [] unless $type eq $other->type;
         my $argc = { integer => 1, rational => 2 }->{$type}
@@ -984,14 +994,15 @@ package Axiom::Expr::Name {
                 $self->binding ? "_" . $self->binding->id : "";
     }
     sub _diff {
-        my($self, $other, $map) = @_;
+        my($self, $other, $map, $exact) = @_;
         return [] unless $self->type eq $other->type
                 && $self->bindtype eq $other->bindtype;
         my($si, $oi) = map $_->binding->id, ($self, $other);
         if (defined $map->{$si}) {
             return [] unless $oi == $map->{$si};
         } else {
-            return [] unless $self->name eq $other->name || $si == $oi;
+            return [] unless $si == $oi
+                    || (!$exact && $self->name eq $other->name);
             return [] if defined $map->{"r$oi"};
             $map->{$si} = $oi;
             $map->{"r$oi"} = $si;
