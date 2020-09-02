@@ -803,15 +803,34 @@ sub walk_locn {
     return;
 }
 
+sub iter_tree {
+    my(@stack) = $_[0];
+    return sub {
+        my $self = shift(@stack) // return undef;
+        push @stack, @{ $self->args } unless $self->is_atom;
+        return $self;
+    };
+}
+
+sub iter_locn {
+    my(@stack) = [ $_[0], [] ];
+    return sub {
+        my($self, $loc) = @{ shift(@stack) // return };
+        my $args = $self->args;
+        push @stack, map [ $args->[$_], [ @$loc, $_ + 1 ] ], 0 .. $#$args
+                unless $self->is_atom;
+        return ($self, $loc);
+    };
+}
+
 sub is_independent {
     my($self, $var) = @_;
     my $id = $var->binding->id;
-    my $seen = 0;
-    $self->clean->walk_tree(sub {
-        my($this) = @_;
-        $seen ||= $this->type eq 'name' && $this->binding->id == $id;
-    });
-    return $seen ? 0 : 1;
+    my $iter = $self->clean->iter_tree;
+    while (my $e = $iter->()) {
+        return 0 if $e->type eq 'name' && $e->binding->id == $id;
+    }
+    return 1;
 }
 
 sub parse {

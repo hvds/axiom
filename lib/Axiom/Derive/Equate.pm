@@ -51,10 +51,8 @@ sub derive {
         "Can't equate() with a %s\n", $from_expr->type,
     ));
 
-    my $valid;
-    $starting->walk_locn(sub {
-        return if $valid;
-        my($se, $loc) = @_;
+    my $iter = $starting->iter_locn;
+    while (my($se, $loc) = $iter->()) {
         for my $from (@{ $from_expr->args }) {
             my $map = $self->find_mapping($from, $se, \@vars)
                     or next;
@@ -62,12 +60,10 @@ sub derive {
                 map +{ args => [ $_->copy, $map->{$_->name} ] }, @vars,
             ] });
             # FIXME: validate can die in eg $expr->resolve($to_dict)
-            $valid = eval { $self->validate(\@vargs) };
+            return 1 if eval { $self->validate(\@vargs) };
             $self->clear_error;
-            last if $valid;
         }
-    });
-    return 1 if $valid;
+    };
     return $self->set_error("don't know how to derive this equate");
 }
 
