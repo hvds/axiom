@@ -22,6 +22,9 @@ condend: \Ab: (\Aa: \Ac: \sum_{i=a}^b{ci} = c(b(b + 1) - a(a - 1))/2) -> (\Aa: \
 induction: \Aa: \Ab: \Ac: \sum_{i=a}^b{ci} = c(b(b + 1) - a(a - 1))/2
 theorem Sum_i: \Aa: \Ab: \Ac: \sum_{i=a}^b{ci} = c(b(b + 1) - a(a - 1))/2
 
+# TODO: prove it
+axiom Sum_i2: \Aa: \Ab: \Ac: \sum_{i=a}^b{ci^2} = c(b(b + 1)(2b + 1) - a(a - 1)(2a - 1))/6
+
 identity: \An: 2^{n + 1} - 2^n = 2 . 2^n - 2^n
 factor: \An: 2^{n + 1} - 2^n = 2^n
 theorem L2: \An: 2^{n + 1} - 2^n = 2^n

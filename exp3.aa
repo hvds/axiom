@@ -1,0 +1,23 @@
+*import exp
+*import exp2
+*import sum
+*func E
+*var n
+
+specify(exp.T2): \Aa: E(a, 3) = n(1 + 2 2^{-a}) + 2^{-a} \sum_{i=1}^a{ 2^{i} E(i, 2) / 2 }
+equate(exp2.Exp_a_2): \Aa: E(a, 3) = n(1 + 2 2^{-a}) + 2^{-a} \sum_{i=1}^a{ 2^{i} n(i + 2^{-i} (i + 4) / 2) / 2 }
+factor: \Aa: E(a, 3) = n(1 + 2 2^{-a}) + n 2^{-a} \sum_{i=1}^a{ 2^{i} (i + 2^{-i} (i + 4) / 2) / 2 }
+factor: \Aa: E(a, 3) = n(1 + 2 2^{-a}) + n 2^{-a} \sum_{i=1}^a{ 2^{i} (2i + 2^{-i} (i + 4)) / 4 }
+factor: \Aa: E(a, 3) = n(1 + 2 2^{-a}) + (n / 4) 2^{-a} \sum_{i=1}^a{ 2^{i} (2i + 2^{-i} (i + 4)) }
+distrib: \Aa: E(a, 3) = n(1 + 2 2^{-a}) + (n / 4) 2^{-a} \sum_{i=1}^a{ 2^{i} 2i + i + 4 }
+unarydistrib: \Aa: E(a, 3) = n(1 + 2 2^{-a}) + (n / 4) 2^{-a} (\sum_{i=1}^a{ 2^{i} 2i } + \sum_{i=1}^a{ i } + \sum_{i=1}^a{ 4 })
+equate(sum.Sum_pow_2_i): \Aa: E(a, 3) = n(1 + 2 2^{-a}) + (n / 4) 2^{-a} (2^{a + 1} (a - 1) 2 + 4 + \sum_{i=1}^a{ i } + \sum_{i=1}^a{ 4 })
+equate(sum.Sum_i): \Aa: E(a, 3) = n(1 + 2 2^{-a}) + (n / 4) 2^{-a} (2^{a + 1} (a - 1) 2 + 4 + a(a + 1) / 2 + \sum_{i=1}^a{ 4 })
+equate(sum.Sum_const): \Aa: E(a, 3) = n(1 + 2 2^{-a}) + (n / 4) 2^{-a} (2^{a + 1} (a - 1) 2 + 4 + a(a + 1) / 2 + 4a)
+factor: \Aa: E(a, 3) = n(1 + 2 2^{-a} + (1 / 4) 2^{-a} (2^{a + 1} (a - 1) 2 + 4 + a(a + 1) / 2 + 4a))
+distrib: \Aa: E(a, 3) = n(1 + 2 2^{-a} + (1 / 4) (2^{1} (a - 1) 2 + 4 2^{-a} + a(a + 1) 2^{-a} / 2 + 4a 2^{-a}))
+distrib: \Aa: E(a, 3) = n(a + 2 2^{-a} + 2^{-a} + a(a + 1) 2^{-a} / 8 + a 2^{-a})
+factor: \Aa: E(a, 3) = n(a + 2^{-a} (3 + a(a + 1) / 8 + a))
+factor: \Aa: E(a, 3) = n(a + 2^{-a} (24 + a(a + 1) + 8a) / 8)
+distrib: \Aa: E(a, 3) = n(a + 2^{-a} (a^2 + 9a + 24) / 8)
+theorem Exp_a_3: \Aa: E(a, 3) = n(a + 2^{-a} (a^2 + 9a + 24) / 8)
