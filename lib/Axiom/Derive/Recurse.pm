@@ -116,6 +116,8 @@ sub derive {
             # equivalent non-$v variables may not have the same id.
             my $map = $self->find_mapping($lhs, $e, [ $v ]);
             # FIXME: deduplicate
+            # FIXME: reject if map depends on variables local to a subexpr,
+            # to avoid the need to eval() the resolve of $count in validate.
             push @result, [ $v, $map->{$v->name} ] if $map;
         }
         return;
@@ -187,7 +189,12 @@ sub validate {
     }
 
     my $subdict = $starting->dict_at($loc);
-    $_->resolve($subdict) for ($var, $iter, $count);
+    # FIXME: reject local variables in the @result maps in derive() to avoif
+    # the need to eval here
+    # $_->resolve($subdict) for ($var, $iter, $count);
+    $_->resolve($subdict) for ($var, $iter);
+    eval { $count->resolve($subdict); 1 }
+            or do { $self->set_error($@); return 0 };
 
     # Given f(x) = af(g(x)) + bh(x) + c, we iteratively replace
     # af(g(x)) with the equivalent evaluation of the whole RHS
