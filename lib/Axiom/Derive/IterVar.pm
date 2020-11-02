@@ -79,7 +79,7 @@ sub derive {
                     type => 'pluslist',
                     args => [
                         $nfrom->copy,
-                        $oto->negate,
+                        $oto->copy,
                         $var->negate,
                     ],
                 })->clean;
