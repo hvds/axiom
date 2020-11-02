@@ -19,10 +19,31 @@ Axiom::Derive::UnaryDistrib - distribute an operator over its argument
 
 Distribute the unary operator at the given I<location>. 
 
-TODO: we currently support only type C<negate> distributing over a
-C<pluslist> or C<mullist>, type C<sum> distributing over a C<pluslist>,
-and type C<pow> distributing over a C<pluslist> with positive integer
-power.
+Currently supported patterns are:
+
+=over 4
+
+=item C<negate> acting over C<pluslist>
+
+  -(a + b) => (-a) + (-b)
+
+=item C<negate> acting over C<mullist>
+
+  -(ab) => (-a)(b)
+
+=item C<sum> with C<pluslist> as its expr
+
+  \sum_{i=a}^b{c + d} => \sum_{i=a}^b{c} + \sum_{i=a}^b{d}
+
+=item C<pow> with C<pluslist> base and positive integer power
+
+  (a + b)^2 => a^2 + 2b + b^2
+
+=item C<pow> with C<pluslist> power
+
+  a^{b + c} => (a^b)(a^c)
+
+=back
 
 =cut
 
@@ -57,9 +78,11 @@ sub derive {
             push @choice, $loc if $subtype eq 'pluslist';
         } elsif ($expr->type eq 'pow') {
             my($val, $pow) = @{ $expr->args };
-            push @choice, $loc if $val->type eq 'pluslist'
-                    && $pow->type eq 'integer'
-                    && $pow->rat > 0;
+            push @choice, $loc if (
+                $val->type eq 'pluslist'
+                && $pow->type eq 'integer'
+                && $pow->rat > 0
+            ) || ($pow->type eq 'pluslist');
         }
         return;
     });
@@ -128,6 +151,15 @@ sub validate {
                 }), 0 .. $#{ $arg->args } ],
             });
         }
+    } elsif ($expr->type eq 'pow' && $expr->args->[1]->type eq 'pluslist') {
+        my($val, $pow) = @{ $expr->args };
+        $repl = Axiom::Expr->new({
+            type => 'mullist',
+            args => [ map Axiom::Expr->new({
+                type => 'pow',
+                args => [ $val->copy, $_->copy ],
+            }), @{ $pow->args } ],
+        });
     } elsif ($expr->type eq 'pow') {
         my($val, $pow) = @{ $expr->args };
         $val->type eq 'pluslist' or return $self->set_error(sprintf(
