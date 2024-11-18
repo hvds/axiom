@@ -1067,10 +1067,21 @@ package Axiom::Expr::Name {
 
 package Axiom::Expr::Iter {
     our @ISA = qw{Axiom::Expr};
+    my %combiner = (
+        sum => 'pluslist',
+        prod => 'mullist',
+    );
     sub is_iter { 1 }
     sub has_newvar { 1 }
     sub intro_newvar { 0 }
     sub affect_newvar { 3 }
+    sub combiner {
+        my($self) = @_;
+        return $combiner{$self->type} // die sprintf(
+            "Cannot return combiner of unknown iterator type '%s'",
+            $self->type,
+        );
+    }
     sub range {
         my($self) = @_;
         my($from, $to) = @{ $self->args }[1, 2];

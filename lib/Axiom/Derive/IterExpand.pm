@@ -85,21 +85,14 @@ sub validate {
     my $starting = $self->line($line);
 
     my $iter = $starting->locate($loc);
-    my $repl;
     return $self->set_error(sprintf(
         "Cannot iterate over a %s\n", $iter->type,
     )) unless $iter->is_iter;
-
-    if ($iter->type eq 'sum') {
-        $repl = Axiom::Expr->new({
-            type => 'pluslist',
-            args => [ map $iter->value_at($_), @{ $iter->range } ],
-        });
-    } else {
-        return $self->set_error(sprintf(
-            "don't know how to expand a %s\n", $iter->type,
-        ));
-    }
+    my $combiner = $iter->combiner;
+    my $repl = Axiom::Expr->new({
+        type => $combiner,
+        args => [ map $iter->value_at($_), @{ $iter->range } ],
+    });
 
     my $result = $starting->substitute($loc, $repl);
     $result->resolve($self->dict);
