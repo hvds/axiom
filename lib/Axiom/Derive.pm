@@ -37,6 +37,9 @@ L<Axiom::Derive::IterExpand>
 L<Axiom::Derive::IterExtend>
 L<Axiom::Derive::IterVar>
 L<Axiom::Derive::Recurse>
+L<Axiom::Derive::IterSplit>
+L<Axiom::Derive::Integrate>
+L<Axiom::Derive::IntEval>
 
 =cut
 
@@ -63,6 +66,9 @@ my %class; BEGIN {
         Axiom::Derive::IterExtend
         Axiom::Derive::IterVar
         Axiom::Derive::Recurse
+        Axiom::Derive::IterSplit
+        Axiom::Derive::Integrate
+        Axiom::Derive::IntEval
     };
 }
 

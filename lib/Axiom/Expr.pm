@@ -17,7 +17,7 @@ my %listtype = map +($_ => 1), qw{ pluslist mullist };
 my %classtype = (
     (map +($_ => 'Axiom::Expr::Const'), qw{ integer rational }),
     (map +($_ => 'Axiom::Expr::Name'), qw{ name }),
-    (map +($_ => 'Axiom::Expr::Iter'), qw{ sum prod }),
+    (map +($_ => 'Axiom::Expr::Iter'), qw{ sum prod integral inteval }),
     (map +($_ => 'Axiom::Expr::Quant'), qw{ forall exists }),
 );
 
@@ -28,6 +28,7 @@ sub new {
     if ($listtype{$type}) {
         return $args->[0] if @$args == 1;
         $args = [ map {
+ref($_) or confess(Dumper($hash));
             $_->type eq $type ? @{ $_->args } : $_
         } @$args ];
     }
@@ -194,6 +195,24 @@ sub recip {
         sum => sub {
             my($args, $prec) = @_;
             sprintf("\\sum_{%s=%s}^{%s}{%s}",
+                $args->[0]->str($prec{'='}),
+                $args->[1]->str($prec{'='}),
+                $args->[2]->str(0),
+                $args->[3]->str(0),
+            );
+        },
+        integral => sub {
+            my($args, $prec) = @_;
+            sprintf("\\int_{%s=%s}^{%s}{%s}",
+                $args->[0]->str($prec{'='}),
+                $args->[1]->str($prec{'='}),
+                $args->[2]->str(0),
+                $args->[3]->str(0),
+            );
+        },
+        inteval => sub {
+            my($args, $prec) = @_;
+            sprintf("\\inteval_{%s=%s}^{%s}{%s}",
                 $args->[0]->str($prec{'='}),
                 $args->[1]->str($prec{'='}),
                 $args->[2]->str(0),
@@ -1070,6 +1089,8 @@ package Axiom::Expr::Iter {
     my %combiner = (
         sum => 'pluslist',
         prod => 'mullist',
+        integral => 'pluslist',
+        inteval => 'pluslist',
     );
     sub is_iter { 1 }
     sub has_newvar { 1 }
@@ -1243,6 +1264,8 @@ sub _grammar {
                 | <[args=Function]>
                 | <[args=Variable]>
                 | <[args=Sum]>
+                | <[args=Integral]>
+                | <[args=Inteval]>
                 | <[args=ParenExpr]>
             )
             <type=(?{ 'nothing' })>
@@ -1264,6 +1287,22 @@ sub _grammar {
                 $MATCH{args}[2] = $MATCH{args}[2]{args}[0];
             })
             <type=(?{ 'sum' })>
+        <objrule: Axiom::Expr=Integral>
+            <.IntegralToken> <[args=SumStart]> <[args=SumEnd]> <[args=BraceExpr]>
+            (?{
+                # split SumStart into variable and start value, extract SumEnd
+                splice @{ $MATCH{args} }, 0, 1, @{ $MATCH{args}[0]{args} };
+                $MATCH{args}[2] = $MATCH{args}[2]{args}[0];
+            })
+            <type=(?{ 'integral' })>
+        <objrule: Axiom::Expr=Inteval>
+            <.IntevalToken> <[args=SumStart]> <[args=SumEnd]> <[args=BraceExpr]>
+            (?{
+                # split SumStart into variable and start value, extract SumEnd
+                splice @{ $MATCH{args} }, 0, 1, @{ $MATCH{args}[0]{args} };
+                $MATCH{args}[2] = $MATCH{args}[2]{args}[0];
+            })
+            <type=(?{ 'inteval' })>
 
         <rule: ArgList>
             <[args=Expr]>+ % <.CommaToken>
@@ -1329,6 +1368,8 @@ sub _grammar {
         <token: FactorialToken> !
         <token: CommaToken> ,
         <token: SumToken> \\sum
+        <token: IntegralToken> \\int
+        <token: IntevalToken> \\inteval
         <token: ForallToken> \\A | \\forall
         <token: ExistsToken> \\E | \\exists
         (?# Assign and Equals are ambiguous, I think that is ok )
