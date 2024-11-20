@@ -1,0 +1,103 @@
+*func E, m
+*var a, b, c, d
+
+# m() is intended to be a "minimum" function, resolved by:
+#   axiom M1: a <= b -> m(a, b) = a
+#   axiom M2: a >= b -> m(a, b) = b
+# .. but for that we'd need to a) add support for inequalities, b) introduce
+# a way to determine that within the scope of \int(x, a, b, f) we have
+# (x >= a) and (x <= b); and c) introduce a way to specify that we want to
+# replace m(a, b) using one of the above axioms using such inequalities
+# automatically derived for the relevant scope.
+# That might take a while, so for now we will cheat.
+axiom M1: \Aa: \Ab: m(a, b) = a
+axiom M2: \Aa: \Ab: m(a, b) = b
+
+# itersplit should also ideally be verifying that the interpolated limit
+# lies between the existing limits, which also requires inequalities support
+# and some more knowledge.
+
+axiom A1: E(2, 3) = \int_{a=0}^1{\int_{b=0}^1{\int_{c=0}^1{\int_{d=0}^1{m(a + b, c + d)}}}}
+# 0 <= a <= 1 -> 0 <= (1-a) <= 1
+itersplit: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^1{\int_{d=0}^1{m(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^1{\int_{d=0}^1{m(a + b, c + d)}}}}
+# 0 <= a <= 1, 0 <= b <= 1-a -> 0 <= a+b <= 1
+itersplit: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^1{m(a + b, c + d)}}+\int_{c=a+b}^1{\int_{d=0}^1{m(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^1{\int_{d=0}^1{m(a + b, c + d)}}}}
+# 0 <= a <= 1, 1-a <= b <= 1 -> 0 <= a+b-1 <= 1
+itersplit: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^1{m(a + b, c + d)}}+\int_{c=a+b}^1{\int_{d=0}^1{m(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{m(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{m(a + b, c + d)}}}}
+# 0 <= a <= 1, 0 <= b <= 1-a, 0 <= c <= a+b -> 0 <= a+b-c <= 1
+itersplit: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{m(a + b, c + d)}+\int_{d=a+b-c}^1{m(a + b, c + d)}}+\int_{c=a+b}^1{\int_{d=0}^1{m(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{m(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{m(a + b, c + d)}}}}
+# d <= a+b-c -> a+b >= c+d
+equate(M2): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{m(a + b, c + d)}}+\int_{c=a+b}^1{\int_{d=0}^1{m(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{m(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{m(a + b, c + d)}}}}
+# d >= a+b-c -> a+b <= c+d
+equate(M1): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{m(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{m(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{m(a + b, c + d)}}}}
+# c >= a+b, d >= 0 -> a+b <= c+d
+equate(M1): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{m(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{m(a + b, c + d)}}}}
+# c <= a+b-1, d <= 1 -> a+b >= c+d
+equate(M2): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^1{m(a + b, c + d)}}}}
+# 0 <= a <= 1, 1-a <= b <= 1, a+b-1 <= c <= 1 -> 0 <= a+b-c <= 1
+itersplit: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{m(a + b, c + d)}+\int_{d=a+b-c}^1{m(a + b, c + d)}}}}
+# d <= a+b-c -> a+b >= c+d
+equate(M2): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{m(a + b, c + d)}}}}
+# d >= a+b-c -> a+b <= c+d
+equate(M1): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+integrate: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\inteval_{d=0}^{a+b-c}{cd + d^2/2}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+inteval: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{ac + bc - c^2 + (a + b - c)^2/2+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{(a^2 + b^2 - c^2 + 2ab)/2+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+integrate: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{(a^2 + b^2 - c^2 + 2ab)/2+\inteval_{d=a+b-c}^1{ad + bd}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+inteval: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{(a^2 + b^2 - c^2 + 2ab)/2 + a + b - a(a + b - c) - b(a + b - c)}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{(a^2 + b^2 - c^2 + 2ab)/2 + a + b - a^2 - 2ab - b^2 + ac + bc}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{(2a + 2b - a^2 - b^2 - 2ab + 2ac + 2bc - c^2)/2}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+integrate: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\inteval_{c=0}^{a+b}{(2ac + 2bc - a^{2}c - b^{2}c - 2abc + ac^2 + bc^2 - c^3/3)/2}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+inteval: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(2a(a + b) + 2b(a + b) - a^{2}(a + b) - b^{2}(a + b) - 2ab(a + b) + a(a + b)^2 + b(a + b)^2 - (a + b)^3/3)/2+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(2a^2 + 4ab + 2b^2 - a^{2}(a + b) - b^{2}(a + b) - 2ab(a + b) + a(a + b)^2 + b(a + b)^2 - (a + b)^3/3)/2+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(2a^2 + 4ab + 2b^2 - a^{2}(a + b) - b^{2}(a + b) - 2ab(a + b) + a(a^2 + 2ab + b^2) + b(a + b)^2 - (a + b)^3/3)/2+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(2a^2 + 4ab + 2b^2 - a^{2}(a + b) - b^{2}(a + b) - 2ab(a + b) + a(a^2 + 2ab + b^2) + b(a^2 + 2ab + b^2) - (a + b)^3/3)/2+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(2a^2 + 4ab + 2b^2 - a^{2}(a + b) - b^{2}(a + b) - 2ab(a + b) + a(a^2 + 2ab + b^2) + b(a^2 + 2ab + b^2) - (a^3 + 3a^{2}b + 3ab^2 + b^3)/3)/2+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a^2 + 12ab + 6b^2 - 3a^{2}(a + b) - 3b^{2}(a + b) - 6ab(a + b) + 3a(a^2 + 2ab + b^2) + 3b(a^2 + 2ab + b^2) - (a^3 + 3a^{2}b + 3ab^2 + b^3))/6+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a^2 + 12ab + 6b^2 - a^3 - 3a^{2}b - 3ab^2 - b^3)/6+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+integrate: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a^2 + 12ab + 6b^2 - a^3 - 3a^{2}b - 3ab^2 - b^3)/6+\int_{c=a+b}^1{\inteval_{d=0}^1{ad + bd}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+inteval: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a^2 + 12ab + 6b^2 - a^3 - 3a^{2}b - 3ab^2 - b^3)/6+\int_{c=a+b}^1{a + b}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+integrate: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a^2 + 12ab + 6b^2 - a^3 - 3a^{2}b - 3ab^2 - b^3)/6+\inteval_{c=a+b}^1{ac + bc}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+inteval: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a^2 + 12ab + 6b^2 - a^3 - 3a^{2}b - 3ab^2 - b^3)/6 + a + b - a(a + b) - b(a + b)}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a^2 + 12ab + 6b^2 - a^3 - 3a^{2}b - 3ab^2 - b^3)/6 + a + b - a^2 - 2ab - b^2}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+integrate: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\inteval_{d=0}^1{cd + d^2/2}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+inteval: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{c + 1/2}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+integrate: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{\inteval_{c=0}^{a+b-1}{c^2/2 + c/2}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+inteval: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a + b - 1)^2/2 + (a + b - 1)/2+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{((a + b - 1)^2 + a + b - 1)/2+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+integrate: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2+\int_{c=a+b-1}^1{\inteval_{d=0}^{a+b-c}{cd + d^2/2}+\int_{d=a+b-c}^1{a + b}}}}
+inteval: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2+\int_{c=a+b-1}^1{c(a + b - c) + (a + b - c)^2/2+\int_{d=a+b-c}^1{a + b}}}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2+\int_{c=a+b-1}^1{(2ac + 2bc - 2c^2 + (a + b - c)^2)/2+\int_{d=a+b-c}^1{a + b}}}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2+\int_{c=a+b-1}^1{(a^2 + b^2 - c^2 + 2ab)/2+\int_{d=a+b-c}^1{a + b}}}}
+integrate: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2+\int_{c=a+b-1}^1{(a^2 + b^2 - c^2 + 2ab)/2+\inteval_{d=a+b-c}^1{ad + bd}}}}
+inteval: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2+\int_{c=a+b-1}^1{(a^2 + b^2 - c^2 + 2ab)/2 + a + b - a(a + b - c) - b(a + b - c)}}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2+\int_{c=a+b-1}^1{(2a + 2b - a^2 - b^2 - 2ab + 2ac + 2bc - c^2)/2}}}
+integrate: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2+\inteval_{c=a+b-1}^1{(2ac + 2bc - a^{2}c - b^{2}c - 2abc + ac^2 + bc^2 - c^3/3)/2}}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2+\inteval_{c=a+b-1}^1{(6ac + 6bc - 3a^{2}c - 3b^{2}c - 6abc + 3ac^2 + 3bc^2 - c^3)/6}}}
+inteval: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2 + (6a + 6b - 3a^{2} - 3b^{2} - 6ab + 3a + 3b - 1)/6 - (6a(a + b - 1) + 6b(a + b - 1) - 3a^{2}(a + b - 1) - 3b^{2}(a + b - 1) - 6ab(a + b - 1) + 3a(a + b - 1)^2 + 3b(a + b - 1)^2 - (a + b - 1)^3)/6}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2 + (6a + 6b - 3a^{2} - 3b^{2} - 6ab + 3a + 3b - 1)/6 - (6a(a + b - 1) + 6b(a + b - 1) - 3a^{2}(a + b - 1) - 3b^{2}(a + b - 1) - 6ab(a + b - 1) + 3a(a^2 + b^2 + 1 + 2ab - 2a - 2b) + 3b(a + b - 1)^2 - (a + b - 1)^3)/6}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2 + (6a + 6b - 3a^{2} - 3b^{2} - 6ab + 3a + 3b - 1)/6 - (6a(a + b - 1) + 6b(a + b - 1) - 3a^{2}(a + b - 1) - 3b^{2}(a + b - 1) - 6ab(a + b - 1) + 3a(a^2 + b^2 + 1 + 2ab - 2a - 2b) + 3b(a^2 + b^2 + 1 + 2ab - 2a - 2b) - (a + b - 1)^3)/6}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(a^2 + b^2 + 2ab - a - b)/2 + (6a + 6b - 3a^{2} - 3b^{2} - 6ab + 3a + 3b - 1)/6 - (6a(a + b - 1) + 6b(a + b - 1) - 3a^{2}(a + b - 1) - 3b^{2}(a + b - 1) - 6ab(a + b - 1) + 3a(a^2 + b^2 + 1 + 2ab - 2a - 2b) + 3b(a^2 + b^2 + 1 + 2ab - 2a - 2b) - (a^3 + b^3 - 1 + 3a^{2}b + 3ab^2 - 3a^2 - 3b^2 + 3a + 3b - 6ab))/6}}
+distrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{(6a + 6b - a^3 - 3a^{2}b - 3ab^2 - b^3)/6}+\int_{b=1-a}^1{(- 2 + 12a + 12b - 6a^2 - 12ab - 6b^2 + a^3 + 3a^{2}b + 3ab^2 + b^3)/6}}
+integrate: E(2, 3) = \int_{a=0}^1{\inteval_{b=0}^{1-a}{(6ab + 3b^2 - a^{3}b - 3a^{2}b^2/2 - ab^3 - b^4/4)/6}+\int_{b=1-a}^1{(- 2 + 12a + 12b - 6a^2 - 12ab - 6b^2 + a^3 + 3a^{2}b + 3ab^2 + b^3)/6}}
+distrib: E(2, 3) = \int_{a=0}^1{\inteval_{b=0}^{1-a}{(24ab + 12b^2 - 4a^{3}b - 6a^{2}b^2 - 4ab^3 - b^4)/24}+\int_{b=1-a}^1{(- 2 + 12a + 12b - 6a^2 - 12ab - 6b^2 + a^3 + 3a^{2}b + 3ab^2 + b^3)/6}}
+inteval: E(2, 3) = \int_{a=0}^1{(24a(1 - a) + 12(1 - a)^2 - 4a^{3}(1 - a) - 6a^{2}(1 - a)^2 - 4a(1 - a)^3 - (1 - a)^4)/24+\int_{b=1-a}^1{(- 2 + 12a + 12b - 6a^2 - 12ab - 6b^2 + a^3 + 3a^{2}b + 3ab^2 + b^3)/6}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{(24a(1 - a) + 12(1 - 2a + a^2) - 4a^{3}(1 - a) - 6a^{2}(1 - a)^2 - 4a(1 - a)^3 - (1 - a)^4)/24+\int_{b=1-a}^1{(- 2 + 12a + 12b - 6a^2 - 12ab - 6b^2 + a^3 + 3a^{2}b + 3ab^2 + b^3)/6}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{(24a(1 - a) + 12(1 - 2a + a^2) - 4a^{3}(1 - a) - 6a^{2}(1 - 2a + a^2) - 4a(1 - a)^3 - (1 - a)^4)/24+\int_{b=1-a}^1{(- 2 + 12a + 12b - 6a^2 - 12ab - 6b^2 + a^3 + 3a^{2}b + 3ab^2 + b^3)/6}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{(24a(1 - a) + 12(1 - 2a + a^2) - 4a^{3}(1 - a) - 6a^{2}(1 - 2a + a^2) - 4a(1 - 3a + 3a^2 - a^3) - (1 - a)^4)/24+\int_{b=1-a}^1{(- 2 + 12a + 12b - 6a^2 - 12ab - 6b^2 + a^3 + 3a^{2}b + 3ab^2 + b^3)/6}}
+unarydistrib: E(2, 3) = \int_{a=0}^1{(24a(1 - a) + 12(1 - 2a + a^2) - 4a^{3}(1 - a) - 6a^{2}(1 - 2a + a^2) - 4a(1 - 3a + 3a^2 - a^3) - (1 - 4a + 6a^2 - 4a^3 + a^4))/24+\int_{b=1-a}^1{(- 2 + 12a + 12b - 6a^2 - 12ab - 6b^2 + a^3 + 3a^{2}b + 3ab^2 + b^3)/6}}
+distrib: E(2, 3) = \int_{a=0}^1{(11 - 12a^2 + a^4)/24+\int_{b=1-a}^1{(- 2 + 12a + 12b - 6a^2 - 12ab - 6b^2 + a^3 + 3a^{2}b + 3ab^2 + b^3)/6}}
+integrate: E(2, 3) = \int_{a=0}^1{(11 - 12a^2 + a^4)/24+\inteval_{b=1-a}^1{(- 2b + 12ab + 6b^2 - 6a^{2}b - 6ab^2 - 2b^3 + a^{3}b + 3a^{2}b^2/2 + ab^3 + b^4/4)/6}}
+distrib: E(2, 3) = \int_{a=0}^1{(11 - 12a^2 + a^4)/24+\inteval_{b=1-a}^1{(- 8b + 48ab + 24b^2 - 24a^{2}b - 24ab^2 - 8b^3 + 4a^{3}b + 6a^{2}b^2 + 4ab^3 + b^4)/24}}
+inteval: E(2, 3) = \int_{a=0}^1{(11 - 12a^2 + a^4)/24 + (9 + 28a - 18a^2 + 4a^3)/24 - (- 8(1 - a) + 48a(1 - a) + 24(1 - a)^2 - 24a^{2}(1 - a) - 24a(1 - a)^2 - 8(1 - a)^3 + 4a^{3}(1 - a) + 6a^{2}(1 - a)^2 + 4a(1 - a)^3 + (1 - a)^4)/24}
+unarydistrib: E(2, 3) = \int_{a=0}^1{(11 - 12a^2 + a^4)/24 + (9 + 28a - 18a^2 + 4a^3)/24 - (- 8(1 - a) + 48a(1 - a) + 24(1 - 2a + a^2) - 24a^{2}(1 - a) - 24a(1 - a)^2 - 8(1 - a)^3 + 4a^{3}(1 - a) + 6a^{2}(1 - a)^2 + 4a(1 - a)^3 + (1 - a)^4)/24}
+unarydistrib: E(2, 3) = \int_{a=0}^1{(11 - 12a^2 + a^4)/24 + (9 + 28a - 18a^2 + 4a^3)/24 - (- 8(1 - a) + 48a(1 - a) + 24(1 - 2a + a^2) - 24a^{2}(1 - a) - 24a(1 - 2a + a^2) - 8(1 - a)^3 + 4a^{3}(1 - a) + 6a^{2}(1 - a)^2 + 4a(1 - a)^3 + (1 - a)^4)/24}
+unarydistrib: E(2, 3) = \int_{a=0}^1{(11 - 12a^2 + a^4)/24 + (9 + 28a - 18a^2 + 4a^3)/24 - (- 8(1 - a) + 48a(1 - a) + 24(1 - 2a + a^2) - 24a^{2}(1 - a) - 24a(1 - 2a + a^2) - 8(1 - 3a + 3a^2 - a^3) + 4a^{3}(1 - a) + 6a^{2}(1 - a)^2 + 4a(1 - a)^3 + (1 - a)^4)/24}
+unarydistrib: E(2, 3) = \int_{a=0}^1{(11 - 12a^2 + a^4)/24 + (9 + 28a - 18a^2 + 4a^3)/24 - (- 8(1 - a) + 48a(1 - a) + 24(1 - 2a + a^2) - 24a^{2}(1 - a) - 24a(1 - 2a + a^2) - 8(1 - 3a + 3a^2 - a^3) + 4a^{3}(1 - a) + 6a^{2}(1 - 2a + a^2) + 4a(1 - a)^3 + (1 - a)^4)/24}
+unarydistrib: E(2, 3) = \int_{a=0}^1{(11 - 12a^2 + a^4)/24 + (9 + 28a - 18a^2 + 4a^3)/24 - (- 8(1 - a) + 48a(1 - a) + 24(1 - 2a + a^2) - 24a^{2}(1 - a) - 24a(1 - 2a + a^2) - 8(1 - 3a + 3a^2 - a^3) + 4a^{3}(1 - a) + 6a^{2}(1 - 2a + a^2) + 4a(1 - 3a + 3a^2 - a^3) + (1 - a)^4)/24}
+unarydistrib: E(2, 3) = \int_{a=0}^1{(11 - 12a^2 + a^4)/24 + (9 + 28a - 18a^2 + 4a^3)/24 - (- 8(1 - a) + 48a(1 - a) + 24(1 - 2a + a^2) - 24a^{2}(1 - a) - 24a(1 - 2a + a^2) - 8(1 - 3a + 3a^2 - a^3) + 4a^{3}(1 - a) + 6a^{2}(1 - 2a + a^2) + 4a(1 - 3a + 3a^2 - a^3) + (1 - 4a + 6a^2 - 4a^3 + a^4))/24}
+unarydistrib: E(2, 3) = \int_{a=0}^1{(11 + 20a - 6a^2 - 4a^3 + 2a^4)/24}
+integrate: E(2, 3) = \inteval_{a=0}^1{(11a + 10a^2 - 2a^3 - a^4 + 2a^5/5)/24}
+inteval: E(2, 3) = 23/30
