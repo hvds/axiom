@@ -192,10 +192,7 @@ sub validate {
                             type => 'pow',
                             args => [
                                 $arg->copy,
-                                Axiom::Expr->new({
-                                    type => 'integer',
-                                    args => [ "$lastpow" ],
-                                })
+                                Axiom::Expr->new_const("$lastpow"),
                             ],
                         });
                     $count /= _fact($lastpow);
@@ -209,10 +206,8 @@ sub validate {
                 ++$lastpow;
             }
             $take->();
-            unshift @margs, Axiom::Expr->new({
-                type => 'integer',
-                args => [ "$count" ],
-            }) unless $count == 1;
+            unshift @margs, Axiom::Expr->new_const("$count")
+                    unless $count == 1;
             push @pargs, Axiom::Expr->new({
                 type => 'mullist',
                 args => \@margs,

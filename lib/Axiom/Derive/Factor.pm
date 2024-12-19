@@ -26,9 +26,6 @@ TODO: we currently only derive a single term to factor.
 
 =cut
 
-*_one = \&Axiom::Derive::_one;
-*_mone = \&Axiom::Derive::_mone;
-
 sub rulename { 'factor' }
 
 sub derive_args {
@@ -61,7 +58,7 @@ sub derive {
         for my $this (@$all) {
             return 1 if $try->($loc, $this);
             if ($this->type eq 'negate') {
-                return 1 if $try->($loc, _mone());
+                return 1 if $try->($loc, Axiom::Expr->new_const(-1));
                 return 1 if $try->($loc, $this->args->[0]);
             }
             if ($this->type eq 'pow') {
@@ -89,7 +86,7 @@ sub derive {
                 if ($ae->type eq 'mullist') {
                     return 1 if $try_all->($loc, $ae->args);
                 } elsif ($ae->type eq 'negate') {
-                    return 1 if $try->($loc, _mone());
+                    return 1 if $try->($loc, Axiom::Expr->new_const(-1));
                 } elsif ($ae->type eq 'pow') {
                     return 1 if $try->($loc, $ae);
                     return 1 if $try->($loc, $ae->args->[0]);
@@ -109,7 +106,7 @@ sub derive {
                 my @ind = grep $_->is_independent($v), @{ $se->args };
                 return 1 if $try_all->($loc, \@ind);
             } elsif ($se->type eq 'negate') {
-                return 1 if $try->($loc, _mone());
+                return 1 if $try->($loc, Axiom::Expr->new_const(-1));
                 $se = $se->args->[0];
                 goto retry_sum;
             } elsif ($se->type eq 'pluslist') {
@@ -184,7 +181,7 @@ sub validate {
 sub _trydiv {
     my($e1, $e2) = @_;
     return _div($e1, $e2) if $e2->is_const || $e2->type eq 'recip';
-    return _one() if !$e1->diff($e2);
+    return Axiom::Expr->new_const(1) if !$e1->diff($e2);
     my @e = ($e1);
     while (@e) {
         my $e = shift @e;
@@ -199,7 +196,7 @@ sub _trydiv {
 sub _div {
     my($e1, $e2) = @_;
     my($t1, $t2) = map $_->type, ($e1, $e2);
-    return _one() if !$e1->diff($e2);
+    return Axiom::Expr->new_const(1) if !$e1->diff($e2);
     my $a1 = $e1->args;
     my $r2 = ($t2 eq 'recip')
         ? $e2->args->[0]

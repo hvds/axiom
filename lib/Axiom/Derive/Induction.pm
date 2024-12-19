@@ -29,8 +29,6 @@ the domain is, which requires some degree of support for sets).
 
 =cut
 
-*_one = \&Axiom::Derive::_one;
-
 sub rulename { 'induction' }
 
 sub derive_args {
@@ -101,7 +99,7 @@ sub validate {
     $subdict->dict->{$ivar->name} = $ivar->binding;
     my $next_expr = Axiom::Expr->new({
         type => 'pluslist',
-        args => [ $var->copy, _one() ],
+        args => [ $var->copy, Axiom::Expr->new_const(1) ],
     });
     $next_expr->resolve($subdict);
     my $expect_next = $result->subst_var($ivar, $next_expr);

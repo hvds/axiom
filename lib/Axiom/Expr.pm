@@ -40,6 +40,11 @@ ref($_) or confess(Dumper($hash));
     }, $class;
 }
 
+sub new_const {
+    my($class, $const) = @_;
+    return Axiom::Expr::Const->new_rat(Math::BigRat->new($const));
+}
+
 sub local_dict {
     my($class, $localdict) = @_;
     return Axiom::Expr::LocalDict->new($localdict);
@@ -980,7 +985,7 @@ package Axiom::Expr::Const {
         my($self, $with) = @_;
         return $with->($self) // ref($self)->new({
             type => $self->type,
-            args => [ @{ $self->args } ],
+            args => [ map Math::BigInt->new("$_"), @{ $self->args } ],
         });
     }
     sub bracketed { join '/', @{ shift->args } }

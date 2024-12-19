@@ -227,27 +227,6 @@ sub derivere {
 }
 BEGIN { derivere() }
 
-sub _zero {
-    return Axiom::Expr->new({
-        type => 'integer',
-        args => [ '0' ],
-    });
-}
-
-sub _one {
-    return Axiom::Expr->new({
-        type => 'integer',
-        args => [ '1' ],
-    });
-}
-
-sub _mone {
-    return Axiom::Expr->new({
-        type => 'integer',
-        args => [ '-1' ],
-    });
-}
-
 sub _linename {
     my($self, $line) = @_;
     return '' unless defined $line && length $line;
@@ -382,8 +361,8 @@ sub _find_mapping {
                 type => $right->type,
                 args => \@ra,
             })
-            : $left->type eq 'pluslist' ? _zero()
-            : $left->type eq 'mullist' ? _one()
+            : $left->type eq 'pluslist' ? Axiom::Expr->new_const(0)
+            : $left->type eq 'mullist' ? Axiom::Expr->new_const(1)
             : die "logic error";
 
         return _find_mapping($newleft, $newright, $vars, $map);

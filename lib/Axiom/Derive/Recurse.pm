@@ -37,9 +37,6 @@ instead of deriving that in validate.
 
 =cut
 
-*_zero = \&Axiom::Derive::_zero;
-*_one = \&Axiom::Derive::_one;
-
 sub rulename { 'recurse' }
 
 sub derive_args {
@@ -219,7 +216,7 @@ sub validate {
         "Unable to find %s in %s\n",
         $expect->str, $rhs->str,
     ));
-    my $prod = _one();
+    my $prod = Axiom::Expr->new_const(1);
     my $cur;
     for (0 .. $#$rloc) {
         $cur = $_ ? $cur->args->[ $rloc->[$_ - 1] - 1 ] : $rhs;
@@ -272,12 +269,12 @@ sub validate {
         type => 'sum',
         args => [
             $itervar,
-            _zero(),
+            Axiom::Expr->new_const(0),
             Axiom::Expr->new({
                 type => 'pluslist',
                 args => [
                     $count->copy,
-                    _one()->negate,
+                    Axiom::Expr->new_const(-1),
                 ],
             }),
             Axiom::Expr->new({

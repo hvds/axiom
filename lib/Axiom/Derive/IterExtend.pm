@@ -145,10 +145,7 @@ sub validate {
             type => 'pluslist',
             args => [
                 $base->copy,
-                Axiom::Expr->new({
-                    type => 'integer',
-                    args => [ $dir > 0 ? '1' : '-1' ],
-                }),
+                Axiom::Expr->new_const($dir > 0 ? 1 : -1),
             ],
         });
         my $newfrom = ($which > 0) ? $from->copy : $var_at;
