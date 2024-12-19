@@ -76,11 +76,16 @@ sub derive {
     while (@choice) {
         my($loc, $e) = @{ shift @choice };
         my $a = $e->args;
+        %seen_at_loc = ();
         if ($e->type eq 'mullist') {
+            for my $me (@$a) {
+                next if $me->is_const;
+                return 1 if $try->($loc, $me);
+                return 1 if $me->type eq 'pow' && $try->($loc, $me->args->[0]);
+            }
             push @choice, map [ [ @$loc, $_ + 1 ], $a->[$_] ], 0 .. $#$a;
             next;
         }
-        %seen_at_loc = ();
         if ($e->type eq 'pluslist') {
             for my $ae (@$a) {
                 if ($ae->type eq 'mullist') {
@@ -150,6 +155,43 @@ sub validate {
             $repl = Axiom::Expr->new({
                 type => 'pluslist',
                 args => [ $repl, map $_->copy, @nondiv ],
+            });
+        }
+    } elsif ($targ->type eq 'mullist') {
+        my(@div, @nondiv, @pow);
+        for my $a (@{ $targ->args }) {
+            if (!$a->diff($expr)) {
+                push @pow, Axiom::Expr->new_const(1);
+            } elsif ($a->type eq 'pow' && !$a->args->[0]->diff($expr)) {
+                push @pow, $a->args->[1]->copy;
+            } else {
+                my $ad = _trydiv($a, $expr);
+                if ($ad) {
+                    push @div, $ad;
+                    push @pow, Axiom::Expr->new_const(1);
+                } else {
+                    push @nondiv, $a;
+                }
+            }
+        }
+        $repl = Axiom::Expr->new({
+            type => 'pow',
+            args => [
+                $expr->copy,
+                Axiom::Expr->new({
+                    type => 'pluslist',
+                    args => \@pow,
+                }),
+            ],
+        });
+        if (@div || @nondiv) {
+            $repl = Axiom::Expr->new({
+                type => 'mullist',
+                args => [
+                    @div,
+                    (map $_->copy, @nondiv),
+                    $repl,
+                ],
             });
         }
     } elsif ($targ->type eq 'sum') {
