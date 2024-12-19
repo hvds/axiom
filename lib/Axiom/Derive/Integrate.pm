@@ -32,89 +32,64 @@ sub derive_args {
     };
 }
 
-sub _integrate {
+sub _derivative {
     my($self, $var, $expr) = @_;
-    return Axiom::Expr->new({
-        type => 'mullist',
-        args => [ $var->copy, $expr->copy ]
-    }) if $expr->is_independent($var);
-
+    return Axiom::Expr->new_const(0)
+            if $expr->is_independent($var);
     my $type = $expr->type;
     my $cb = {
         negate => sub {
             my $arg = $expr->args->[0];
-            return +($self->_integrate($var, $arg) || return 0)->negate;
+            return $self->_derivative($var, $arg)->negate;
         },
         pluslist => sub {
             return Axiom::Expr->new({
-                type => $type,
-                args => [
-                    map +($self->_integrate($var, $_) || return 0),
-                            @{ $expr->args }
-                ],
+                type => 'pluslist',
+                args => [ map $self->_derivative($var, $_), @{ $expr->args } ],
             });
         },
         mullist => sub {
-            my(@i, $d);
-            for (@{ $expr->args }) {
-                if ($_->is_independent($var)) {
-                    push @i, $_;
-                } elsif (defined $d) {
-                    return $self->set_error(
-                            "subexpr @{[ $expr->str ]} not flat");
-                } else {
-                    $d = $_;
-                }
-            }
+            my $args = $expr->args;
+            my $deriv = [ map $self->_derivative($var, $_), @$args ];
             return Axiom::Expr->new({
-                type => $type,
-                args => [
-                    map($_->copy, @i),
-                    $self->_integrate($var, $d) || return 0,
-                ],
+                type => 'pluslist',
+                args => [ map {
+                    local $args->[$_] = $deriv->[$_];
+                    Axiom::Expr->new({
+                        type => 'mullist',
+                        args => [ map $_->copy, @$args ],
+                    });
+                } 0 .. $#$args ],
             });
         },
         name => sub {
-            return Axiom::Expr->new({
-                type => 'mullist',
-                args => [
-                    Axiom::Expr->new({
-                        type => 'pow',
-                        args => [
-                            $var->copy,
-                            Axiom::Expr::Const->new({ args => [ 2 ] }),
-                        ],
-                    }),
-                    Axiom::Expr::Const->new({args => [1, 2]}),
-                ],
-            });
+            return Axiom::Expr->new_const(1);
         },
         pow => sub {
             my($left, $right) = @{ $expr->args };
-            my $rv = $right->rat;
-            if ($left->type eq 'name' && !$left->is_independent($var)
-                && $right->is_const && $rv != -1
-            ) {
-                return Axiom::Expr->new({
-                    type => 'mullist',
-                    args => [
-                        Axiom::Expr->new({
-                            type => 'pow',
-                            args => [
-                                $var->copy,
-                                Axiom::Expr::Const->new_rat($rv + 1),
-                            ],
-                        }),
-                        Axiom::Expr::Const->new_rat($rv + 1)->recip,
-                    ],
-                });
-            }
-            return $self->set_error(
-                "don't know how to integrate power (@{[ $expr->str ]}"
-            );
+            return Axiom::Expr->new({
+                type => 'mullist',
+                args => [
+                    $right->copy,
+                    $self->_derivative($var, $left),
+                    Axiom::Expr->new({
+                        type => 'pow',
+                        args => [
+                            $left->copy,
+                            Axiom::Expr->new({
+                                type => 'pluslist',
+                                args => [
+                                    $right->copy,
+                                    Axiom::Expr->new_const(-1),
+                                ],
+                            }),
+                        ],
+                    }),
+                ],
+            });
         },
     }->{$type} // return $self->set_error(
-        "don't know how to integrate a $type (@{[ $expr->str ]}"
+        "don't know how to find derivative of a $type (@{[ $expr->str ]})"
     );
     return $cb->();
 }
@@ -127,20 +102,12 @@ sub derive {
     $target->resolve($self->dict);
     my $loc = $starting->diff($target);
 
-    while (1) {
-        my $se = $starting->locate($loc);
-        my $te = $target->locate($loc);
-        return $self->set_error("lhs not integral but @{[ $se->type ]}")
-                unless $se->type eq 'integral';
-        return $self->set_error("rhs not inteval but @{[ $te->type ]}")
-                unless $te->type eq 'inteval';
+    my $te = $target->locate($loc);
+    return $self->set_error("rhs not inteval but @{[ $te->type ]}")
+            unless $te->type eq 'inteval';
 
-        my($var, $ofrom, $oto, $oexpr) = @{ $se->args };
-        my $int = $self->_integrate($var, $oexpr) || return 0;
-        return 1 if $self->validate([ $line, $loc, $int ]);
-        warn $self->clear_error;
-    }
-    return $self->set_error("don't know how to derive this");
+    my($tvar, $tfrom, $tto, $texpr) = @{ $te->args };
+    return $self->validate([ $line, $loc, $texpr ]);
 }
 
 sub validate {
@@ -149,19 +116,31 @@ sub validate {
     my $starting = $self->line($line);
 
     my $int = $starting->locate($loc);
-    my $subdict = $starting->dict_at($loc);
-    $eval->resolve($subdict);
+    return $self->set_error(sprintf(
+        "Don't know how to integrate a %s\n", $int->type,
+    )) unless $int->type eq 'integral';
+
+    # for resolving, we need a state in which the \int{...} variable has
+    # already been introduced
+    my $dloc = [ @$loc, 4 ];
+    my $subdict = $starting->dict_at($dloc);
 
     my $repl;
-    if ($int->type eq 'integral') {
-        my($var, $from, $to, $expr) = @{ $int->args };
-        $repl = Axiom::Expr->new({
-            type => 'inteval',
-            args => [ $var, $from, $to, $eval ],
-        });
-    } else {
+    my($var, $from, $to, $expr) = @{ $int->args };
+    $repl = Axiom::Expr->new({
+        type => 'inteval',
+        args => [ $var, $from, $to, $eval ],
+    });
+
+    $eval->resolve($subdict);
+    $var->resolve($subdict);
+    my $reverse = $self->_derivative($var, $eval);
+    $reverse->resolve($subdict);
+    if (my $diff = $reverse->diff($expr)) {
         return $self->set_error(sprintf(
-            "Don't know how to integrate a %s\n", $int->type,
+            "Expressions differ at\n  %s\n  %s\nclean:\n  %s\n  %s\n",
+            (map $_->locate($diff)->str, $expr, $reverse),
+            (map $_->clean->str, $expr, $reverse)
         ));
     }
 
