@@ -399,4 +399,36 @@ sub find_mapping {
     return \%map;
 }
 
+#
+# Find the differences between two lists of the same type, returning
+# two arrayrefs of integers representing the indices of those arguments
+# on each side that are not accounted for on the other side.
+# For multiple copies of the same argument, order is considered arbitrary
+# (i.e. for 'pluslist[1,2]' and 'pluslist[1,1]' we may return either
+# ([1],[0]) or ([1],[1])).
+#
+sub difflist {
+    my($self, $left, $right) = @_;
+    die "difflist type mismatch @{[ $left->type ]} v. @{[ $right->type ]}"
+            unless $left->type eq $right->type;
+    my($la, $ra) = ($left->args, $right->args);
+    my %la = map +($_ => 1), 0 .. $#$la;
+    my %ra = map +($_ => 1), 0 .. $#$ra;
+  LI:
+    for my $li (0 .. $#$la) {
+        my $larg = $la->[$li];
+        for my $ri (keys %ra) {
+            my $rarg = $ra->[$ri];
+            next if $larg->diff($rarg, 1);
+            delete $la{$li};
+            delete $ra{$ri};
+            next LI;
+        }
+    }
+    return +(
+        [ sort { $a <=> $b } keys %la ],
+        [ sort { $a <=> $b } keys %ra ],
+    );
+}
+
 1;

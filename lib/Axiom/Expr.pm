@@ -1028,9 +1028,12 @@ package Axiom::Expr::Iter {
         inteval => 'pluslist',
     );
     sub is_iter { 1 }
+    # All of these have arglist of the form (var, start, end, expr)
     sub has_newvar { 1 }
     sub intro_newvar { 0 }
     sub affect_newvar { 3 }
+    # Provides the op used to split 'iter(var, start, end, expr)' into
+    # 'iter(var, start, mid, expr) op type(var, mid, end, expr)'
     sub combiner {
         my($self) = @_;
         return $combiner{$self->type} // die sprintf(
