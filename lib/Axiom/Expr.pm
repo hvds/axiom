@@ -122,116 +122,46 @@ sub recip {
 }
 
 {
-    my %prec = (
-        '=' => 1,
-        '->' => 1,
-        '+' => 2,
-        '-' => 2,
-        '.' => 3,
-        '/' => 3,
-        '^' => 4,
-        '!' => 5,
-    );
     my %stringify = (
-        forall => sub {
-            my($args, $prec) = @_;
-            sprintf "\\A%s %s", map $_->str(0), @$args;
-        },
-        exists => sub {
-            my($args, $prec) = @_;
-            sprintf "\\E%s %s", map $_->str(0), @$args;
-        },
-        equals => sub {
-            my($args, $prec) = @_;
-            my $result = sprintf "%s = %s", map $_->str($prec{'='}), @$args;
-            ($prec >= $prec{'='}) ? "($result)" : $result;
-        },
-        implies => sub {
-            my($args, $prec) = @_;
-            my $result = sprintf "%s -> %s", map $_->str($prec{'->'}), @$args;
-            ($prec >= $prec{'->'}) ? "($result)" : $result;
-        },
-        integer => sub {
-            my($args, $prec) = @_;
-            my $result = "$args->[0]";
-            ($args->[0] < 0 && $prec >= $prec{'-'}) ? "($result)" : $result;
-        },
-        rational => sub {
-            my($args, $prec) = @_;
-            my $result = join '/', @$args;
-            ($prec >= $prec{'/'}
-                || ($args->[0] < 0 && $prec >= $prec{'-'})
-            ) ? "($result)" : $result;
-        },
-        name => sub {
-            my($args, $prec) = @_;
-            "$args->[0]";
-        },
-        function => sub {
-            my($args, $prec) = @_;
-            sprintf '%s(%s)', $args->[0]->str(0),
-                    join ', ', map $_->str(0), @$args[1 .. $#$args];
-        },
-        negate => sub {
-            my($args, $prec) = @_;
-            my $result = '-' . $args->[0]->str($prec{'-'});
-            $prec >= $prec{'-'} ? "($result)" : $result;
-        },
-        pluslist => sub {
-            my($args, $prec) = @_;
-            my $result = join ' + ', map $_->str($prec{'+'}), @$args;
-            $prec >= $prec{'+'} ? "($result)" : $result;
-        },
-        recip => sub {
-            my($args, $prec) = @_;
-            my $result = '1 / ' . $args->[0]->str($prec{'/'});
-            $prec >= $prec{'/'} ? "($result)" : $result;
-        },
-        mullist => sub {
-            my($args, $prec) = @_;
-            my $result = join ' . ', map $_->str($prec{'.'}), @$args;
-            $prec >= $prec{'.'} ? "($result)" : $result;
-        },
-        pow => sub {
-            my($args, $prec) = @_;
-            my $result = join '^', map $_->str($prec{'^'}), @$args;
-            $prec >= $prec{'^'} ? "($result)" : $result;
-        },
-        sum => sub {
-            my($args, $prec) = @_;
-            sprintf("\\sum_{%s=%s}^{%s}{%s}",
-                $args->[0]->str($prec{'='}),
-                $args->[1]->str($prec{'='}),
-                $args->[2]->str(0),
-                $args->[3]->str(0),
-            );
-        },
-        integral => sub {
-            my($args, $prec) = @_;
-            sprintf("\\int_{%s=%s}^{%s}{%s}",
-                $args->[0]->str($prec{'='}),
-                $args->[1]->str($prec{'='}),
-                $args->[2]->str(0),
-                $args->[3]->str(0),
-            );
-        },
-        inteval => sub {
-            my($args, $prec) = @_;
-            sprintf("\\inteval_{%s=%s}^{%s}{%s}",
-                $args->[0]->str($prec{'='}),
-                $args->[1]->str($prec{'='}),
-                $args->[2]->str(0),
-                $args->[3]->str(0),
-            );
-        },
+        forall => [ 0, 0, "\\A%s %s" ],
+        exists => [ 0, 0, "\\E%s %s" ],
+        equals => [ 5, 0, "%s = %s" ],
+        implies => [ 5, 0, "%s -> %s" ],
+        integer => [ sub { ($_[0][0] < 0) ? 4 : 0 }, 0, "%s" ],
+        rational => [ sub { ($_[0][0] < 0) ? 4 : 3 }, 0, "%s/%s" ],
+        name => [ 0, 0, "%s" ],
+        function => [ 0, 1, "%s(%s)", ", " ],
+        negate => [ 4, 0, "-%s" ],
+        pluslist => [ 4, -1, " + " ],
+        recip => [ 3, 0, "1 / %s" ],
+        mullist => [ 3, -1, " . " ],
+        pow => [ 2, 0, "%s ^ %s" ],
+        factorial => [ 1, 0, "%s!" ],
+        sum => [ 0, 0, "\\sum_{%s=%s}^{%s}{%s}" ],
+        integral => [ 0, 0, "\\int_{%s=%s}^{%s}{%s}" ],
+        inteval => [ 0, 0, "\\inteval_{%s=%s}^{%s}{%s}" ],
     );
     sub str {
         my($self, $prec) = @_;
-        return $self->{str} //= do {
-            my $cb = $stringify{$self->type}
-                    or die "No stringify available for @{[ $self->type ]}";
-            $cb->($self->args, $prec // 0);
+        $prec //= 0;
+        my $ify = $stringify{$self->type}
+                or die "No stringify available for @{[ $self->type ]}";
+        my($sprec, $sstyle, $sfmt, $sfmt2) = @$ify;
+        $sprec = $sprec->($self->args) if ref $sprec;
+        my $s = $self->{str} //= do {
+            my @args = $self->is_atom
+                ? @{ $self->args }
+                : map($_->str($sprec), @{ $self->args });
+            ($sstyle == 0) ? sprintf($sfmt, @args)
+            : ($sstyle < 0) ? join($sfmt, @args)
+            : do {
+                splice @args, $sstyle, 0 + @args,
+                        join $sfmt2, @args[$sstyle .. $#args];
+                sprintf($sfmt, @args);
+            };
         };
+        $s = "($s)" if $prec <= ($sprec || -1);
+        return $s;
     }
 }
 
