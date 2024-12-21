@@ -122,28 +122,33 @@ sub recip {
 }
 
 {
+    # TODO: [mullist a [recip b]] => 'a/b' rather than 'a.(1/b)'
+    # .. and try to unify it with a cleaner [pluslist a [negate b]]
+    # TODO: iterators should apply 'equals' precedence to first two args,
+    # and base precedence to third arg - but using {} to bracket. Last arg
+    # should however have mandatory {}.
     my %stringify = (
-        forall => [ 0, 0, "\\A%s %s" ],
-        exists => [ 0, 0, "\\E%s %s" ],
-        equals => [ 5, 0, "%s = %s" ],
-        implies => [ 5, 0, "%s -> %s" ],
-        integer => [ sub { ($_[0][0] < 0) ? 4 : 0 }, 0, "%s" ],
-        rational => [ sub { ($_[0][0] < 0) ? 4 : 3 }, 0, "%s/%s" ],
+        forall => [ 0, 0, "\\A%s: %s" ],
+        exists => [ 0, 0, "\\E%s: %s" ],
+        equals => [ 6, 0, "%s = %s" ],
+        implies => [ 6, 0, "%s -> %s" ],
+        integer => [ sub { ($_[0][0] < 0) ? 5 : 0 }, 0, "%s" ],
+        rational => [ sub { ($_[0][0] < 0) ? 5 : 4 }, 0, "%s/%s" ],
         name => [ 0, 0, "%s" ],
         function => [ 0, 1, "%s(%s)", ", " ],
-        negate => [ 4, 0, "-%s" ],
-        pluslist => [ 4, -1, " + " ],
-        recip => [ 3, 0, "1 / %s" ],
+        negate => [ 5, 0, "-%s" ],
+        pluslist => [ 5, -1, " + " ],
+        recip => [ 4, 0, "1 / %s" ],
         mullist => [ 3, -1, " . " ],
         pow => [ 2, 0, "%s ^ %s" ],
         factorial => [ 1, 0, "%s!" ],
         sum => [ 0, 0, "\\sum_{%s=%s}^{%s}{%s}" ],
+        prod => [ 0, 0, "\\prod_{%s=%s}^{%s}{%s}" ],
         integral => [ 0, 0, "\\int_{%s=%s}^{%s}{%s}" ],
         inteval => [ 0, 0, "\\inteval_{%s=%s}^{%s}{%s}" ],
     );
     sub str {
         my($self, $prec) = @_;
-        $prec //= 0;
         my $ify = $stringify{$self->type}
                 or die "No stringify available for @{[ $self->type ]}";
         my($sprec, $sstyle, $sfmt, $sfmt2) = @$ify;
@@ -152,15 +157,17 @@ sub recip {
             my @args = $self->is_atom
                 ? @{ $self->args }
                 : map($_->str($sprec), @{ $self->args });
-            ($sstyle == 0) ? sprintf($sfmt, @args)
-            : ($sstyle < 0) ? join($sfmt, @args)
-            : do {
-                splice @args, $sstyle, 0 + @args,
-                        join $sfmt2, @args[$sstyle .. $#args];
-                sprintf($sfmt, @args);
-            };
+            my $t = ($sstyle == 0) ? sprintf($sfmt, @args)
+                : ($sstyle < 0) ? join($sfmt, @args)
+                : do {
+                    splice @args, $sstyle, 0 + @args,
+                            join $sfmt2, @args[$sstyle .. $#args];
+                    sprintf($sfmt, @args);
+                };
+            $t =~ s{\+\s*-}{-}g if $self->type eq 'pluslist';
+            $t;
         };
-        $s = "($s)" if $prec <= ($sprec || -1);
+        $s = "($s)" if defined($prec) && $prec < $sprec;
         return $s;
     }
 }
