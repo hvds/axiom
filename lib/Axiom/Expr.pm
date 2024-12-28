@@ -12,7 +12,7 @@ our $SUCCEED = qr{(?=)};
 our $FAIL = qr{(?!)};
 our $DICT;
 
-my %listtype = map +($_ => 1), qw{ pluslist mullist };
+my %listtype = map +($_ => 1), qw{ pluslist mullist andlist orlist };
 
 my %classtype = (
     (map +($_ => 'Axiom::Expr::Const'), qw{ integer rational }),
@@ -132,6 +132,8 @@ sub recip {
         exists => [ 0, 0, "\\E%s: %s" ],
         equals => [ 6, 0, "%s = %s" ],
         implies => [ 6, 0, "%s -> %s" ],
+        andlist => [ 6, -1, " & " ],
+        orlist => [ 6, -1, " | " ],
         integer => [ sub { ($_[0][0] < 0) ? 5 : 0 }, 0, "%s" ],
         rational => [ sub { ($_[0][0] < 0) ? 5 : 4 }, 0, "%s/%s" ],
         name => [ 0, 0, "%s" ],
@@ -208,6 +210,30 @@ sub _clean {
                     ],
                 });
             }
+            return undef;
+        },
+        andlist => sub {
+            # &(null) -> true
+            return Axiom::Expr->new({
+                type => 'integer',  # FIXME: may need a bool type
+                args => [ '1' ],
+            }) if @$args == 0;
+
+            # &(x) -> x
+            return $args->[0] if @$args == 1;
+
+            return undef;
+        },
+        orlist => sub {
+            # |(null) -> false
+            return Axiom::Expr->new({
+                type => 'integer',  # FIXME: may need a bool type
+                args => [ '0' ],
+            }) if @$args == 0;
+
+            # |(x) -> x
+            return $args->[0] if @$args == 1;
+
             return undef;
         },
         pluslist => sub {
@@ -801,7 +827,7 @@ sub parse {
     my($class, $dict, $text, $debug) = @_;
     my $local = $class->local_dict($dict);
     if ($text =~ _parsere($debug)) {
-        return $/{Relation};
+        return $/{Statement};
     } else {
         die "No match: <$text>\n";
     }
@@ -1136,22 +1162,32 @@ sub _grammar {
     state $grammar = qr{
         <grammar: Axiom::Expr>
         <debug: same>
-        <objrule: Axiom::Expr=Relation>
+        <objrule: Axiom::Expr=Statement>
             (?:
-                <.OpenParen> <[args=Relation]> <.CloseParen>
-                <.ImpliesToken>
-                <.OpenParen> <[args=Relation]> <.CloseParen>
+                <[args=SStatement]>+ % <.AndSeparator>
+                <type =(?{ 'andlist' })>
+            |
+                <[args=SStatement]>+ % <.OrSeparator>
+                <type =(?{ 'orlist' })>
+            |
+                <[args=SStatement]> <.ImpliesToken> <[args=SStatement]>
                 <type=(?{ 'implies' })>
+            |
+                <.ForallToken> <[args=Variable]> : <[args=Statement]>
+                <type=(?{ 'forall' })>
+            |
+                <.ExistsToken> <[args=Variable]> : <[args=Statement]>
+                <type=(?{ 'exists' })>
             |
                 <[args=Expr]> <.EqualsToken> <[args=Expr]>
                 <type=(?{ 'equals' })>
             |
-                <.ForallToken> <[args=Variable]> : <[args=Relation]>
-                <type=(?{ 'forall' })>
-            |
-                <.ExistsToken> <[args=Variable]> : <[args=Relation]>
-                <type=(?{ 'exists' })>
+                <[args=SStatement]>
+                <type=(?{ 'nothing' })>
             )
+        <objrule: Axiom::Expr=SStatement>
+            <.OpenParen> <[args=Statement]> <.CloseParen>
+            <type=(?{ 'nothing' })>
         <objrule: Axiom::Expr=Expr>
             <[args=PlusList]>
             <type=(?{ 'nothing' })>
@@ -1303,6 +1339,8 @@ sub _grammar {
         <token: CloseBrace> \}
         <token: ImpliesToken> ->
         <token: EqualsToken> =
+        <token: AndSeparator> \&
+        <token: OrSeparator> \|
         <token: PlusSeparator> <PlusToken> | <?MinusToken>
         <token: SignToken> <Sign=PlusToken> | <Sign=MinusToken>
             (?{ $MATCH = $MATCH{Sign} })
@@ -1337,11 +1375,11 @@ sub _parsere {
         ? (state $dsre = qr{
             <extends: Axiom::Expr>
             <debug: match>
-            ^ <Relation> \z
+            ^ <Statement> \z
         }x)
         : (state $sre = qr{
             <extends: Axiom::Expr>
-            ^ <Relation> \z
+            ^ <Statement> \z
         }x);
 }
 

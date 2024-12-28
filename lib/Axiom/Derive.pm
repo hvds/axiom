@@ -145,16 +145,29 @@ sub clear_error {
 
 {
     my %derive_args; END { %derive_args = () }
+    my %derive_debug; END { %derive_debug = () }
     sub _derive_args {
-        my($class) = @_;
+        my($class, $debug) = @_;
         use Regexp::Grammars;
+        if ($debug) {
+            return $derive_debug{$class} //= do {
+                my $rule = $class->rulename;
+                my $args = $class->derive_args;
+                qr{
+                    <extends: Axiom::Derive>
+                    <debug: match>
+                    <nocontext:>
+                    ^ \s* $rule \s* $args \s* : \s* <expr=Statement> \s* \z
+                }x;
+            };
+        }
         return $derive_args{$class} //= do {
             my $rule = $class->rulename;
             my $args = $class->derive_args;
             qr{
                 <extends: Axiom::Derive>
                 <nocontext:>
-                ^ \s* $rule \s* $args \s* : \s* <expr=Relation> \s* \z
+                ^ \s* $rule \s* $args \s* : \s* <expr=Statement> \s* \z
             }x;
         };
     }
@@ -169,7 +182,7 @@ sub derive {
     my $self = $class->new($context, $source, $debug);
     {
         my $local = Axiom::Expr->local_dict($self->dict);
-        $source =~ _derive_args($class)
+        $source =~ _derive_args($class, $debug)
                 or die "Can't parse derivation: $source";
     }
     my($args, $expr) = @/{qw{ args expr }};
