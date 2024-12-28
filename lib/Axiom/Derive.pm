@@ -40,6 +40,7 @@ L<Axiom::Derive::Recurse>
 L<Axiom::Derive::IterSplit>
 L<Axiom::Derive::Integrate>
 L<Axiom::Derive::IntEval>
+L<Axiom::Derive::Simplify>
 
 =cut
 
@@ -69,6 +70,7 @@ my %class; BEGIN {
         Axiom::Derive::IterSplit
         Axiom::Derive::Integrate
         Axiom::Derive::IntEval
+        Axiom::Derive::Simplify
     };
 }
 
