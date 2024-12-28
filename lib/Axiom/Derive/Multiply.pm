@@ -9,7 +9,7 @@ use Axiom::Expr;
 
 =head1 NAME
 
-Axiom::Derive::Multiply - multiply both sides of an equate by some expr
+Axiom::Derive::Multiply - multiply both sides of a relation by some expr
 
 =head1 USAGE
 
@@ -17,7 +17,8 @@ Axiom::Derive::Multiply - multiply both sides of an equate by some expr
   rule: [ line, expr ]
 
 Given a prior theorem of the form C< P = Q >, constructs the new theorem
-C< P . expr = Q . expr >.
+C< P . expr = Q . expr >. If the prior theorem is an inequality, this is
+permitted only if the sign of the multiplying expression is known.
 
 =cut
 
@@ -47,10 +48,10 @@ sub derive {
                 or return $self->set_error('mismatched quantifiers');
         $to = $to->args->[1];
     }
-    $from->type eq 'equals'
-            or return $self->set_error('No equals to derive from');
-    $to->type eq 'equals'
-            or return $self->set_error('No equals to derive from');
+    $from->is_relation
+            or return $self->set_error('No relation to derive from');
+    $to->is_relation
+            or return $self->set_error('No relation to derive to');
     my $expr = Axiom::Expr->new({
         type => 'mullist',
         args => [
@@ -72,21 +73,33 @@ sub validate {
     my $starting = $self->line($line);
 
     my $loc = [];
-    my $eq = $starting;
-    while ($eq->is_quant) {
+    my $rel = $starting;
+    while ($rel->is_quant) {
         push @$loc, 2;
-        $eq = $eq->args->[1];
+        $rel = $rel->args->[1];
     }
-    $eq->type eq 'equals' or return $self->set_error(sprintf(
-        "don't know how to multiply a %s\n", $starting->type,
+    $rel->is_relation or return $self->set_error(sprintf(
+        "don't know how to multiply a %s", $starting->type,
     ));
 
+    my $targ_type;
+    if ($rel->type eq 'equals') {
+        $targ_type = 'equals';
+    } elsif ($expr->is_const) {
+        $targ_type = ($expr->rat < 0) ? $rel->inverse_type : $rel->type;
+    } else {
+        # TODO support 'with' argument to constrain the expr
+        return $self->set_error(sprintf(
+            "can't multiply inequality by non-const '%s'", $expr->str
+        ));
+    }
+
     my $repl = Axiom::Expr->new({
-        type => $eq->type,
+        type => $targ_type,
         args => [ map Axiom::Expr->new({
             type => 'mullist',
             args => [ $_->copy, $expr->copy ],
-        }), @{ $eq->args } ],
+        }), @{ $rel->args } ],
     });
 
     my $result = $starting->substitute($loc, $repl);
