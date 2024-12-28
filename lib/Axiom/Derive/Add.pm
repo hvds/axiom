@@ -9,7 +9,7 @@ use Axiom::Expr;
 
 =head1 NAME
 
-Axiom::Derive::Add - add an expression to both sides of a theorem
+Axiom::Derive::Add - add an expression to both sides of a relation
 
 =head1 USAGE
 
@@ -19,7 +19,7 @@ Axiom::Derive::Add - add an expression to both sides of a theorem
 Given a prior theorem of the form C< P = Q >, constructs the new theorem
 C< P + expr = Q + expr >.
 
-The equality may be wrapped in an arbitrary number of quantifiers.
+The relation may be wrapped in an arbitrary number of quantifiers.
 
 =cut
 
@@ -49,10 +49,10 @@ sub derive {
                 or return $self->set_error('mismatched quantifiers');
         $to = $to->args->[1];
     }
-    $from->type eq 'equals'
-            or return $self->set_error('No equals to derive from');
-    $to->type eq 'equals'
-            or return $self->set_error('No equals to derive to');
+    $from->is_relation
+            or return $self->set_error('No relation to derive from');
+    $to->is_relation
+            or return $self->set_error('No relation to derive to');
     my $expr = Axiom::Expr->new({
         type => 'pluslist',
         args => [
@@ -74,21 +74,21 @@ sub validate {
     my $starting = $self->line($line);
 
     my $loc = [];
-    my $eq = $starting;
-    while ($eq->is_quant) {
+    my $rel = $starting;
+    while ($rel->is_quant) {
         push @$loc, 2;
-        $eq = $eq->args->[1];
+        $rel = $rel->args->[1];
     }
-    $eq->type eq 'equals' or return $self->set_error(sprintf(
-        "don't know how to add to a %s\n", $eq->type
+    $rel->is_relation or return $self->set_error(sprintf(
+        "don't know how to add to a %s\n", $rel->type
     ));
 
     my $repl = Axiom::Expr->new({
-        type => $eq->type,
+        type => $rel->type,
         args => [ map Axiom::Expr->new({
             type => 'pluslist',
             args => [ $_->copy, $expr->copy ],
-        }), @{ $eq->args } ],
+        }), @{ $rel->args } ],
     });
 
     my $result = $starting->substitute($loc, $repl);
