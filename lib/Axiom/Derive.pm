@@ -42,6 +42,7 @@ L<Axiom::Derive::Integrate>
 L<Axiom::Derive::IntEval>
 L<Axiom::Derive::Simplify>
 L<Axiom::Derive::Conjoin>
+L<Axiom::Derive::Ponens>
 
 =cut
 
@@ -73,6 +74,7 @@ my %class; BEGIN {
         Axiom::Derive::IntEval
         Axiom::Derive::Simplify
         Axiom::Derive::Conjoin
+        Axiom::Derive::Ponens
     };
 }
 
