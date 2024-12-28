@@ -42,28 +42,40 @@ sub derive {
     my($self, $args) = @_;
     my $target = $self->expr;
     my $te = $target;
-    my @to;
-    while ($te->is_quant) {
-        push @to, $te->args->[0]->name;
-        $te = $te->args->[1];
-    }
+    $te = $te->args->[1] while $te->is_quant;
+    $te->type eq 'implies' or return $self->set_error(sprintf(
+            'Expected implies, not %s', $te->type
+    ));
 
-    my @from = do {
-        my $dict2 = $self->_condstart->dict;
-        my $dict1 = $self->context->scope_dict;
-        my %known = %{ $dict2->dict };
-        delete $known{$_} for keys %{ $dict1->dict };
-        sort { $known{$a}->id <=> $known{$b}->id } keys %known;
+    my $start = $self->_condstart;
+    my $base = $start->expr;
+    my $dict = $start->dict;
+    my $vars = do {
+        # FIXME: there must be a better way than parsing it back out of
+        # the string
+        my $s = $start->rule;
+        my($vs) = $s =~ /^condstart\(\{ (.*?) \}\)$/
+                or die "Could not match condstart rule '$s'";
+        [ map Axiom::Expr->new({
+            type => 'name',
+            args => [ $_ ],
+        }), split /, /, $1 ];
     };
-
-    if (@from == 1 && @to == 1) {
-        my $from = Axiom::Expr->new({ type => 'name', args => [ $from[0] ] });
-        $from->{''} = $from[0];
-        my $to = Axiom::Expr->new({ type => 'name', args => [ $to[0] ] });
-        $to->{''} = $to[0];
-        return $self->validate([ { args => [ { args => [ $from, $to ] } ] } ]);
+    $_->resolve($dict) for @$vars;
+    my $map = $self->find_mapping($base, $te->args->[0], $vars);
+    my $list = [];
+    for my $fromvar (keys %$map) {
+        my $to = $map->{$fromvar};
+        $to->type eq 'name' or return $self->set_error(sprintf(
+            'Var %s maps to %s, not a variable', $fromvar, $to->str,
+        ));
+        my $from = Axiom::Expr->new({
+            type => 'name',
+            args => [ $fromvar ],
+        });
+        push @$list, { args => [ $from, $to ] };
     }
-    die "not yet";
+    return $self->validate([ { args => $list } ]);
 }
 
 sub validate {
