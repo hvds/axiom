@@ -1446,6 +1446,7 @@ sub _grammar {
         <token: ForallToken> \\A | \\forall
         <token: ExistsToken> \\E | \\exists
         (?# used only in derivations )
+        <token: WithToken> \*with
         <token: ValueToken> \*value
         (?# Assign and Equals are ambiguous, I think that is ok )
         <token: AssignToken> =

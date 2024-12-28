@@ -444,4 +444,81 @@ sub difflist {
     );
 }
 
+# Verify that the supplied inequality is satisfied, either as a constant or
+# if not constant then as supported by the evidence provided.
+# C<$targ> is the inequality to check, C<$base> and C<$loc> are the base
+# expression and the targeted location (used to find possible range of each
+# iterator variable, and the appropriate dictionary to bind them), and
+# optional C<$with> is the name or line number of a statement to use in
+# the proof.
+sub check_range {
+    my($self, $targ, $base, $loc, $with) = @_;
+    my $c = $targ->check_const;
+    if (defined $c) {
+        return 1 if $c;
+        return $self->set_error(sprintf(
+            'Const failure to satisfy %s', $targ->str
+        ));
+    }
+
+    my($wreq, $wassert);
+    if ($with) {
+        my $w = $self->line($with);
+        $w = $w->args->[1] while $w->type eq 'forall';
+        my $wt = $w->type;
+        if ($wt eq 'implies') {
+            ($wreq, $w) = @{ $w->args };
+            $wt = $w->type;
+        }
+        $wassert = ($wt eq 'andlist') ? $w->args : [ $w ];
+    }
+    return 1 if $wassert && !$wreq
+            && $self->check_satisfy($targ, $wassert);
+
+    my $rassert = [];
+    for (0 .. $#$loc) {
+        my $e = $base->locate([ @$loc[0 .. $_ - 1] ]);
+        next unless $e->is_iter;
+        my($var, $from, $to, $expr) = @{ $e->args };
+        push @$rassert, Axiom::Expr->new({
+            type => 'rge',
+            args => [ $var->copy, $from->copy ],
+        });
+        push @$rassert, Axiom::Expr->new({
+            type => 'rle',
+            args => [ $var->copy, $to->copy ],
+        });
+    }
+    my $dict = $base->dict_at($loc);
+    $_->resolve($dict) for @$rassert;
+
+    if ($wreq) {
+        return $self->set_error(sprintf(
+            'Cannot prove %s with %s since %s is not satisfied by [%s]',
+            $targ->str, $with, $wreq->str, join ' & ', map $_->str, @$rassert
+        )) unless $self->check_satisfy($wreq, $rassert);
+        push @$rassert, @$wassert;
+    }
+
+    return 1 if $self->check_satisfy($targ, $rassert);
+    return $self->set_error(sprintf(
+        'No evidence for %s found in [%s]',
+        $targ->str, join ' & ', map $_->str, @$rassert
+    ));
+}
+
+sub check_satisfy {
+    my($self, $targ, $assert) = @_;
+    if ($targ->type eq 'andlist') {
+        for (@{ $targ->args }) {
+            return 0 unless $self->check_satisfy($_, $assert);
+        }
+        return 1;
+    }
+    for (@$assert) {
+        return 1 unless $targ->diff($_, 1);
+    }
+    return 0;
+}
+
 1;
