@@ -774,7 +774,10 @@ sub iter_tree {
 }
 
 sub iter_locn {
-    my(@stack) = [ $_[0], [] ];
+    my($self, $start) = @_;
+    my(@stack) = $start
+        ? [ $self->locate($start), $start ]
+        : [ $self, [] ];
     return sub {
         my($self, $loc) = @{ shift(@stack) // return };
         my $args = $self->args;
