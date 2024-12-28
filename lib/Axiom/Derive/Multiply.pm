@@ -26,17 +26,16 @@ sub rulename { 'multiply' }
 
 sub derive_args {
     q{
-        (?: \( <[args=line]>? \) )?
+        (?: \( <[args=optline]> (?: \s* <.ValueToken> \s* <[args=Expr]> )? \) )?
         (?{
-            $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
-            $MATCH{args} //= [ '' ];
+            $MATCH{args}[0] = $MATCH{args}[0]{args} // '';
         })
     };
 }
 
 sub derive {
     my($self, $args) = @_;
-    my($line) = @$args;
+    my($line, $value) = @$args;
     my $from_base = $self->line($line);
     my $from = $from_base;
     my $to = $self->expr;
@@ -52,7 +51,7 @@ sub derive {
             or return $self->set_error('No relation to derive from');
     $to->is_relation
             or return $self->set_error('No relation to derive to');
-    my $expr = Axiom::Expr->new({
+    my $expr = $value // Axiom::Expr->new({
         type => 'mullist',
         args => [
             $to->args->[0]->copy,

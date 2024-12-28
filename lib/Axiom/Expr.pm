@@ -1445,6 +1445,8 @@ sub _grammar {
         <token: MaxToken> \\max
         <token: ForallToken> \\A | \\forall
         <token: ExistsToken> \\E | \\exists
+        (?# used only in derivations )
+        <token: ValueToken> \*value
         (?# Assign and Equals are ambiguous, I think that is ok )
         <token: AssignToken> =
         <token: BindToken> :=
