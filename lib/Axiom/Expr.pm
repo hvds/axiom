@@ -154,6 +154,8 @@ sub recip {
         prod => [ 0, 0, "\\prod_{%s=%s}^{%s}{%s}" ],
         integral => [ 0, 0, "\\int_{%s=%s}^{%s}{%s}" ],
         inteval => [ 0, 0, "\\inteval_{%s=%s}^{%s}{%s}" ],
+        min => [ 0, 0, "\\min(%s, %s)" ],
+        max => [ 0, 0, "\\max(%s, %s)" ],
     );
     sub str {
         my($self, $prec) = @_;
@@ -1315,6 +1317,8 @@ sub _grammar {
                 | <[args=Sum]>
                 | <[args=Integral]>
                 | <[args=Inteval]>
+                | <[args=Min]>
+                | <[args=Max]>
                 | <[args=ParenExpr]>
             )
             <type=(?{ 'nothing' })>
@@ -1352,6 +1356,18 @@ sub _grammar {
                 $MATCH{args}[2] = $MATCH{args}[2]{args}[0];
             })
             <type=(?{ 'inteval' })>
+        <objrule: Axiom::Expr=Min>
+            <.MinToken> \( <[args=ArgList]> \)
+            (?{
+                $MATCH{args} = [ map @{ $_->{args} }, @{ $MATCH{args} } ];
+            })
+            <type=(?{ 'min' })>
+        <objrule: Axiom::Expr=Max>
+            <.MaxToken> \( <[args=ArgList]> \)
+            (?{
+                $MATCH{args} = [ map @{ $_->{args} }, @{ $MATCH{args} } ];
+            })
+            <type=(?{ 'max' })>
 
         <rule: ArgList>
             <[args=Expr]>+ % <.CommaToken>
@@ -1425,6 +1441,8 @@ sub _grammar {
         <token: SumToken> \\sum
         <token: IntegralToken> \\int
         <token: IntevalToken> \\inteval
+        <token: MinToken> \\min
+        <token: MaxToken> \\max
         <token: ForallToken> \\A | \\forall
         <token: ExistsToken> \\E | \\exists
         (?# Assign and Equals are ambiguous, I think that is ok )
