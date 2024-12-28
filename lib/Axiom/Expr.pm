@@ -18,6 +18,7 @@ my %classtype = (
     (map +($_ => 'Axiom::Expr::Const'), qw{ integer rational }),
     (map +($_ => 'Axiom::Expr::Name'), qw{ name }),
     (map +($_ => 'Axiom::Expr::Iter'), qw{ sum prod integral inteval }),
+    (map +($_ => 'Axiom::Expr::Relation'), qw{ equals rle rlt rge rgt }),
     (map +($_ => 'Axiom::Expr::Quant'), qw{ forall exists }),
 );
 
@@ -60,6 +61,7 @@ sub rawexpr {
 sub is_atom { 0 }
 sub is_const { 0 }
 sub is_iter { 0 }
+sub is_relation { 0 }
 sub is_quant { 0 }
 sub is_list { $listtype{ shift->type } }
 sub has_newvar { 0 }
@@ -131,6 +133,10 @@ sub recip {
         forall => [ 0, 0, "\\A%s: %s" ],
         exists => [ 0, 0, "\\E%s: %s" ],
         equals => [ 6, 0, "%s = %s" ],
+        rlt => [ 6, 0, "%s < %s" ],
+        rle => [ 6, 0, "%s <= %s" ],
+        rgt => [ 6, 0, "%s > %s" ],
+        rge => [ 6, 0, "%s >= %s" ],
         implies => [ 6, 0, "%s -> %s" ],
         andlist => [ 6, -1, " & " ],
         orlist => [ 6, -1, " | " ],
@@ -186,6 +192,10 @@ sub _clean {
     }
     my $sub = {
         equals => undef,
+        rlt => undef,
+        rle => undef,
+        rgt => undef,
+        rge => undef,
         function => undef,
         expr => sub { return $self->args->[0] },
         braceexpr => sub { return $self->args->[0] },
@@ -1130,6 +1140,49 @@ package Axiom::Expr::Iter {
     }
 };
 
+package Axiom::Expr::Relation {
+    our @ISA = qw{Axiom::Expr};
+    my %inverse = (qw{
+        equals equals rle rge rge rle rlt rgt rgt rlt
+    });
+    sub is_relation { 1 }
+    sub inverse_type {
+        my($self) = @_;
+        return $inverse{$self->type} // die "Unknown type '@{[ $self->type ]}'";
+    }
+    sub _diff {
+        my($self, $other, $map, $exact) = @_;
+        my $diff = $self->SUPER::_diff($other, $map, $exact);
+        if ($diff) {
+            my $temp = Axiom::Expr->new({
+                type => $self->inverse_type,
+                args => [ reverse @{ $self->args } ],
+            });
+            return undef unless $temp->SUPER::_diff($other, $map, $exact);
+        }
+        return $diff;
+    }
+    # TRUE or FALSE if relation is constant, else undef
+    sub check_const {
+        my($self) = @_;
+        my $args = $self->args;
+        my $e = Axiom::Expr->new({
+            type => 'pluslist',
+            args => [ $args->[0]->copy, $args->[1]->negate ],
+        })->clean;
+        return undef unless $e->is_const;
+        my $v = $e->rat;
+        my $cb = {
+            equals => sub { $v == 0 ? 1 : 0 },
+            rle => sub { $v <= 0 ? 1 : 0 },
+            rlt => sub { $v < 0 ? 1 : 0 },
+            rge => sub { $v >= 0 ? 1 : 0 },
+            rgt => sub { $v > 0 ? 1 : 0 },
+        }->{ $self->type } // die "Unknown type @{[ $self->type ]}";
+        return $cb->();
+    }
+}
+
 package Axiom::Expr::Quant {
     our @ISA = qw{Axiom::Expr};
     sub is_quant { 1 }
@@ -1181,6 +1234,18 @@ sub _grammar {
             |
                 <[args=Expr]> <.EqualsToken> <[args=Expr]>
                 <type=(?{ 'equals' })>
+            |
+                <[args=Expr]> <.LEToken> <[args=Expr]>
+                <type=(?{ 'rle' })>
+            |
+                <[args=Expr]> <.LTToken> <[args=Expr]>
+                <type=(?{ 'rlt' })>
+            |
+                <[args=Expr]> <.GEToken> <[args=Expr]>
+                <type=(?{ 'rge' })>
+            |
+                <[args=Expr]> <.GTToken> <[args=Expr]>
+                <type=(?{ 'rgt' })>
             |
                 <[args=SStatement]>
                 <type=(?{ 'nothing' })>
@@ -1339,6 +1404,10 @@ sub _grammar {
         <token: CloseBrace> \}
         <token: ImpliesToken> ->
         <token: EqualsToken> =
+        <token: LEToken> \<=
+        <token: LTToken> \<
+        <token: GEToken> \>=
+        <token: GTToken> \>
         <token: AndSeparator> \&
         <token: OrSeparator> \|
         <token: PlusSeparator> <PlusToken> | <?MinusToken>
