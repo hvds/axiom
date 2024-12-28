@@ -43,6 +43,7 @@ L<Axiom::Derive::IntEval>
 L<Axiom::Derive::Simplify>
 L<Axiom::Derive::Conjoin>
 L<Axiom::Derive::Ponens>
+L<Axiom::Derive::MinMax>
 
 =cut
 
@@ -75,6 +76,7 @@ my %class; BEGIN {
         Axiom::Derive::Simplify
         Axiom::Derive::Conjoin
         Axiom::Derive::Ponens
+        Axiom::Derive::MinMax
     };
 }
 
