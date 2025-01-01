@@ -329,7 +329,7 @@ sub _clean {
                     return $self;
                 }
             }
-                
+
             my(@con, @plus, @minus) = ();
             for (0 .. $#$args) {
                 push @{
