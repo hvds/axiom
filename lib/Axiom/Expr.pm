@@ -1250,6 +1250,12 @@ sub _grammar {
         <debug: same>
         <objrule: Axiom::Expr=Statement>
             (?:
+                <.ForallToken> <[args=Variable]> : <[args=Statement]>
+                <type=(?{ 'forall' })>
+            |
+                <.ExistsToken> <[args=Variable]> : <[args=Statement]>
+                <type=(?{ 'exists' })>
+            |
                 <[args=SStatement]>+ % <.AndSeparator>
                 <type =(?{ 'andlist' })>
             |
@@ -1259,11 +1265,8 @@ sub _grammar {
                 <[args=SStatement]> <.ImpliesToken> <[args=SStatement]>
                 <type=(?{ 'implies' })>
             |
-                <.ForallToken> <[args=Variable]> : <[args=Statement]>
-                <type=(?{ 'forall' })>
-            |
-                <.ExistsToken> <[args=Variable]> : <[args=Statement]>
-                <type=(?{ 'exists' })>
+                <[args=SStatement]>
+                <type=(?{ 'nothing' })>
             |
                 <[args=Expr]> <.EqualsToken> <[args=Expr]>
                 <type=(?{ 'equals' })>
@@ -1279,13 +1282,17 @@ sub _grammar {
             |
                 <[args=Expr]> <.GTToken> <[args=Expr]>
                 <type=(?{ 'rgt' })>
-            |
-                <[args=SStatement]>
-                <type=(?{ 'nothing' })>
             )
         <objrule: Axiom::Expr=SStatement>
-            <.OpenParen> <[args=Statement]> <.CloseParen>
-            <type=(?{ 'nothing' })>
+            (?:
+                <.OpenParen> <[args=Statement]> <.CloseParen>
+                <type=(?{ 'nothing' })>
+            |
+                (?# a variable can represent a proposition )
+                (?# FIXME: variables should have domains attached )
+                <[args=Variable]>
+                <type=(?{ 'nothing' })>
+            )
         <objrule: Axiom::Expr=Expr>
             <[args=PlusList]>
             <type=(?{ 'nothing' })>
@@ -1452,16 +1459,16 @@ sub _grammar {
         <token: ImpliesToken> ->
         <token: EqualsToken> =
         <token: LEToken> \<=
-        <token: LTToken> \<
+        <token: LTToken> \< (?!=)
         <token: GEToken> \>=
-        <token: GTToken> \>
+        <token: GTToken> \> (?!=)
         <token: AndSeparator> \&
         <token: OrSeparator> \|
         <token: PlusSeparator> <PlusToken> | <?MinusToken>
         <token: SignToken> <Sign=PlusToken> | <Sign=MinusToken>
             (?{ $MATCH = $MATCH{Sign} })
         <token: PlusToken> \+
-        <token: MinusToken> \-
+        <token: MinusToken> \- (?!>)
         # should this be \\sol ?
         <token: DivideToken> /
         # should this be \\middot ?
