@@ -66,6 +66,10 @@ sub is_quant { 0 }
 sub is_list { $listtype{ shift->type } }
 sub has_newvar { 0 }
 
+sub given {
+    return ();
+}
+
 sub is_neg {
     my($self) = @_;
     my $type = $self->type;
@@ -1111,6 +1115,21 @@ package Axiom::Expr::Iter {
     sub has_newvar { 1 }
     sub intro_newvar { 0 }
     sub affect_newvar { 3 }
+    sub given {
+        my($self) = @_;
+        my $args = $self->args;
+        return +(
+            Axiom::Expr->new({
+                type => 'rge',
+                args => [ $args->[0]->copy, $args->[1]->copy ],
+            }),
+            Axiom::Expr->new({
+                type => 'rle',
+                args => [ $args->[0]->copy, $args->[2]->copy ],
+            }),
+        );
+    }
+
     # Provides the op used to split 'iter(var, start, end, expr)' into
     # 'iter(var, start, mid, expr) op type(var, mid, end, expr)'
     sub combiner {

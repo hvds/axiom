@@ -486,16 +486,7 @@ sub check_range {
     my $rassert = [];
     for (0 .. $#$loc) {
         my $e = $base->locate([ @$loc[0 .. $_ - 1] ]);
-        next unless $e->is_iter;
-        my($var, $from, $to, $expr) = @{ $e->args };
-        push @$rassert, Axiom::Expr->new({
-            type => 'rge',
-            args => [ $var->copy, $from->copy ],
-        });
-        push @$rassert, Axiom::Expr->new({
-            type => 'rle',
-            args => [ $var->copy, $to->copy ],
-        });
+        push @$rassert, $e->given;
     }
     my $dict = $base->dict_at($loc);
     $_->resolve($dict) for @$rassert;
