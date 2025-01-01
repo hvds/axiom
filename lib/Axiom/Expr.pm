@@ -68,6 +68,11 @@ sub has_newvar { 0 }
 sub check_const { undef }
 
 sub given {
+    my($self) = @_;
+    if ($self->type eq 'given') {
+        my $arg = $self->args->[0];
+        return +($arg->type eq 'andlist') ? @{ $arg->args } : ($arg);
+    }
     return ();
 }
 
@@ -161,6 +166,7 @@ sub recip {
         inteval => [ 0, 0, "\\inteval_{%s=%s}^{%s}{%s}" ],
         min => [ 0, 0, "\\min(%s, %s)" ],
         max => [ 0, 0, "\\max(%s, %s)" ],
+        given => [ 0, 0, "\\given_{%s}{%s}" ],
     );
     sub str {
         my($self, $prec) = @_;
@@ -1304,6 +1310,9 @@ sub _grammar {
             |
                 <[args=Expr]> <.GTToken> <[args=Expr]>
                 <type=(?{ 'rgt' })>
+            |
+                <[args=GivenStatement]>
+                <type=(?{ 'nothing' })>
             )
         <objrule: Axiom::Expr=SStatement>
             (?:
@@ -1380,6 +1389,7 @@ sub _grammar {
                 | <[args=Inteval]>
                 | <[args=Min]>
                 | <[args=Max]>
+                | <[args=GivenExpr]>
                 | <[args=ParenExpr]>
             )
             <type=(?{ 'nothing' })>
@@ -1429,6 +1439,12 @@ sub _grammar {
                 $MATCH{args} = [ map @{ $_->{args} }, @{ $MATCH{args} } ];
             })
             <type=(?{ 'max' })>
+        <objrule: Axiom::Expr=GivenStatement>
+            <.GivenToken> _ \{ <[args=Statement]> \} \{ <[args=Statement]> \}
+            <type=(?{ 'given' })>
+        <objrule: Axiom::Expr=GivenExpr>
+            <.GivenToken> _ \{ <[args=Statement]> \} <[args=BraceExpr]>
+            <type=(?{ 'given' })>
 
         <rule: ArgList>
             <[args=Expr]>+ % <.CommaToken>
@@ -1504,6 +1520,7 @@ sub _grammar {
         <token: IntevalToken> \\inteval
         <token: MinToken> \\min
         <token: MaxToken> \\max
+        <token: GivenToken> \\given
         <token: ForallToken> \\A | \\forall
         <token: ExistsToken> \\E | \\exists
         (?# used only in derivations )
