@@ -1058,7 +1058,8 @@ package Axiom::Expr::Name {
             return [] unless $oi == $map->{$si};
         } else {
             return [] unless $si == $oi
-                    || (!$exact && $self->name eq $other->name);
+                    || (!$exact && $self->name eq $other->name)
+                    || ($exact || 0) < 0;
             return [] if defined $map->{"r$oi"};
             $map->{$si} = $oi;
             $map->{"r$oi"} = $si;

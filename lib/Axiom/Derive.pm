@@ -44,6 +44,7 @@ L<Axiom::Derive::Simplify>
 L<Axiom::Derive::Conjoin>
 L<Axiom::Derive::Ponens>
 L<Axiom::Derive::MinMax>
+L<Axiom::Derive::Rename>
 
 =cut
 
@@ -77,6 +78,7 @@ my %class; BEGIN {
         Axiom::Derive::Conjoin
         Axiom::Derive::Ponens
         Axiom::Derive::MinMax
+        Axiom::Derive::Rename
     };
 }
 
@@ -264,9 +266,9 @@ sub _varmap {
 }
 
 sub validate_diff {
-    my($self, $result) = @_;
+    my($self, $result, $exact) = @_;
     my $expr = $self->expr;
-    if (my $diff = $result->diff($expr)) {
+    if (my $diff = $result->diff($expr, 0, $exact || 0)) {
         return $self->set_error(sprintf(
             "Expressions differ at\n  %s\n  %s\nclean:\n  %s\n  %s\n",
             map($_->locate($diff)->str, $expr, $result),
