@@ -51,13 +51,17 @@ sub derive {
         "Can't equate() with a %s\n", $from_expr->type,
     ));
 
+    # FIXME: start at the diff, as per MinMax
     my $iter = $starting->iter_locn;
     while (my($se, $loc) = $iter->()) {
+        my(@dep, @ind);
+        push @{ $se->is_independent($_) ? \@ind : \@dep }, $_ for @vars;
         for my $from (@{ $from_expr->args }) {
-            my $map = $self->find_mapping($from, $se, \@vars)
+            my $map = $self->find_mapping($from, $se, \@dep)
                     or next;
             my @vargs = ($line, $loc, $eqline, { args => [
-                map +{ args => [ $_->copy, $map->{$_->name} ] }, @vars,
+                map(+{ args => [ $_->copy, $map->{$_->name} ] }, @dep),
+                map(+{ args => [ $_->copy, $_->copy ] }, @ind),
             ] });
             # FIXME: validate can die in eg $expr->resolve($to_dict)
             return 1 if eval { $self->validate(\@vargs) };
