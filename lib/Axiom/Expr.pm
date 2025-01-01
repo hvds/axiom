@@ -703,6 +703,17 @@ sub copy_with {
     });
 }
 
+sub copy_with_locn {
+    my($self, $with, $loc) = @_;
+    $loc //= [];
+    my $args = $self->args;
+    return $with->($self, $loc) // ref($self)->new({
+        type => $self->type,
+        args => [ map $args->[$_]->copy_with_locn($with, [ @$loc, $_ + 1]),
+                0 .. $#$args ],
+    });
+}
+
 sub common_loc {
     my($self, $vi) = @_;
     my @all;
@@ -966,6 +977,14 @@ package Axiom::Expr::Const {
             args => [ map Math::BigInt->new("$_"), @{ $self->args } ],
         });
     }
+    sub copy_with_locn {
+        my($self, $with, $loc) = @_;
+        $loc //= [];
+        return $with->($self, $loc) // ref($self)->new({
+            type => $self->type,
+            args => [ map Math::BigInt->new("$_"), @{ $self->args } ],
+        });
+    }
     sub bracketed { join '/', @{ shift->args } }
     sub rat {
         my($self) = @_;
@@ -1001,6 +1020,18 @@ package Axiom::Expr::Name {
     sub copy_with {
         my($self, $with) = @_;
         return $with->($self) // do {
+            my $other = ref($self)->new({
+                type => $self->type,
+                args => [ @{ $self->args } ],
+            });
+            $other->bind($self->binding);
+            $other;
+        };
+    }
+    sub copy_with_locn {
+        my($self, $with, $loc) = @_;
+        $loc //= [];
+        return $with->($self, $loc) // do {
             my $other = ref($self)->new({
                 type => $self->type,
                 args => [ @{ $self->args } ],
