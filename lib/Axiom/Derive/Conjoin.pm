@@ -19,6 +19,9 @@ Axiom::Derive::Conjoin - join two theorems with 'and'
 Given prior theorems C< P > and C< Q >, constructs the new theorem
 C< P & Q >.
 
+C< \Ax: P > and C< \Ax: Q > may give either C< (\Ax: P) & (\Ax: Q) >
+or C< \Ax: (P & Q) >.
+
 =cut
 
 sub rulename { 'conjoin' }
@@ -35,13 +38,56 @@ sub derive {
     return $self->validate($args);
 }
 
+sub _topall {
+    my($expr) = @_;
+    my @vars;
+    while ($expr->type eq 'forall') {
+        (my($var), $expr) = @{ $expr->args };
+        push @vars, $var;
+    }
+    return +(\@vars, $expr);
+}
+
 sub validate {
     my($self, $args) = @_;
     my($line, $conline) = @$args;
+    my $dict = $self->dict;
     my $ea = $self->line($line)->copy;
-    $ea->resolve($self->dict);
     my $eb = $self->line($conline)->copy;
-    $eb->resolve($self->dict);
+    my $ec = $self->expr;
+    $_->resolve($dict) for ($ea, $eb, $ec);
+    my($shared, undef) = _topall($ec);
+    my($sepa, $sepb);
+    if (@$shared) {
+        ($sepa, $ea) = _topall($ea);
+        ($sepb, $eb) = _topall($eb);
+        my($ai, $bi) = ($#$shared) x 2;
+        for (reverse 0 .. $#$sepa) {
+            last if $ai < 0;
+            next unless $sepa->[$_]->name eq $shared->[$ai]->name;
+            splice @$sepa, $_, 1;
+            --$ai;
+        }
+        for (reverse 0 .. $#$sepb) {
+            last if $bi < 0;
+            next unless $sepb->[$_]->name eq $shared->[$bi]->name;
+            splice @$sepb, $_, 1;
+            --$bi;
+        }
+        --$ai while $ai >= 0 && $ea->is_independent($shared->[$ai]);
+        --$bi while $bi >= 0 && $eb->is_independent($shared->[$bi]);
+        return $self->set_error(sprintf(
+            'Mismatched vars'
+        )) unless $ai < 0 && $bi < 0;
+        $ea = Axiom::Expr->new({
+            type => 'forall',
+            args => [ $_, $ea ]
+        }) for reverse @$sepa;
+        $eb = Axiom::Expr->new({
+            type => 'forall',
+            args => [ $_, $eb ]
+        }) for reverse @$sepb;
+    }
     my @args;
     push @args, ($ea->type eq 'andlist') ? @{ $ea->args } : $ea;
     push @args, ($eb->type eq 'andlist') ? @{ $eb->args } : $eb;
@@ -49,6 +95,11 @@ sub validate {
         type => 'andlist',
         args => \@args,
     });
+    $repl = Axiom::Expr->new({
+        type => 'forall',
+        args => [ $_, $repl ],
+    }) for reverse @$shared;
+    $repl->resolve($dict);
 
     $self->validate_diff($repl) or return;
     $self->rule(sprintf 'conjoin(%s, %s)',
