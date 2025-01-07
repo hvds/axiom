@@ -43,6 +43,7 @@ L<Axiom::Derive::IntEval>
 L<Axiom::Derive::Simplify>
 L<Axiom::Derive::Conjoin>
 L<Axiom::Derive::Ponens>
+L<Axiom::Derive::Cases>
 L<Axiom::Derive::MinMax>
 L<Axiom::Derive::Rename>
 
@@ -77,6 +78,7 @@ my %class; BEGIN {
         Axiom::Derive::Simplify
         Axiom::Derive::Conjoin
         Axiom::Derive::Ponens
+        Axiom::Derive::Cases
         Axiom::Derive::MinMax
         Axiom::Derive::Rename
     };
