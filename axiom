@@ -23,6 +23,6 @@ while (1) {
     last if $opt_final;
     my $line = $term->readline($hs->curindex . '> ') // last;
     eval { $hs->add($line) };
-    warn $@ if $@;
+    warn "$@\n" if $@;
 }
 print "\n";    # get past the last prompt

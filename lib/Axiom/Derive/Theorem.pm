@@ -29,6 +29,11 @@ sub derive_args {
     };
 }
 
+sub late_resolve {
+    my($self, $include) = @_;
+    return +($include && $self->context->in_scope) ? 1 : 0;
+}
+
 sub derive {
     my($self, $args) = @_;
     return $self->validate($args);
@@ -36,6 +41,7 @@ sub derive {
 
 sub include {
     my($self, $args) = @_;
+    return $self->null if $self->context->in_scope;
     return $self->validate($args, 1);
 }
 

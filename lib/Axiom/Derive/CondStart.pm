@@ -40,6 +40,12 @@ sub derive {
     ] ]);
 }
 
+sub include {
+    my($self, $args) = @_;
+    $self->scope(1);
+    return $self->null;
+}
+
 sub validate {
     my($self, $args) = @_;
     my($varlist) = @$args;

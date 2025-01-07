@@ -131,7 +131,8 @@ sub introduce {
 }
 sub str {
     my($self) = @_;
-    return sprintf '%s: %s', $self->rule, $self->rawexpr;
+    my($rule, $rawexpr) = ($self->rule, $self->rawexpr);
+    return +(length $rule) ? "$rule: $rawexpr" : '';
 }
 sub line {
     my($self, $index) = @_;
@@ -219,11 +220,17 @@ sub include {
                 or die "Can't parse derivation: $source";
     }
     my($args, $expr) = @/{qw{ args expr }};
-    $expr->resolve($self->dict);
+    $expr->resolve($self->dict) unless $self->late_resolve(1);
     $self->{rawexpr} = $expr->rawexpr;
     $self->{expr} = $expr;
     die $self->clear_error unless $self->include($args);
     return $self;
+}
+
+sub null {
+    my($self) = @_;
+    $self->rule('');
+    return 1;
 }
 
 sub derivere {

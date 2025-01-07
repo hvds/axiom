@@ -100,6 +100,11 @@ sub enter_scope {
     return $self->add_line($entry);
 }
 
+sub in_scope {
+    my($self) = @_;
+    return +($self->{curline} =~ m{(?:^|\.)\d+\z}) ? 1 : 0;
+}
+
 sub leave_scope {
     my($self, $entry) = @_;
     $self->{curline} =~ s{(?:^|\.)\d+\z}{}
@@ -139,7 +144,10 @@ sub add {
         $self->named->{$name} = $derive;
         push @{ $self->onamed }, $name;
     }
-    print $derive->str, "\n" unless $quiet;
+    unless ($quiet) {
+        my $str = $derive->str;
+        print "$str\n" if length $str;
+    }
     return;
 }
 

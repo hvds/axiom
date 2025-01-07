@@ -32,6 +32,11 @@ sub derive_args {
     };
 }
 
+sub late_resolve {
+    my($self, $include) = @_;
+    return +($include && $self->context->in_scope) ? 1 : 0;
+}
+
 sub _condstart {
     my($self) = @_;
     my $where = $self->context->curline;
@@ -76,6 +81,12 @@ sub derive {
         push @$list, { args => [ $from, $to ] };
     }
     return $self->validate([ { args => $list } ]);
+}
+
+sub include {
+    my($self, $args) = @_;
+    $self->scope(-1);
+    return $self->null;
 }
 
 sub validate {
