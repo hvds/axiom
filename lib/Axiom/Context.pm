@@ -230,7 +230,11 @@ sub apply_directive {
             chomp;
             eval { $self->add($_) };
             if ($@) {
-                warn "  $_\n", $@;
+                if ($@ =~ /^\*exit/) {
+                    print "*exit\n";
+                } else {
+                    warn "  $_\n", $@;
+                }
                 return;
             }
         }
@@ -257,6 +261,8 @@ sub apply_directive {
             push @$onamed, $name;
         }
         $self->add_line(Axiom::Context::Directive->new($line));
+    } elsif ($line =~ /^\*exit\b/) {
+        die "*exit";
     } else {
         die "Unknown directive: <$line>\n";
     }
