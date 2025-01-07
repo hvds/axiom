@@ -51,16 +51,20 @@ sub derive {
             or return $self->set_error('No relation to derive from');
     $to->is_relation
             or return $self->set_error('No relation to derive to');
-    my $expr = $value // Axiom::Expr->new({
-        type => 'mullist',
-        args => [
-            $to->args->[0]->copy,
-            Axiom::Expr->new({
-                type => 'recip',
-                args => [ $from->args->[0]->copy ],
-            }),
-        ],
-    });
+    my $expr = $value // do {
+        my $v = $to->args->[0];
+        my $i = ($v->is_const && $v->rat == 0) ? 1 : 0;
+        Axiom::Expr->new({
+            type => 'mullist',
+            args => [
+                $to->args->[$i]->copy,
+                Axiom::Expr->new({
+                    type => 'recip',
+                    args => [ $from->args->[$i]->copy ],
+                }),
+            ],
+        });
+    };
     $expr->resolve($from_base->dict_at($loc));
     $expr = $expr->clean;
     return $self->validate([ $line, $expr ]);
