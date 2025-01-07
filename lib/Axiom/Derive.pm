@@ -48,6 +48,7 @@ L<Axiom::Derive::Cases>
 L<Axiom::Derive::MinMax>
 L<Axiom::Derive::Rename>
 L<Axiom::Derive::Give>
+L<Axiom::Derive::Given>
 
 =cut
 
@@ -84,6 +85,7 @@ my %class; BEGIN {
         Axiom::Derive::MinMax
         Axiom::Derive::Rename
         Axiom::Derive::Give
+        Axiom::Derive::Given
     };
 }
 
