@@ -1307,11 +1307,12 @@ sub _grammar {
             (?:
                 <.OpenParen> <[args=Statement]> <.CloseParen>
                 <type=(?{ 'nothing' })>
-            |
-                (?# a variable can represent a proposition )
-                (?# FIXME: variables should have domains attached )
-                <[args=Variable]>
-                <type=(?{ 'nothing' })>
+                (?# if we go second-order, a variable can represent
+                    a proposition - though in that case we should really
+                    be attaching a domain. In any case, adding a raw
+                    ... or args=Variable, type=nothing ...
+                    here makes parsing way slower.
+                )
             )
         <objrule: Axiom::Expr=Expr>
             <[args=PlusList]>
