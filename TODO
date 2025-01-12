@@ -12,7 +12,7 @@ mean big changes to how we construct exprs dynamically.
 Remove explicit rules entirely, discover them.
 Discover rules even when we take multiple steps.
 
-Sets, type checking, inequalities, constraints.
+Sets, type checking, constraints.
 - \Aa \e \Z, a > 10: ...
 
 Abstract out knowledge of operators:
