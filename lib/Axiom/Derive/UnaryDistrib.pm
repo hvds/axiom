@@ -31,9 +31,17 @@ Currently supported patterns are:
 
   -(ab) => (-a)(b)
 
-=item C<sum> with C<pluslist> as its expr
+=item any plus-ish iterator with C<pluslist> as its expr
 
-  \sum_{i=a}^b{c + d} => \sum_{i=a}^b{c} + \sum_{i=a}^b{d}
+This covers C<sum>, C<integral> and C<inteval>:
+
+  \sum_{i=a}^b{ci + d} => \sum_{i=a}^b{ci} + \sum_{i=a}^b{d}
+
+=item any mul-ish iterator with C<mullist> as its expr
+
+This covers C<prod>:
+
+  \prod_{i=a}^b{2i} => (\prod_{i=a}^b{2})(\prod_{i=a}^b{i})
 
 =item C<pow> with C<pluslist> base and positive integer power
 
@@ -69,14 +77,18 @@ sub derive {
     my @choice;
     $starting->walk_locn(sub {
         my($expr, $loc) = @_;
-        if ($expr->type eq 'negate') {
+        my $type = $expr->type;
+        if ($type eq 'negate') {
             my $subtype = $expr->args->[0]->type;
             push @choice, $loc if $subtype eq 'pluslist'
                     || $subtype eq 'mullist';
-        } elsif ($expr->type eq 'sum') {
+        } elsif ($type eq 'sum' || $type eq 'integral' || $type eq 'inteval') {
             my $subtype = $expr->args->[3]->type;
             push @choice, $loc if $subtype eq 'pluslist';
-        } elsif ($expr->type eq 'pow') {
+        } elsif ($type eq 'prod') {
+            my $subtype = $expr->args->[3]->type;
+            push @choice, $loc if $subtype eq 'mullist';
+        } elsif ($type eq 'pow') {
             my($val, $pow) = @{ $expr->args };
             push @choice, $loc if (
                 $val->type eq 'pluslist'
@@ -102,14 +114,15 @@ sub validate {
     my $source_dict = $starting->dict_at([]);
 
     my $expr = $starting->locate($loc);
+    my $type = $expr->type;
     my($arg, $repl);
-    if ($expr->type eq 'negate') {
+    if ($type eq 'negate') {
         $arg = $expr->args->[0];
         if ($arg->type eq 'pluslist') {
             $repl = Axiom::Expr->new({
                 type => 'pluslist',
                 args => [ map Axiom::Expr->new({
-                    type => 'negate',
+                    type => $type,
                     args => [ $_->copy ],
                 }), @{ $arg->args } ],
             });
@@ -125,7 +138,7 @@ sub validate {
                 } @$margs ],
             });
         }
-    } elsif ($expr->type eq 'sum') {
+    } elsif ($type eq 'sum' || $type eq 'integral' || $type eq 'inteval') {
         (my($var, $from, $to), $arg) = @{ $expr->args };
         if ($arg->type eq 'pluslist') {
             my $name = $var->name;
@@ -141,7 +154,7 @@ sub validate {
             $repl = Axiom::Expr->new({
                 type => 'pluslist',
                 args => [ map Axiom::Expr->new({
-                    type => 'sum',
+                    type => $type,
                     args => [
                         $var[$_],
                         $from->copy,
@@ -151,16 +164,42 @@ sub validate {
                 }), 0 .. $#{ $arg->args } ],
             });
         }
-    } elsif ($expr->type eq 'pow' && $expr->args->[1]->type eq 'pluslist') {
+    } elsif ($type eq 'prod') {
+        (my($var, $from, $to), $arg) = @{ $expr->args };
+        if ($arg->type eq 'mullist') {
+            my $name = $var->name;
+            my @var = map {
+                my $binding = $source_dict->insert_local($name);
+                my $new = Axiom::Expr->new({
+                    type => 'name',
+                    args => [ $name ],
+                });
+                $new->bind($binding);
+                $new;
+            } 0 .. $#{ $arg->args };
+            $repl = Axiom::Expr->new({
+                type => 'mullist',
+                args => [ map Axiom::Expr->new({
+                    type => $type,
+                    args => [
+                        $var[$_],
+                        $from->copy,
+                        $to->copy,
+                        $arg->args->[$_]->subst_var($var, $var[$_]),
+                    ],
+                }), 0 .. $#{ $arg->args } ],
+            });
+        }
+    } elsif ($type eq 'pow' && $expr->args->[1]->type eq 'pluslist') {
         my($val, $pow) = @{ $expr->args };
         $repl = Axiom::Expr->new({
             type => 'mullist',
             args => [ map Axiom::Expr->new({
-                type => 'pow',
+                type => $type,
                 args => [ $val->copy, $_->copy ],
             }), @{ $pow->args } ],
         });
-    } elsif ($expr->type eq 'pow') {
+    } elsif ($type eq 'pow') {
         my($val, $pow) = @{ $expr->args };
         $val->type eq 'pluslist' or return $self->set_error(sprintf(
             "don't know how to distribute a pow over a %s\n",
@@ -189,7 +228,7 @@ sub validate {
                     push @margs, ($lastpow == 1)
                         ? $arg->copy
                         : Axiom::Expr->new({
-                            type => 'pow',
+                            type => $type,
                             args => [
                                 $arg->copy,
                                 Axiom::Expr->new_const("$lastpow"),
