@@ -497,7 +497,7 @@ sub check_range {
     my $rassert = [];
     for (0 .. $#$loc) {
         my $e = $base->locate([ @$loc[0 .. $_ - 1] ]);
-        push @$rassert, $e->given;
+        push @$rassert, $e->given(($loc->[$_] // 0) - 1);
     }
     my $dict = $base->dict_at($loc);
     $_->resolve($dict) for @$rassert;

@@ -1117,7 +1117,8 @@ package Axiom::Expr::Iter {
     sub intro_newvar { 0 }
     sub affect_newvar { 3 }
     sub given {
-        my($self) = @_;
+        my($self, $next) = @_;
+        return () unless ($next // 0) == 3;
         my $args = $self->args;
         return +(
             Axiom::Expr->new({
