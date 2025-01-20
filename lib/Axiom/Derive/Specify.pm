@@ -111,7 +111,7 @@ sub validate {
         join ', ', map $_->name, @svar
     )) if @svar;
 
-    my($expr, $eloc) = ($se, []);
+    my($expr, $eloc) = ($se->copy, []);
     # Wrap in an extra '\Av: (...)' for resolving, then strip off after subst
     for (reverse(@var), $var) {
         $expr = Axiom::Expr->new({
@@ -125,6 +125,7 @@ sub validate {
     # TODO: strip $var out of $edict, it should not resolve
     # TODO: verify that quantified variables added in target do not appear
     # in source
+    $var = $var->copy;
     $var->resolve($edict);
     my $result = _subst_var_lazy($expr, $var, $value) // return;
     $result = $result->args->[1];
