@@ -92,22 +92,31 @@ sub include {
 sub validate {
     my($self, $args) = @_;
     my($map) = @$args;
+    my $right = $self->working;
 
-    my $cond = _condstart($self)->expr;
+    my $left = _condstart($self)->expr;
     my %vmap = map {
         my($var, $expr) = @{ $_->{args} };
         $var->resolve($self->dict);
         +($var->binding->id => $expr)
     } @{ $map->{args} // [] };
 
+    while ($right->type eq 'forall') {
+        my($v, $e) = @{ $right->args };
+        last if $vmap{$v->name};
+        last unless $left->is_independent($v);
+        $vmap{$v->name} = $v;
+        $right = $e;
+    }
+
     my $result = Axiom::Expr->new({
         type => 'implies',
         args => [
-            $cond->copy,
-            $self->working->copy,
+            $left->copy,
+            $right->copy,
         ],
     })->subst_vars(\%vmap);
-    for my $var (reverse sort values %vmap) {
+    for my $var (@vmap{ reverse sort keys %vmap }) {
         $result = Axiom::Expr->new({
             type => 'forall',
             args => [ $var, $result ],
