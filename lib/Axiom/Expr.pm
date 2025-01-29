@@ -112,6 +112,41 @@ sub is_unencumbered {
     return 1;
 }
 
+sub is_number {
+    my($self, $given) = @_;
+    return 0 unless $self->valuetype eq 'rat';
+    return 1 if $self->is_atom;
+    return 0 if List::Util::any(sub {
+        !$_->is_number($given);
+    }, @{ $self->args });
+    # FIXME: unwarranted assumption on integral
+    return 1 if $self->is_iter;
+    my $t = $self->type;
+    my $cb = {
+        (map +($_ => sub { 1 }), qw{ pluslist negate mullist min max }),
+        recip => sub {
+            my $arg = $self->args->[0];
+            return 1 if $arg->test_nonzero($given);
+            return 0;
+        },
+        pow => sub {
+            my($base, $pow) = @{ $self->args };
+            # FIXME: disallow negative base with non-integer pow
+            return 1 if $base->test_nonzero($given);
+            return 1 if $pow->test('rgt', 0, $given);
+            return 0;
+        },
+        factorial => sub {
+            my $arg = $self->args->[0];
+            # TODO: we'll need domain constraints on variables to do better,
+            # so keep it tight for now
+            return 1 if $arg->type eq 'integer' && $arg->rat >= 0;
+            return 0;
+        },
+    }->{$t} // die "Unknown type '$t' in is_number";
+    return $cb->();
+}
+
 sub given {
     my($self) = @_;
     if ($self->type eq 'given') {
