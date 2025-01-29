@@ -58,14 +58,59 @@ sub rawexpr {
     return $self->{''} // $self->str;
 }
 
+sub valuetype {
+    my($self) = @_;
+    my $t = $self->type;
+    state %vt = (
+        (map +($_ => 'rat'), qw{
+            integer rational sum prod integral inteval
+            pluslist negate mullist recip pow factorial min max
+        }),
+        (map +($_ => 'bool'), qw{
+            req rle rlt rge rgt forall exists
+            implies andlist orlist
+        }),
+        # for now
+        (name => 'rat'),
+    );
+    return $vt{$t} if defined $vt{$t};
+    return $self->args->[1]->valuetype if $t eq 'given';
+    die "unknown type '$t' in valuetype";
+}
+
 sub is_atom { 0 }
 sub is_const { 0 }
 sub is_iter { 0 }
 sub is_relation { 0 }
 sub is_quant { 0 }
+sub is_rat { shift->valuetype eq 'rat' }
+sub is_bool { shift->valuetype eq 'bool' }
 sub is_list { $listtype{ shift->type } }
 sub has_newvar { 0 }
 sub check_const { undef }
+
+sub is_unencumbered {
+    my($self, $loc) = @_;
+    my $ancestry = $self->ancestry($loc);
+    for my $i (reverse 0 .. $#$loc) {
+        my $e = $ancestry->[$i];
+        return 0 unless $e->is_bool;
+        return 0 if $e->is_relation;
+        next if $e->is_quant;
+        my $t = $e->type;
+        next if $t eq 'andlist' || $t eq 'orlist';
+        my $arg = $loc->[$i];
+        if ($t eq 'implies') {
+            next if $arg == 2;
+            return 0;
+        } elsif ($t eq 'given') {
+            return 1 if $arg == 1;  # shortcircuit true
+            return 0;
+        }
+        die "unknown type '$t' in is_unencumbered";
+    }
+    return 1;
+}
 
 sub given {
     my($self) = @_;
@@ -680,6 +725,17 @@ sub bracketed {
     my($self) = @_;
     sprintf '[%s %s]', $self->type,
             join ', ', map $_->bracketed, @{ $self->args };
+}
+
+sub ancestry {
+    my($self, $loc) = @_;
+    my $last = $self;
+    my $ret;
+    return [ (map {
+        $ret = $last;
+        $last = $last->args->[$_ - 1];
+        $ret;
+    } @$loc), $last ];
 }
 
 sub locate {
