@@ -376,12 +376,12 @@ sub test {
 }
 
 sub _clean {
-    my($self) = @_;
+    my($self, $given) = @_;
     return undef if $self->is_atom;
     my $type = $self->type;
     my $args = $self->args;
     for (@$args) {
-        my $new = $_->_clean // next;
+        my $new = $_->_clean($given) // next;
         $_ = $new;
         redo;
     }
@@ -395,6 +395,10 @@ sub _clean {
         expr => sub { return $self->args->[0] },
         braceexpr => sub { return $self->args->[0] },
         parenexpr => sub { return $self->args->[0] },
+        given => sub {
+            my($p, $q) = @$args;
+            return $q->clean($p);
+        },
         forall => sub {
             my($var, $child) = @$args;
             if ($child->type eq 'forall'
@@ -514,7 +518,7 @@ sub _clean {
                             args => [ $mult, map $_->copy, @$mulargs ],
                         });
                     } : $mult;
-                    $args->[$ai] = $repl->clean;
+                    $args->[$ai] = $repl->clean($given);
                     return $self;
                 }
             }
@@ -706,7 +710,7 @@ sub _clean {
                         $ape = Axiom::Expr->new({
                             type => 'pluslist',
                             args => [ $ape->copy, $bpe->copy ],
-                        })->clean;
+                        })->clean($given);
                     } else {
                         $ap += $bp;
                     }
@@ -719,7 +723,7 @@ sub _clean {
                         args => [ $a->copy, $ape->copy ],
                     });
                     $repl = $repl->negate if $an < 0;
-                    $args->[$ai] = $repl->clean;
+                    $args->[$ai] = $repl->clean($given);
                     return $self;
                 }
             }
@@ -742,8 +746,10 @@ sub _clean {
         },
         recip => sub {
             my $arg = $args->[0];
-            # 1/(1/x) -> x (FIXME: x=0?)
-            return $arg->args->[0] if $arg->type eq 'recip';
+            if ($arg->type eq 'recip') {
+                my $argarg = $arg->args->[0];
+                return $argarg if $argarg->test_nonzero($given);
+            }
 
             # 1/(p/q) -> q/p
             return Axiom::Expr::Const->new_rat(1 / $arg->rat) if $arg->is_const;
@@ -774,23 +780,33 @@ sub _clean {
         pow => sub {
             my($val, $pow) = @{ $args };
             if ($pow->type eq 'integer') {
+                my $powi = $pow->rat;
                 # x^0 -> 1
-                # FIXME: take evasive action if x can be 0
                 return Axiom::Expr->new({
                     type => 'integer',
                     args => [ '1' ],
-                }) if $pow->args->[0] eq '0';
+                }) if $powi == 0 && $val->test_nonzero($given);
 
                 # x^1 -> x
-                return $val if $pow->args->[0] eq '1';
+                return $val if $powi eq '1';
 
                 # c1^c2 -> eval(c1^c2)
-                return Axiom::Expr::Const->new_rat(
-                    $val->rat ** $pow->args->[0]
-                ) if $val->is_const;
+                if ($val->is_const) {
+                    my $vali = $val->rat;
+                    return Axiom::Expr::Const->new_rat(
+                        $vali ** $powi
+                    ) if $vali || $powi;
+                }
+            }
+            if ($val->type eq 'integer') {
+                my $vali = $val->rat;
+                return Axiom::Expr->new({
+                    type => 'integer',
+                    args => [ '0' ],
+                }) if $vali == 0 && $pow->test_nonzero($given);
             }
 
-            # 1^x -> x
+            # 1^x -> 1
             return $val
                     if $val->type eq 'integer' && $val->args->[0] eq '1';
 
@@ -807,8 +823,9 @@ sub _clean {
             if ($val->is_const && $pow->type eq 'pluslist') {
                 my $pc = $pow->args->[0];
                 if ($pc->type eq 'integer') {
-                    my $pv = $pc->args->[0];
+                    my $pv = $pc->rat;
                     my $pargs = $pow->args;
+                    my $vv = $val->rat;
                     return Axiom::Expr->new({
                         type => 'mullist',
                         args => [
@@ -824,7 +841,7 @@ sub _clean {
                                 ],
                             }),
                         ],
-                    });
+                    }) if $vv || $pv;
                 }
             }
 
@@ -838,7 +855,6 @@ sub _clean {
                 return $rest;
             }
 
-            # TODO: 0^x (x != 0)
             return undef;
         },
     }->{$type};
@@ -846,16 +862,16 @@ sub _clean {
 }
 
 sub _clean_copied {
-    my($self) = @_;
+    my($self, $given) = @_;
     while (1) {
-        my $new = $self->_clean // return $self;
+        my $new = $self->_clean($given) // return $self;
         $self = $new;
     }
 }
 
 sub clean {
-    my($self) = @_;
-    return $self->copy->_clean_copied;
+    my($self, $given) = @_;
+    return $self->copy->_clean_copied($given);
 }
 
 sub bracketed {
