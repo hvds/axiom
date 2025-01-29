@@ -178,6 +178,108 @@ sub recip {
     });
 }
 
+sub test_nonzero {
+    my($self, $given) = @_;
+    my $zero = $self->test('req', 0, $given);
+    return defined($zero) ? 1 - $zero : undef;
+}
+
+sub test_sign {
+    my($self, $given) = @_;
+    my $zero = $self->test('req', 0, $given);
+    return undef unless defined $zero;
+    return 0 if $zero;
+    my $pos = $self->test('rgt', 0, $given);
+    return undef unless defined $pos;
+    return 1 if $pos;
+    return -1;
+}
+
+sub _test_exact {
+    my($rel, $v1, $v2) = @_;
+    my $cb = {
+        req => sub { $v1 == $v2 },
+        rlt => sub { $v1 < $v2 },
+        rle => sub { $v1 <= $v2 },
+        rgt => sub { $v1 > $v2 },
+        rge => sub { $v1 >= $v2 },
+    }->{$rel} // die "Unknown relation '$rel'";
+    return $cb->() ? 1 : 0;
+}
+
+# Return 1 if X r2 v2 implies X r1 v1, 0 if it implies the opposite, undef
+# if neither is forced.
+sub _test_const {
+    my($r1, $v1, $r2, $v2) = @_;
+    my $cb = {
+        req => {
+            req => sub { $v2 == $v1 ? 1 : 0 },
+            rlt => sub { $v2 <= $v1 ? 0 : undef },
+            rle => sub { $v2 < $v1 ? 0 : undef },
+            rgt => sub { $v2 >= $v1 ? 0 : undef },
+            rge => sub { $v2 > $v1 ? 0 : undef },
+        },
+        rlt => {
+            req => sub { $v2 < $v1 ? 1 : 0 },
+            rlt => sub { $v2 <= $v1 ? 1 : undef },
+            rle => sub { $v2 < $v1 ? 1 : undef },
+            rgt => sub { $v2 >= $v1 ? 0 : undef },
+            rge => sub { $v2 >= $v1 ? 0 : undef },
+        },
+        rle => {
+            req => sub { $v2 <= $v1 ? 1 : 0 },
+            rlt => sub { $v2 <= $v1 ? 1 : undef },
+            rle => sub { $v2 <= $v1 ? 1 : undef },
+            rgt => sub { $v2 >= $v1 ? 0 : undef },
+            rge => sub { $v2 > $v1 ? 0 : undef },
+        },
+        rgt => {
+            req => sub { $v2 > $v1 ? 1 : 0 },
+            rlt => sub { $v2 <= $v1 ? 0 : undef },
+            rle => sub { $v2 <= $v1 ? 0 : undef },
+            rgt => sub { $v2 >= $v1 ? 1 : undef },
+            rge => sub { $v2 > $v1 ? 1 : undef },
+        },
+        rge => {
+            req => sub { $v2 >= $v1 ? 1 : 0 },
+            rlt => sub { $v2 <= $v1 ? 0 : undef },
+            rle => sub { $v2 < $v1 ? 0 : undef },
+            rgt => sub { $v2 >= $v1 ? 1 : undef },
+            rge => sub { $v2 >= $v1 ? 1 : undef },
+        },
+
+    }->{$r1}{$r2} // die "Unknown relation combo '$r1' with '$r2'";
+    return $cb->();
+}
+
+# Return 1 if known to be true, 0 if known to be false, undef if not known.
+sub test {
+    my($self, $rel1, $val1, $given) = @_;
+    return _test_exact($rel1, $self->rat, $val1)
+            if $self->is_const;
+    # if not const we must rely on given constraints
+    return 0 unless defined $given;
+    my @given = ($given->type eq 'andlist') ? @{ $given->args } : ($given);
+    for my $g (@given) {
+        # CHECKME: do we need to handle quantifiers?
+        next unless $g->is_relation;
+        my($rel2, $left, $right) = ($g->type, @{ $g->args });
+        my $targ;
+        if (!$self->diff($left, 1)) {
+            $targ = $right;
+        } elsif (!$self->diff($right, 1)) {
+            $targ = $left;
+            $rel2 = $g->inverse_type;
+        } else {
+            next;
+        }
+        next unless $targ->is_const;
+        my $known = _test_const($rel1, $val1, $rel2, $targ->rat);
+        return $known if defined $known;
+    }
+    return undef;
+}
+
 {
     # TODO: [mullist a [recip b]] => 'a/b' rather than 'a.(1/b)'
     # .. and try to unify it with a cleaner [pluslist a [negate b]]
