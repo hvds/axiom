@@ -18,7 +18,7 @@ my %classtype = (
     (map +($_ => 'Axiom::Expr::Const'), qw{ integer rational }),
     (map +($_ => 'Axiom::Expr::Name'), qw{ name }),
     (map +($_ => 'Axiom::Expr::Iter'), qw{ sum prod integral inteval }),
-    (map +($_ => 'Axiom::Expr::Relation'), qw{ equals rle rlt rge rgt }),
+    (map +($_ => 'Axiom::Expr::Relation'), qw{ req rle rlt rge rgt }),
     (map +($_ => 'Axiom::Expr::Quant'), qw{ forall exists }),
 );
 
@@ -131,13 +131,13 @@ sub recip {
 {
     # TODO: [mullist a [recip b]] => 'a/b' rather than 'a.(1/b)'
     # .. and try to unify it with a cleaner [pluslist a [negate b]]
-    # TODO: iterators should apply 'equals' precedence to first two args,
+    # TODO: iterators should apply 'req' precedence to first two args,
     # and base precedence to third arg - but using {} to bracket. Last arg
     # should however have mandatory {}.
     my %stringify = (
         forall => [ 0, 0, "\\A%s: %s" ],
         exists => [ 0, 0, "\\E%s: %s" ],
-        equals => [ 6, 0, "%s = %s" ],
+        req => [ 6, 0, "%s = %s" ],
         rlt => [ 6, 0, "%s < %s" ],
         rle => [ 6, 0, "%s <= %s" ],
         rgt => [ 6, 0, "%s > %s" ],
@@ -198,7 +198,7 @@ sub _clean {
         redo;
     }
     my $sub = {
-        equals => undef,
+        req => undef,
         rlt => undef,
         rle => undef,
         rgt => undef,
@@ -1198,7 +1198,7 @@ package Axiom::Expr::Iter {
 package Axiom::Expr::Relation {
     our @ISA = qw{Axiom::Expr};
     my %inverse = (qw{
-        equals equals rle rge rge rle rlt rgt rgt rlt
+        req req rle rge rge rle rlt rgt rgt rlt
     });
     sub is_relation { 1 }
     sub inverse_type {
@@ -1228,7 +1228,7 @@ package Axiom::Expr::Relation {
         return undef unless $e->is_const;
         my $v = $e->rat;
         my $cb = {
-            equals => sub { $v == 0 ? 1 : 0 },
+            req => sub { $v == 0 ? 1 : 0 },
             rle => sub { $v <= 0 ? 1 : 0 },
             rlt => sub { $v < 0 ? 1 : 0 },
             rge => sub { $v >= 0 ? 1 : 0 },
@@ -1291,7 +1291,7 @@ sub _grammar {
                 <type=(?{ 'nothing' })>
             |
                 <[args=Expr]> <.EqualsToken> <[args=Expr]>
-                <type=(?{ 'equals' })>
+                <type=(?{ 'req' })>
             |
                 <[args=Expr]> <.LEToken> <[args=Expr]>
                 <type=(?{ 'rle' })>

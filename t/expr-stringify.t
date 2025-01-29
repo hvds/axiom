@@ -9,7 +9,7 @@ use Axiom::Expr;
 for (
     [ '\Aa:b', [forall => [name => 'a'], [name => 'b'] ] ],
     [ '\Ea:b', [exists => [name => 'a'], [name => 'b'] ] ],
-    [ 'a=b', [equals => [name => 'a'], [name => 'b'] ] ],
+    [ 'a=b', [req => [name => 'a'], [name => 'b'] ] ],
     [ 'a->b', [implies => [name => 'a'], [name => 'b'] ] ],
     [ '1', [integer => 1] ],
     [ '1/2', [rational => 1, 2] ],
@@ -60,7 +60,7 @@ for (
     });
     is('(a+b).c', ($e2->str =~ s{ +}{}gr), 'e2 (a+b).c');
     my $e3 = Axiom::Expr->new({
-        type => 'equals',
+        type => 'req',
         args => [ $e1, _make_brack([name => 'c']) ],
     });
     is('a+b=c', ($e3->str =~ s{ +}{}gr), 'e3 a+b=c');

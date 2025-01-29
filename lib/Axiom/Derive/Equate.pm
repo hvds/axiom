@@ -47,7 +47,7 @@ sub derive {
         (my($var), $from_expr) = @{ $from_expr->args };
         push @vars, $var;
     }
-    $from_expr->type eq 'equals' or return $self->set_error(sprintf(
+    $from_expr->type eq 'req' or return $self->set_error(sprintf(
         "Can't equate() with a %s\n", $from_expr->type,
     ));
 
@@ -82,7 +82,7 @@ sub validate {
         push @$from_loc, 2;
         $from_expr = $from_expr->args->[1];
     }
-    $from_expr->type eq 'equals' or return $self->set_error(sprintf(
+    $from_expr->type eq 'req' or return $self->set_error(sprintf(
         "Can't equate() with a %s\n", $from_expr->type,
     ));
     my $from_dict = $from->dict_at($from_loc);

@@ -86,8 +86,8 @@ sub validate {
     ));
 
     my $targ_type;
-    if ($rel->type eq 'equals') {
-        $targ_type = 'equals';
+    if ($rel->type eq 'req') {
+        $targ_type = 'req';
     } elsif ($expr->is_const) {
         $targ_type = ($expr->rat < 0) ? $rel->inverse_type : $rel->type;
     } else {

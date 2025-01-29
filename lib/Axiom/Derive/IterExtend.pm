@@ -53,7 +53,7 @@ sub derive {
     my $find_iter = sub {
         my($self, $loc) = @_;
         # FIXME: other relations are (or will be) available
-        $lasteq = $loc if $self->type eq 'equals';
+        $lasteq = $loc if $self->type eq 'req';
         if ($self->is_iter) {
             my $side = $loc->[0 + @$lasteq];
             push @{ $loca->[$side] }, $loc;

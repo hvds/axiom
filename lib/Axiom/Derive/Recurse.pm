@@ -67,7 +67,7 @@ sub derive {
         (my($var), $eq) = @{ $eq->args };
         $id{$var->name} = $var->binding->id;
     }
-    $eq->type eq 'equals' or return $self->set_error(sprintf(
+    $eq->type eq 'req' or return $self->set_error(sprintf(
         "Don't know how to derive recurse over a %s\n", $eq->type,
     ));
     my($lhs, $rhs) = @{ $eq->args };
@@ -101,7 +101,7 @@ sub derive {
     while ($teq->type eq 'forall') {
         $teq = $teq->args->[1];
     }
-    $teq->type eq 'equals' or return $self->set_error(sprintf(
+    $teq->type eq 'req' or return $self->set_error(sprintf(
         "Don't know how to derive recurse to give a %s\n", $teq->type,
     ));
     my $trhs = $teq->args->[1];
@@ -198,7 +198,7 @@ sub validate {
     # n times to give
     #  f(x) = a^n f(g^n(x)) + sum_0^{n-1}{ a^i (bh(g^i(x)) + c) }
 
-    $eq->type eq 'equals' or return $self->set_error(sprintf(
+    $eq->type eq 'req' or return $self->set_error(sprintf(
         "Don't know how to apply recurse over a %s\n", $eq->type,
     ));
     my($lhs, $rhs) = @{ $eq->args };
@@ -296,7 +296,7 @@ sub validate {
     # (f(x) = af(g(x)) + bh(x) + c)
     # -> f(x) = a^n . f(g^n(x)) + \sum_{i=0}^{n-1}{a^i(bh(g^i(x)) + c)}
     my $repl = Axiom::Expr->new({
-        type => 'equals',
+        type => 'req',
         args => [
             $lhs->copy,
             Axiom::Expr->new({
