@@ -14,11 +14,35 @@ Axiom::Derive::Multiply - multiply both sides of a relation by some expr
 =head1 USAGE
 
   derive: multiply ( line? )
-  rule: [ line, expr ]
+  rule: [ line, loc, expr ]
 
-Given a prior theorem of the form C< P = Q >, constructs the new theorem
-C< P . expr = Q . expr >. If the prior theorem is an inequality, this is
-permitted only if the sign of the multiplying expression is known.
+Given a prior relation of the form C< P = Q >, replaces it with the new
+relation C< P . expr = Q . expr >.
+
+=head1 RESTRICTIONS
+
+Given a multiplier C<m>, we implement C<< P rel_1 Q -> mP rel_2 mQ >>.
+Since C<m> can legitimately be zero, the implication is not reversible.
+
+So the affected relation must be I<unencumbered>: we must be able to walk
+up its ancestry to the top level of the theorem or to the first argument
+of a C<\given>; on the way we can pass through for example quantifiers,
+C<andlist> or the second argument of C<implies>, but not for example the
+first argument of C<implies>, or logical negation.
+
+C<m> must be a number, so it must provably avoid forbidden subexpressions
+such as division by zero.
+
+The relation must support the change: if it is an inequality, we must
+know the sign of C<m>; if it is nonequality, C<m> must not be zero.
+
+If the multiplier is not a constant, evidence that these restrictions
+are satisfied must be available from a C<\given> enclosing the affected
+relation.
+
+New bound variables may be introduced with quantifiers. If the resulting
+expression is independent of a quantified variable, that quantifier
+[may / must] be elided.
 
 =cut
 
@@ -33,54 +57,74 @@ sub derive_args {
     };
 }
 
+sub find_multiplicand {
+    my($self, $left, $right, $dict) = @_;
+    # FIXME: division is unsafe, we need to cancel items directly
+    my $expr = Axiom::Expr->new({
+        type => 'mullist',
+        args => [
+            $right->copy,
+            Axiom::Expr->new({
+                type => 'recip',
+                args => [ $left->copy ],
+            }),
+        ],
+    });
+    $expr->resolve($dict);
+    $expr = $expr->clean;
+    $expr->walk_tree(sub {
+        my($e) = @_;
+        return unless $e->type eq 'pow';
+        my($base, $pow) = @{ $e->args };
+        return unless $pow->is_const && $pow->rat == 0;
+        # FIXME: hack, make x^0 into 1^0 so that clean() will clean it
+        $e->args->[0] = Axiom::Expr->new_const(1);
+        return;
+    });
+    return $expr->clean;
+}
+
 sub derive {
     my($self, $args) = @_;
     my($line, $value) = @$args;
-    my $from_base = $self->line($line);
-    my $from = $from_base;
-    my $to = $self->expr;
-    my $loc = [];
-    while ($from->is_quant) {
-        push @$loc, 2;
-        $from = $from->args->[1];
-        $to->is_quant
-                or return $self->set_error('mismatched quantifiers');
-        $to = $to->args->[1];
-    }
-    $from->is_relation
-            or return $self->set_error('No relation to derive from');
+    my $source = $self->line($line);
+    my $target = $self->expr;
+
+    # find the relation to apply to
+    # FIXME: qualifiers may differ, we want to look past those
+    my $loc = $source->diff($target)
+            or return $self->set_error("can't find difference");
+    $loc = $source->find_ancestor($loc, sub { shift->is_relation })
+            or return $self->set_error("can't find relation targetted");
+    my($from, $to) = map $_->locate($loc), ($source, $target);
     $to->is_relation
-            or return $self->set_error('No relation to derive to');
-    my $expr = $value // do {
-        my $v = $to->args->[0];
-        my $i = ($v->is_const && $v->rat == 0) ? 1 : 0;
-        Axiom::Expr->new({
-            type => 'mullist',
-            args => [
-                $to->args->[$i]->copy,
-                Axiom::Expr->new({
-                    type => 'recip',
-                    args => [ $from->args->[$i]->copy ],
-                }),
-            ],
-        });
-    };
-    $expr->resolve($from_base->dict_at($loc));
-    $expr = $expr->clean;
-    return $self->validate([ $line, $expr ]);
+            or return $self->set_error("target mismatch");
+
+    # find the multiplicand
+    my($fl, $fr) = @{ $from->args };
+    # FIXME: we may have introduced new variables
+    my $dict = $source->dict_at($loc);
+    my $expr = $value // (($fl->is_const && $fl->rat == 0)
+        ? $self->find_multiplicand($fr, $to->args->[1], $dict)
+        : $self->find_multiplicand($fl, $to->args->[0], $dict)
+    ) or return $self->set_error("can't find multiplicand");
+
+    return $self->validate([ $line, $loc, $expr ]);
 }
 
 sub validate {
     my($self, $args) = @_;
-    my($line, $expr) = @$args;
+    my($line, $loc, $expr) = @$args;
     my $starting = $self->line($line);
 
-    my $loc = [];
-    my $rel = $starting;
-    while ($rel->is_quant) {
-        push @$loc, 2;
-        $rel = $rel->args->[1];
-    }
+    return $self->set_error("relation is not unencumbered")
+            unless $starting->is_unencumbered($loc);
+    my $given = $self->find_given($starting, $loc);
+    return $self->set_error(
+        sprintf("multiplicand %s is not a number", $expr->str)
+    ) unless $expr->is_number($given);
+
+    my $rel = $starting->locate($loc);
     $rel->is_relation or return $self->set_error(sprintf(
         "don't know how to multiply a %s", $starting->type,
     ));
@@ -88,13 +132,15 @@ sub validate {
     my $targ_type;
     if ($rel->type eq 'req') {
         $targ_type = 'req';
-    } elsif ($expr->is_const) {
-        $targ_type = ($expr->rat < 0) ? $rel->inverse_type : $rel->type;
     } else {
-        # TODO support 'with' argument to constrain the expr
+        my $sign = $expr->test_sign($given);
         return $self->set_error(sprintf(
             "can't multiply inequality by non-const '%s'", $expr->str
-        ));
+        )) unless defined $sign;
+        return $self->set_error(sprintf(
+            "can't multiply inequality by zero"
+        )) unless $sign;
+        $targ_type = ($sign < 0) ? $rel->inverse_type : $rel->type;
     }
 
     my $repl = Axiom::Expr->new({
@@ -108,10 +154,24 @@ sub validate {
     my $result = $starting->substitute($loc, $repl);
     $result->resolve($self->dict);
     $self->validate_diff($result) or return;
-    $self->rule(sprintf 'multiply(%s%s)',
-            $self->_linename($line), $expr->rawexpr);
+    $self->rule(sprintf 'multiply(%s%s, %s)',
+            $self->_linename($line), join('.', @$loc), $expr->rawexpr);
 
     return 1;
 }
 
 1;
+__END__
+Test cases:
+1 = 1 -> -1 = -1
+a > 1 -> -2a < -2
+-2a <= 2 -> a >= 1
+a + 1 = b + 1 -> 2(a + 1) = 2(b + 1)
+a + 1 = b + 1 -> (a + 1)^2 = (a + 1)(b + 1)
+a + b = c + d -> -a - b = -c - d
+(a + b)(c + d) = e(c + d) -> a + b = e    // fail
+(a + b)\given_{c + d > 0}{c + d} = e(c + d) -> a + b = e    // fail
+\given_{c + d > 0}{(a + b)(c + d) = e(c + d)} -> a + b = e  // ok
+\given_{0 < a}{a + 1} > 1 -> \given_{0 > -2a}{a + 1} > 1
+\Aa: 2a = a + a -> \Aa: \Ab: ab = (a + a)b/2
+\Aa: 2a > a + a -> \Aa: \Ab: ab > (a + a)b/2    // fail

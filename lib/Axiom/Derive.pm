@@ -533,4 +533,18 @@ sub check_satisfy {
     return 0;
 }
 
+# Return the nearest enclosing 'given' of which we are the second argument,
+# or undef.
+sub find_given {
+    my($self, $expr, $loc) = @_;
+    my $ae = $expr->ancestry($loc);
+    for my $i (reverse 0 .. $#$loc) {
+        my $e = $ae->[$i];
+        next unless $e->type eq 'given';
+        next unless $loc->[$i] == 2;
+        return $e->args->[0];
+    }
+    return undef;
+}
+
 1;

@@ -891,6 +891,15 @@ sub ancestry {
     } @$loc), $last ];
 }
 
+sub find_ancestor {
+    my($self, $loc, $cb) = @_;
+    my $ancestry = $self->ancestry($loc);
+    for my $i (reverse 0 .. @$loc) {
+        return [ @$loc[0 .. $i - 1] ] if $cb->($ancestry->[$i]);
+    }
+    return undef;
+}
+
 sub locate {
     my($self, $location) = @_;
     return $self unless @$location;
