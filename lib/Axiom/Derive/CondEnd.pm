@@ -27,9 +27,7 @@ corresponding C<condstart>; and I<expr2> is the last theorem proven.
 sub rulename { 'condend' }
 
 sub derive_args {
-    q{
-        <args=(?{ [] })>
-    };
+    (0, q{});
 }
 
 sub late_resolve {

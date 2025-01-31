@@ -40,13 +40,7 @@ instead of deriving that in validate.
 sub rulename { 'recurse' }
 
 sub derive_args {
-    q{
-        (?: \( <[args=line]>? \) )?
-        (?{
-            $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
-            $MATCH{args} //= [ '' ];
-        })
-    };
+    (1, q{ <[args=line]>? });
 }
 
 sub derive {

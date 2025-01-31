@@ -24,10 +24,7 @@ C<< \Ax: P(x) -> Q(x) >>, proves C< \Ax: Q(x) >.
 sub rulename { 'ponens' }
 
 sub derive_args {
-    q{
-        \( <[args=optline]> \s* <[args=line]> \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
-    };
+    (2, q{ <[args=optline]> \s* <[args=line]> });
 }
 
 sub derive {

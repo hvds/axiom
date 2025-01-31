@@ -32,9 +32,7 @@ the domain is, which requires some degree of support for sets).
 sub rulename { 'induction' }
 
 sub derive_args {
-    q{
-        <args=(?{ [] })>
-    };
+    (0, q{});
 }
 
 sub _inputs {

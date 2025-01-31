@@ -27,10 +27,7 @@ but our life is simpler if we leave that to a separate 'ponens' step.
 sub rulename { 'cases' }
 
 sub derive_args {
-    q{
-        \( <[args=optline]> \s* <[args=line]> \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
-    };
+    (2, q{ <[args=optline]> \s* <[args=line]> });
 }
 
 sub derive {

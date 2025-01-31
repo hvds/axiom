@@ -27,10 +27,7 @@ rather than deriving that each time in validate.
 sub rulename { 'equate' }
 
 sub derive_args {
-    q{
-        \( <[args=optline]> \s* <[args=line]> \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
-    };
+    (2, q{ <[args=optline]> \s* <[args=line]> });
 }
 
 sub derive {

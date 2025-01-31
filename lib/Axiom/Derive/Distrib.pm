@@ -30,13 +30,7 @@ with type C<pluslist> or C<sum> at I<arg2>.
 sub rulename { 'distrib' }
 
 sub derive_args {
-    q{
-        (?: \( <arg=line>? \) )?
-        (?{
-            $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
-            $MATCH{args} //= [ '' ];
-        })
-    };
+    (1, q{ <arg=line>? });
 }
 
 sub derive {

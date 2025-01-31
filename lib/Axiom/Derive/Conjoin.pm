@@ -27,10 +27,7 @@ or C< \Ax: (P & Q) >.
 sub rulename { 'conjoin' }
 
 sub derive_args {
-    q{
-        \( <[args=optline]> \s* <[args=line]> \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1) })
-    };
+    (2, q{ <[args=optline]> \s* <[args=line]> });
 }
 
 sub derive {

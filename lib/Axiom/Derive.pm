@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 use Axiom::Expr;
-use Scalar::Util qw{ weaken };
+use Scalar::Util qw{ weaken blessed };
 
 =head1 NAME
 
@@ -127,6 +127,7 @@ sub name {
     }
     return $self->{name};
 }
+sub export_name {}
 sub lookup {
     my($self, $name) = @_;
     return $self->dict->lookup($name);
@@ -142,7 +143,7 @@ sub str {
 }
 sub line {
     my($self, $index) = @_;
-    return $index eq ''
+    return +($index // '') eq ''
         ? $self->working
         : $self->context->expr($index);
 }
@@ -171,22 +172,44 @@ sub clear_error {
         if ($debug) {
             return $derive_debug{$class} //= do {
                 my $rule = $class->rulename;
-                my $args = $class->derive_args;
+                my($count, $args) = $class->derive_args;
                 qr{
                     <extends: Axiom::Derive>
                     <debug: match>
                     <nocontext:>
-                    ^ \s* $rule \s* $args \s* : \s* <expr=Statement> \s* \z
+                    ^ \s* $rule (?:
+                        \s* \( \s* $args \s* \)
+                    )? (?{
+                        $MATCH{args} //= [];
+                        for (@{ $MATCH{args} }[0 .. $count - 1]) {
+                            $_ //= '';
+                            $_ = $_->{args} if ref($_) && !blessed($_);
+                        }
+                    }) (?:
+                        \s* <[args=rulename]>
+                        (?{ $MATCH{name} = $MATCH{args}[$count]{args} })
+                    )? \s*: \s* <expr=Statement> \s* \z
                 }x;
             };
         }
         return $derive_args{$class} //= do {
             my $rule = $class->rulename;
-            my $args = $class->derive_args;
+            my($count, $args) = $class->derive_args;
             qr{
                 <extends: Axiom::Derive>
                 <nocontext:>
-                ^ \s* $rule \s* $args \s* : \s* <expr=Statement> \s* \z
+                ^ \s* $rule (?:
+                    \s* \( \s* $args \s* \)
+                )? (?{
+                    $MATCH{args} //= [];
+                    for (@{ $MATCH{args} }[0 .. $count - 1]) {
+                        $_ //= '';
+                        $_ = $_->{args} if ref($_) && !blessed($_);
+                    }
+                }) (?:
+                    \s* <[args=rulename]>
+                    (?{ $MATCH{name} = $MATCH{args}[$count]{args} })
+                )? \s*: \s* <expr=Statement> \s* \z
             }x;
         };
     }
@@ -203,12 +226,13 @@ sub derive {
         my $local = Axiom::Expr->local_dict($self->dict);
         $source =~ _derive_args($class, $debug)
                 or die "Can't parse derivation: $source";
+        $self->name($/{name});
     }
     my($args, $expr) = @/{qw{ args expr }};
     $expr->resolve($self->dict) unless $self->late_resolve;
     $self->{rawexpr} = $expr->rawexpr;
     $self->{expr} = $expr;
-    die $self->clear_error unless $self->derive($args);
+    die $self->clear_error unless $self->derive($args // []);
     return $self;
 }
 
@@ -224,6 +248,7 @@ sub include {
         my $local = Axiom::Expr->local_dict($self->dict);
         $source =~ _derive_args($class)
                 or die "Can't parse derivation: $source";
+        $self->name($/{name});
     }
     my($args, $expr) = @/{qw{ args expr }};
     $expr->resolve($self->dict) unless $self->late_resolve(1);

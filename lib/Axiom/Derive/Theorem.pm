@@ -25,10 +25,7 @@ file basename.
 sub rulename { 'theorem' }
 
 sub derive_args {
-    q{
-        (?: <[args=rulename]> | <args=(?{ [] })> )
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
-    };
+    (0, q{});
 }
 
 sub late_resolve {
@@ -49,13 +46,9 @@ sub include {
 
 sub validate {
     my($self, $args, $including) = @_;
-    if (@$args) {
-        my $name = $args->[0] // '';
-        $self->name($name);
-        $self->rule("theorem $name");
-    } else {
-        $self->rule('theorem');
-    }
+    my $name = $self->name;
+    $self->export_name if length $name;
+    $self->rule(sprintf 'theorem%s', length($name) ? " $name" : '');
     unless ($including) {
         $self->validate_diff($self->working) or return;
     }

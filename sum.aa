@@ -1,23 +1,22 @@
 identity: \Aa: \Ac: \sum_{i=a}^a{c} = \sum_{i=a}^a{c}
 iterexpand: \Aa: \Ac: \sum_{i=a}^a{c} = c
 condstart: \Aa: \Ac: \sum_{i=a}^x{c} = c(x + 1 - a)
-add: \Aa: \Ac: \sum_{i=a}^x{c} + c = c(x + 1 - a) + c
-factor: \Aa: \Ac: \sum_{i=a}^x{c} + c = c(x + 2 - a)
-iterextend: \Aa: \Ac: \sum_{i=a}^{x + 1}{c} = c(x + 2 - a)
+  add: \Aa: \Ac: \sum_{i=a}^x{c} + c = c(x + 1 - a) + c
+  factor: \Aa: \Ac: \sum_{i=a}^x{c} + c = c(x + 2 - a)
+  iterextend: \Aa: \Ac: \sum_{i=a}^{x + 1}{c} = c(x + 2 - a)
 condend: \Ab: (\Aa: \Ac: \sum_{i=a}^b{c} = c(b + 1 - a)) -> (\Aa: \Ac: \sum_{i=a}^{b + 1}{c} = c(b + 2 - a))
 induction: \Aa: \Ab: \Ac: \sum_{i=a}^b{c} = c(b + 1 - a)
 theorem Sum_const: \Aa: \Ab: \Ac: \sum_{i=a}^b{c} = c(b + 1 - a)
 
 identity: \Aa: (a(a + 1) - a(a - 1))/2 = (a(a + 1) - a(a - 1))/2
-factor: \Aa: (a(a + 1) - a(a - 1))/2 = a
-theorem L1: \Aa: (a(a + 1) - a(a - 1))/2 = a
+factor L1: \Aa: (a(a + 1) - a(a - 1))/2 = a
 identity: \Aa: \Ac: \sum_{i=a}^a{ci} = \sum_{i=a}^a{ci}
 iterexpand: \Aa: \Ac: \sum_{i=a}^a{ci} = ac
 equate(L1): \Aa: \Ac: \sum_{i=a}^a{ci} = c(a(a + 1) - a(a - 1))/2
 condstart: \Aa: \Ac: \sum_{i=a}^x{ci} = c(x(x + 1) - a(a - 1))/2
-add: \Aa: \Ac: \sum_{i=a}^x{ci} + c(x + 1) = c(x(x + 1) - a(a - 1))/2 + c(x + 1)
-iterextend: \Aa: \Ac: \sum_{i=a}^{x + 1}{ci} = c(x(x + 1) - a(a - 1))/2 + c(x + 1)
-factor: \Aa: \Ac: \sum_{i=a}^{x + 1}{ci} = c((x + 1)(x + 2) - a(a - 1))/2
+  add: \Aa: \Ac: \sum_{i=a}^x{ci} + c(x + 1) = c(x(x + 1) - a(a - 1))/2 + c(x + 1)
+  iterextend: \Aa: \Ac: \sum_{i=a}^{x + 1}{ci} = c(x(x + 1) - a(a - 1))/2 + c(x + 1)
+  factor: \Aa: \Ac: \sum_{i=a}^{x + 1}{ci} = c((x + 1)(x + 2) - a(a - 1))/2
 condend: \Ab: (\Aa: \Ac: \sum_{i=a}^b{ci} = c(b(b + 1) - a(a - 1))/2) -> (\Aa: \Ac: \sum_{i=a}^{b + 1}{ci} = c((b + 1)(b + 2) - a(a - 1))/2)
 induction: \Aa: \Ab: \Ac: \sum_{i=a}^b{ci} = c(b(b + 1) - a(a - 1))/2
 theorem Sum_i: \Aa: \Ab: \Ac: \sum_{i=a}^b{ci} = c(b(b + 1) - a(a - 1))/2
@@ -81,15 +80,14 @@ axiom: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^{2}(b + 1)^2 - a^{2}(a - 1)^2) 
 theorem Sum_i3: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^{2}(b + 1)^2 - a^{2}(a - 1)^2) / 4
 
 identity: \An: 2^{n + 1} - 2^n = 2 . 2^n - 2^n
-factor: \An: 2^{n + 1} - 2^n = 2^n
-theorem L2: \An: 2^{n + 1} - 2^n = 2^n
+factor L2: \An: 2^{n + 1} - 2^n = 2^n
 identity: \Aa: \Ac: \sum_{i=a}^a{2^i . c} = \sum_{i=a}^a{2^i . c}
 iterexpand: \Aa: \Ac: \sum_{i=a}^a{2^i . c} = 2^a . c
 equate(L2): \Aa: \Ac: \sum_{i=a}^a{2^i . c} = (2^{a + 1} - 2^a)c
 condstart: \Aa: \Ac: \sum_{i=a}^x{2^i . c} = (2^{x + 1} - 2^a)c
-add: \Aa: \Ac: \sum_{i=a}^x{2^i . c} + 2^{x + 1} c = (2^{x + 1} - 2^a + 2^{x + 1})c
-iterextend: \Aa: \Ac: \sum_{i=a}^{x + 1}{2^i . c} = (2^{x + 1} - 2^a + 2^{x + 1})c
-factor: \Aa: \Ac: \sum_{i=a}^{x + 1}{2^i . c} = (2^{x + 2} - 2^a)c
+  add: \Aa: \Ac: \sum_{i=a}^x{2^i . c} + 2^{x + 1} c = (2^{x + 1} - 2^a + 2^{x + 1})c
+  iterextend: \Aa: \Ac: \sum_{i=a}^{x + 1}{2^i . c} = (2^{x + 1} - 2^a + 2^{x + 1})c
+  factor: \Aa: \Ac: \sum_{i=a}^{x + 1}{2^i . c} = (2^{x + 2} - 2^a)c
 condend: \Ab: (\Aa: \Ac: \sum_{i=a}^b{2^i . c} = (2^{b + 1} - 2^a)c) -> (\Aa: \Ac: \sum_{i=a}^{b + 1}{2^i . c} = (2^{b + 2} - 2^a)c)
 induction: \Aa: \Ab: \Ac: \sum_{i=a}^b{2^i . c} = (2^{b + 1} - 2^a)c
 theorem Sum_pow_2: \Aa: \Ab: \Ac: \sum_{i=a}^b{2^i . c} = (2^{b + 1} - 2^a)c

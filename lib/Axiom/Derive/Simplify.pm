@@ -26,12 +26,7 @@ The C<andlist> may be wrapped in an arbitrary number of qualifiers.
 sub rulename { 'simplify' }
 
 sub derive_args {
-    q{
-        (?: \( <[args=line]>? \) )?
-        (?{
-            $MATCH{args}[0] = $MATCH{args}[0]{args} // '';
-        })
-    };
+    (1, q{ <[args=line]>? });
 }
 
 sub derive {

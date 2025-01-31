@@ -28,13 +28,7 @@ will construct C< x = \sum_{i=0}^{n-1}{ y^i } >.
 sub rulename { 'itervar' }
 
 sub derive_args {
-    q{
-        (?: \( <[args=line]>? \) )?
-        (?{
-            $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
-            $MATCH{args} //= [ '' ];
-        })
-    };
+    (1, q{ <[args=line]>? });
 }
 
 sub derive {

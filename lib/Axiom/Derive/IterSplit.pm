@@ -30,13 +30,9 @@ TODO: also allow the reverse process.
 sub rulename { 'itersplit' }
 
 sub derive_args {
-    q{
-        (?: \( <[args=optline]> \s* (?: <.WithToken> \s* <[args=line]> )? \) )?
-        (?{
-            $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0, 1);
-            $MATCH{args}[0] //= '';
-        })
-    };
+    (2, q{
+        <[args=optline]> \s* (?: <.WithToken> \s* <[args=line]> )?
+    });
 }
 
 sub derive {

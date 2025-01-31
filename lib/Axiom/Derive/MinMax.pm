@@ -23,13 +23,9 @@ evidence from iterator ranges and/or the supplied 'with' line as needed.
 sub rulename { 'minmax' }
 
 sub derive_args {
-    q{
-        \(
-            <[args=optline]>
-            (?: \s* <.WithToken> \s* <[args=line]> )?
-        \)
-        (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0 .. 1) })
-    };
+    (2, q{
+        <[args=optline]> (?: \s* <.WithToken> \s* <[args=line]> )?
+    });
 }
 
 sub derive {

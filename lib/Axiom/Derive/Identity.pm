@@ -23,9 +23,7 @@ Constructs a theorem of the form C< \Aa: \Ab: ... expr = expr >.
 sub rulename { 'identity' }
 
 sub derive_args {
-    q{
-        <args=(?{ [] })>
-    };
+    (0, q{});
 }
 
 sub derive {

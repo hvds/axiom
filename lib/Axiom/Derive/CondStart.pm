@@ -25,9 +25,7 @@ as free variables for the scope of the conditional proof.
 sub rulename { 'condstart' }
 
 sub derive_args {
-    q{
-        <args=(?{ [] })>
-    };
+    (0, q{});
 }
 
 sub late_resolve { 1 }

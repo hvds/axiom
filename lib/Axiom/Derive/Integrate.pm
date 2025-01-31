@@ -23,13 +23,7 @@ Replaces \int_{x=a}^b{e} with \eval_{x=a}^b{f}, where e = df/dx.
 sub rulename { 'integrate' }
 
 sub derive_args {
-    q{
-        (?: \( <[args=line]>? \) )?
-        (?{
-            $MATCH{args}[0] = $MATCH{args}[0]{args} if $MATCH{args};
-            $MATCH{args} //= [ '' ];
-        })
-    };
+    (1, q{ <[args=line]>? });
 }
 
 sub _derivative {

@@ -9,16 +9,12 @@ specify: \Ax: \max(0, x) >= 0
 theorem Ma2: \Ax: \max(0, x) >= 0
 
 rename(Ma2): \Ay: \max(0, y) >= 0
-specify: \Ax: \max(0, \min(1, x)) >= 0
-theorem Ma3a: \Ax: \max(0, \min(1, x)) >= 0
+specify Ma3a: \Ax: \max(0, \min(1, x)) >= 0
 rename(Ma1): \Ay: \min(1, y) <= 1
-specify: \Ax: \min(1, \max(0, x)) <= 1
-theorem Ma3b: \Ax: \min(1, \max(0, x)) <= 1
+specify Ma3b: \Ax: \min(1, \max(0, x)) <= 1
 specify(int.M9): \Ab: (0 <= b) -> (\Ac: \max(0,\min(b,c)) = \min(b,\max(0,c)))
-specify: (0 <= 1) -> (\Ac: \max(0,\min(1,c)) = \min(1,\max(0,c)))
-theorem Ma3c: (0 <= 1) -> (\Ac: \max(0,\min(1,c)) = \min(1,\max(0,c)))
-ponens(int.Q9a: Ma3c): \Ac: \max(0,\min(1,c)) = \min(1,\max(0,c))
-theorem Ma3d: \Ac: \max(0,\min(1,c)) = \min(1,\max(0,c))
+specify Ma3c: (0 <= 1) -> (\Ac: \max(0,\min(1,c)) = \min(1,\max(0,c)))
+ponens(int.Q9a: Ma3c) Ma3d: \Ac: \max(0,\min(1,c)) = \min(1,\max(0,c))
 equate(Ma3b: Ma3d): \Ax: \max(0,\min(1,x)) <= 1
 conjoin(Ma3a): \Ax: (\max(0, \min(1, x)) >= 0) & (\max(0,\min(1, x)) <= 1)
 theorem Ma3: \Ax: (\max(0, \min(1, x)) >= 0) & (\max(0, \min(1, x)) <= 1)
@@ -39,65 +35,52 @@ theorem C3: \Aa: \Ab: \Ac: \Ad: \Ae: \Af: \int_{g=\max(0,\min(1,a+b+e-\min(a+d,c
 specify(Ma3): \Aa: \Ab: \Ac: \Ad: \Ae: (\max(0,\min(1,\min(a+d-c,a+b+e-c))) >= 0) & (\max(0,\min(1,\min(a+d-c,a+b+e-c))) <= 1)
 theorem C4: \Aa: \Ab: \Ac: \Ad: \Ae: (\max(0,\min(1,\min(a+d-c,a+b+e-c))) >= 0) & (\max(0,\min(1,\min(a+d-c,a+b+e-c))) <= 1)
 
-  condstart: \min(a+d-c,a+b+e-c) <= 0
-    theorem COND51a: \min(a+d-c,a+b+e-c) <= 0
+  condstart COND51a: \min(a+d-c,a+b+e-c) <= 0
 
     rename(int.Q10): \Ax: \Ay: \Az: ((x <= y) & (y <= z)) -> (x <= z)
     specify: \Ay: \Az: ((\min(a+d-c,a+b+e-c) <= y) & (y <= z)) -> (\min(a+d-c,a+b+e-c) <= z)
     specify: \Az: ((\min(a+d-c,a+b+e-c) <= 0) & (0 <= z)) -> (\min(a+d-c,a+b+e-c) <= z)
-    specify: ((\min(a+d-c,a+b+e-c) <= 0) & (0 <= 1)) -> (\min(a+d-c,a+b+e-c) <= 1)
-    theorem COND51b: ((\min(a+d-c,a+b+e-c) <= 0) & (0 <= 1)) -> (\min(a+d-c,a+b+e-c) <= 1)
+    specify COND51b: ((\min(a+d-c,a+b+e-c) <= 0) & (0 <= 1)) -> (\min(a+d-c,a+b+e-c) <= 1)
 
     rename(int.M2): \Ax: \Ay: (x >= y) -> (\min(x, y) = y)
     specify: \Ay: (1 >= y) -> (\min(1, y) = y)
-    specify: (1 >= \min(a+d-c,a+b+e-c)) -> (\min(1, \min(a+d-c,a+b+e-c)) = \min(a+d-c,a+b+e-c))
-    theorem COND51c: (1 >= \min(a+d-c,a+b+e-c)) -> (\min(1, \min(a+d-c,a+b+e-c)) = \min(a+d-c,a+b+e-c))
+    specify COND51c: (1 >= \min(a+d-c,a+b+e-c)) -> (\min(1, \min(a+d-c,a+b+e-c)) = \min(a+d-c,a+b+e-c))
 
     specify(int.M4): \Ab: (0 >= b) -> (\max(0, b) = 0)
-    specify: (0 >= \min(a+d-c,a+b+e-c)) -> (\max(0, \min(a+d-c,a+b+e-c)) = 0)
-    theorem COND51d: (0 >= \min(a+d-c,a+b+e-c)) -> (\max(0, \min(a+d-c,a+b+e-c)) = 0)
+    specify COND51d: (0 >= \min(a+d-c,a+b+e-c)) -> (\max(0, \min(a+d-c,a+b+e-c)) = 0)
 
     conjoin(COND51a: int.Q9a): (\min(a+d-c,a+b+e-c) <= 0) & (0 <= 1)
     ponens(COND51b): \min(a+d-c,a+b+e-c) <= 1
     add: -1 <= -\min(a+d-c,a+b+e-c)
     multiply: 1 >= \min(a+d-c,a+b+e-c)
-    ponens(COND51c): \min(1, \min(a+d-c,a+b+e-c)) = \min(a+d-c,a+b+e-c)
-    theorem COND51e: \min(1, \min(a+d-c,a+b+e-c)) = \min(a+d-c,a+b+e-c)
+    ponens(COND51c) COND51e: \min(1, \min(a+d-c,a+b+e-c)) = \min(a+d-c,a+b+e-c)
 
     add(COND51a): 0 <= -\min(a+d-c,a+b+e-c)
     multiply(*value -1): 0 >= \min(a+d-c,a+b+e-c)
     ponens(COND51d): \max(0, \min(a+d-c,a+b+e-c)) = 0
-    equate(COND51e): \max(0, \min(1, \min(a+d-c,a+b+e-c))) = 0
-    theorem COND51f: \max(0, \min(1, \min(a+d-c,a+b+e-c))) = 0
+    equate(COND51e) COND51f: \max(0, \min(1, \min(a+d-c,a+b+e-c))) = 0
 
     rename(int.I1): \Ax: \Ay: \int_{f=x}^{x}{y} = 0
-    specify: \Ay: \int_{f=0}^{0}{y} = 0
-    theorem COND51g: \Ay: \int_{f=0}^{0}{y} = 0
-    specify: \int_{f=0}^{0}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = 0
-    theorem COND51h: \int_{f=0}^{0}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = 0
-    specify(COND51g): \int_{f=0}^{0}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) } = 0
-    theorem COND51i: \int_{f=0}^{0}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) } = 0
+    specify COND51g: \Ay: \int_{f=0}^{0}{y} = 0
+    specify COND51h: \int_{f=0}^{0}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = 0
+    specify(COND51g) COND51i: \int_{f=0}^{0}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) } = 0
 
     identity: \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) }
     equate(COND51f): \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{0}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) }
     equate(COND51h): \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = 0
     equate(COND51i): \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{0}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) }
     equate(COND51f): \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) }
-  condend: \Aa: \Ab: \Ac: \Ad: \Ae: (\min(a+d-c,a+b+e-c) <= 0) -> (\int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) })
-  theorem C5a: \Aa: \Ab: \Ac: \Ad: \Ae: (\min(a+d-c,a+b+e-c) <= 0) -> (\int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) })
+  condend C5a: \Aa: \Ab: \Ac: \Ad: \Ae: (\min(a+d-c,a+b+e-c) <= 0) -> (\int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) })
 
-  condstart: \min(a+d-c,a+b+e-c) >= 0
-    theorem COND52a: \min(a+d-c,a+b+e-c) >= 0
+  condstart COND52a: \min(a+d-c,a+b+e-c) >= 0
     rename(int.M10): \Ax: \Ay: \Az: ((x >= z) & (y >= z)) -> (\min(x, y) >= z)
     specify: \Ay: \Az: ((1 >= z) & (y >= z)) -> (\min(1, y) >= z)
     specify: \Az: ((1 >= z) & (\min(a+d-c,a+b+e-c) >= z)) -> (\min(1, \min(a+d-c,a+b+e-c)) >= z)
-    specify: ((1 >= 0) & (\min(a+d-c,a+b+e-c) >= 0)) -> (\min(1, \min(a+d-c,a+b+e-c)) >= 0)
-    theorem COND52b: ((1 >= 0) & (\min(a+d-c,a+b+e-c) >= 0)) -> (\min(1, \min(a+d-c,a+b+e-c)) >= 0)
+    specify COND52b: ((1 >= 0) & (\min(a+d-c,a+b+e-c) >= 0)) -> (\min(1, \min(a+d-c,a+b+e-c)) >= 0)
 
     rename(int.M3): \Ax: \Ay: (x <= y) -> (\max(x, y) = y)
     specify: \Ay: (0 <= y) -> (\max(0, y) = y)
-    specify: (0 <= \min(1, \min(a+d-c,a+b+e-c))) -> (\max(0, \min(1, \min(a+d-c,a+b+e-c))) = \min(1, \min(a+d-c,a+b+e-c)))
-    theorem COND52c: (0 <= \min(1, \min(a+d-c,a+b+e-c))) -> (\max(0, \min(1, \min(a+d-c,a+b+e-c))) = \min(1, \min(a+d-c,a+b+e-c)))
+    specify COND52c: (0 <= \min(1, \min(a+d-c,a+b+e-c))) -> (\max(0, \min(1, \min(a+d-c,a+b+e-c))) = \min(1, \min(a+d-c,a+b+e-c)))
 
     add(int.Q9a): -1 <= 0
     multiply: 1 >= 0
@@ -105,22 +88,17 @@ theorem C4: \Aa: \Ab: \Ac: \Ad: \Ae: (\max(0,\min(1,\min(a+d-c,a+b+e-c))) >= 0) 
     ponens(COND52b): \min(1, \min(a+d-c,a+b+e-c)) >= 0
     add: 0 >= -\min(1, \min(a+d-c,a+b+e-c))
     multiply: 0 <= \min(1, \min(a+d-c,a+b+e-c))
-    ponens(COND52c): \max(0, \min(1, \min(a+d-c,a+b+e-c))) = \min(1, \min(a+d-c,a+b+e-c))
-    theorem COND52d: \max(0, \min(1, \min(a+d-c,a+b+e-c))) = \min(1, \min(a+d-c,a+b+e-c))
+    ponens(COND52c) COND52d: \max(0, \min(1, \min(a+d-c,a+b+e-c))) = \min(1, \min(a+d-c,a+b+e-c))
 
-    condstart: f <= \min(1, \min(a+d-c,a+b+e-c))
-      theorem COND521a: f <= \min(1, \min(a+d-c,a+b+e-c))
-      condstart: f <= \min(a+d-c,a+b+e-c)
-        theorem COND522a: f <= \min(a+d-c,a+b+e-c)
+    condstart COND521a: f <= \min(1, \min(a+d-c,a+b+e-c))
+      condstart COND522a: f <= \min(a+d-c,a+b+e-c)
         rename(int.Q10): \Ax: \Ay: \Az: ((x <= y) & (y <= z)) -> (x <= z)
         specify: \Ay: \Az: ((f <= y) & (y <= z)) -> (f <= z)
         specify: \Az: ((f <= \min(a+d-c,a+b+e-c)) & (\min(a+d-c,a+b+e-c) <= z)) -> (f <= z)
-        specify: ((f <= \min(a+d-c,a+b+e-c)) & (\min(a+d-c,a+b+e-c) <= a+d-c)) -> (f <= a+d-c)
-        theorem COND522b: ((f <= \min(a+d-c,a+b+e-c)) & (\min(a+d-c,a+b+e-c) <= a+d-c)) -> (f <= a+d-c)
+        specify COND522b: ((f <= \min(a+d-c,a+b+e-c)) & (\min(a+d-c,a+b+e-c) <= a+d-c)) -> (f <= a+d-c)
         rename(int.M2): \Ax: \Ay: (x >= y) -> (\min(x, y) = y)
         specify: \Ay: (a+d >= y) -> (\min(a+d, y) = y)
-        specify: (a+d >= c+f) -> (\min(a+d, c+f) = c+f)
-        theorem COND522d: (a+d >= c+f) -> (\min(a+d, c+f) = c+f)
+        specify COND522d: (a+d >= c+f) -> (\min(a+d, c+f) = c+f)
         rename(int.M5): \Ax: \Ay: \min(x, y) <= x
         specify: \Ay: \min(a+d-c, y) <= a+d-c
         specify: \min(a+d-c, a+b+e-c) <= a+d-c
@@ -128,26 +106,22 @@ theorem C4: \Aa: \Ab: \Ac: \Ad: \Ae: (\max(0,\min(1,\min(a+d-c,a+b+e-c))) >= 0) 
         ponens(COND522b): f <= a+d-c
         add: -a-d <= -c-f
         multiply(*value -1): a+d >= c+f
-      condend: (f <= \min(a+d-c,a+b+e-c)) -> (a+d >= c+f)
-      theorem COND521b: (f <= \min(a+d-c,a+b+e-c)) -> (a+d >= c+f)
+      condend COND521b: (f <= \min(a+d-c,a+b+e-c)) -> (a+d >= c+f)
 
       rename(int.M6): \Ax: \Ay: \min(x, y) <= y
       specify: \Ay: \min(1, y) <= y
-      specify: \min(1, \min(a+d-c,a+b+e-c)) <= \min(a+d-c,a+b+e-c)
-      theorem COND521c: \min(1, \min(a+d-c,a+b+e-c)) <= \min(a+d-c,a+b+e-c)
+      specify COND521c: \min(1, \min(a+d-c,a+b+e-c)) <= \min(a+d-c,a+b+e-c)
 
       rename(int.Q10): \Ax: \Ay: \Az: (((x <= y) & (y <= z)) -> (x <= z))
       specify: \Ay: \Az: (((f <= y) & (y <= z)) -> (f <= z))
       specify: \Az: (((f <= \min(1, \min(a+d-c,a+b+e-c))) & (\min(1, \min(a+d-c,a+b+e-c)) <= z)) -> (f <= z))
-      specify: (((f <= \min(1, \min(a+d-c,a+b+e-c))) & (\min(1, \min(a+d-c,a+b+e-c)) <= \min(a+d-c,a+b+e-c))) -> (f <= \min(a+d-c,a+b+e-c)))
-      theorem COND521d: (((f <= \min(1, \min(a+d-c,a+b+e-c))) & (\min(1, \min(a+d-c,a+b+e-c)) <= \min(a+d-c,a+b+e-c))) -> (f <= \min(a+d-c,a+b+e-c)))
+      specify COND521d: (((f <= \min(1, \min(a+d-c,a+b+e-c))) & (\min(1, \min(a+d-c,a+b+e-c)) <= \min(a+d-c,a+b+e-c))) -> (f <= \min(a+d-c,a+b+e-c)))
 
       conjoin(COND521a: COND521c): (f <= \min(1, \min(a+d-c,a+b+e-c))) & (\min(1, \min(a+d-c,a+b+e-c)) <= \min(a+d-c,a+b+e-c))
       ponens(COND521d): f <= \min(a+d-c,a+b+e-c)
       ponens(COND521b): a+d >= c+f
     condend: \Af: (f <= \min(1, \min(a+d-c,a+b+e-c))) -> (a+d >= c+f)
-    equate(COND52d): \Af: (f <= \max(0, \min(1, \min(a+d-c,a+b+e-c)))) -> (a+d >= c+f)
-    theorem COND52e: \Af: (f <= \max(0, \min(1, \min(a+d-c,a+b+e-c)))) -> (a+d >= c+f)
+    equate(COND52d) COND52e: \Af: (f <= \max(0, \min(1, \min(a+d-c,a+b+e-c)))) -> (a+d >= c+f)
 
     identity: \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) }
     minmax(*with COND52e): \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-(c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) }
@@ -158,58 +132,42 @@ theorem C4: \Aa: \Ab: \Ac: \Ad: \Ae: (\max(0,\min(1,\min(a+d-c,a+b+e-c))) >= 0) 
     unarydistrib: \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 + (c+f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-(c+f))) }
     unarydistrib: \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 + (c+f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-c-f)) }
     factor: \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) }
-  condend: \Aa: \Ab: \Ac: \Ad: \Ae: (\min(a+d-c,a+b+e-c) >= 0) -> (\int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) })
-  theorem C5b: \Aa: \Ab: \Ac: \Ad: \Ae: (\min(a+d-c,a+b+e-c) >= 0) -> (\int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) })
-  cases(C5a): \Aa: \Ab: \Ac: \Ad: \Ae: ((\min(a+d-c,a+b+e-c) >= 0) | (\min(a+d-c,a+b+e-c) <= 0)) -> (\int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) })
-  theorem C5c: \Aa: \Ab: \Ac: \Ad: \Ae: ((\min(a+d-c,a+b+e-c) >= 0) | (\min(a+d-c,a+b+e-c) <= 0)) -> (\int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) })
+  condend C5b: \Aa: \Ab: \Ac: \Ad: \Ae: (\min(a+d-c,a+b+e-c) >= 0) -> (\int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) })
+  cases(C5a) C5c: \Aa: \Ab: \Ac: \Ad: \Ae: ((\min(a+d-c,a+b+e-c) >= 0) | (\min(a+d-c,a+b+e-c) <= 0)) -> (\int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) })
   rename(int.Q6): \Ax: \Ay: (x >= y) | (x <= y)
   specify: \Ax: (x >= 0) | (x <= 0)
   specify: \Aa: \Ab: \Ac: \Ad: \Ae: (\min(a+d-c,a+b+e-c) >= 0) | (\min(a+d-c,a+b+e-c) <= 0)
   ponens(C5c): \Aa: \Ab: \Ac: \Ad: \Ae: \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) }
 theorem C5: \Aa: \Ab: \Ac: \Ad: \Ae: \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-\min(a+d,c+f)))^2/2 + \min(a+d,c+f)\max(0,\min(1,a+b+e-\min(a+d,c+f))) + (a+b+e) - (a+b+e)\max(0,\min(1,a+b+e-\min(a+d,c+f))) } = \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) }
 
-  condstart: (d <= 1) & (b >= 0)
-    theorem COND6a: (d <= 1) & (b >= 0)
-    simplify: d <= 1
-    theorem COND6b: d <= 1
+  condstart COND6a: (d <= 1) & (b >= 0)
+    simplify COND6b: d <= 1
     simplify(COND6a): b >= 0
     multiply: -b <= 0
-    conjoin(COND6b): (d <= 1) & (-b <= 0)
-    theorem COND6c: (d <= 1) & (-b <= 0)
+    conjoin(COND6b) COND6c: (d <= 1) & (-b <= 0)
     rename(int.Q8): \Aw: \Ax: \Ay: \Az: ((w <= y) & (x <= z)) -> (w+x <= y+z)
     specify: \Ax: \Ay: \Az: ((d <= y) & (x <= z)) -> (d+x <= y+z)
     specify: \Ay: \Az: ((d <= y) & (-b <= z)) -> (d-b <= y+z)
     specify: \Az: ((d <= 1) & (-b <= z)) -> (d-b <= 1+z)
-    specify: ((d <= 1) & (-b <= 0)) -> (d-b <= 1)
-    theorem COND6d: ((d <= 1) & (-b <= 0)) -> (d-b <= 1)
-    ponens(COND6c: COND6d): d-b <= 1
-    theorem COND6e: d-b <= 1
+    specify COND6d: ((d <= 1) & (-b <= 0)) -> (d-b <= 1)
+    ponens(COND6c: COND6d) COND6e: d-b <= 1
     specify(int.M7): \Aa: \max(a, d-b) >= a
-    specify: \max(0, d-b) >= 0
-    theorem COND6f: \max(0, d-b) >= 0
-    condstart: 0 >= d-b
-      theorem COND61a: 0 >= d-b
+    specify COND6f: \max(0, d-b) >= 0
+    condstart COND61a: 0 >= d-b
       rename(int.M4): \Ax: \Ay: (x >= y) -> (\max(x, y) = x)
       specify: \Ax: (x >= d-b) -> (\max(x, d-b) = x)
-      specify: (0 >= d-b) -> (\max(0, d-b) = 0)
-      theorem COND61b: (0 >= d-b) -> (\max(0, d-b) = 0)
-      ponens(COND61a: COND61b): \max(0, d-b) = 0
-      theorem COND61c: \max(0, d-b) = 0
+      specify COND61b: (0 >= d-b) -> (\max(0, d-b) = 0)
+      ponens(COND61a: COND61b) COND61c: \max(0, d-b) = 0
       equate(int.Q9a: COND61c): \max(0, d-b) <= 1
-    condend: (0 >= d-b) -> (\max(0, d-b) <= 1)
-    theorem COND6g: (0 >= d-b) -> (\max(0, d-b) <= 1)
-    condstart: 0 <= d-b
-      theorem COND62a: 0 <= d-b
+    condend COND6g: (0 >= d-b) -> (\max(0, d-b) <= 1)
+    condstart COND62a: 0 <= d-b
       rename(int.M3): \Ax: \Ay: (x <= y) -> (\max(x, y) = y)
       specify: \Ax: (x <= d-b) -> (\max(x, d-b) = d-b)
-      specify: (0 <= d-b) -> (\max(0, d-b) = d-b)
-      theorem COND62b: (0 <= d-b) -> (\max(0, d-b) = d-b)
-      ponens(COND62a: COND62b): \max(0, d-b) = d-b
-      theorem COND62c: \max(0, d-b) = d-b
+      specify COND62b: (0 <= d-b) -> (\max(0, d-b) = d-b)
+      ponens(COND62a: COND62b) COND62c: \max(0, d-b) = d-b
       equate(COND6e: COND62c): \max(0, d-b) <= 1
     condend: (0 <= d-b) -> (\max(0, d-b) <= 1)
-    cases(COND6g): ((0 >= d-b) | (0 <= d-b)) -> (\max(0, d-b) <= 1)
-    theorem COND6h: ((0 >= d-b) | (0 <= d-b)) -> (\max(0, d-b) <= 1)
+    cases(COND6g) COND6h: ((0 >= d-b) | (0 <= d-b)) -> (\max(0, d-b) <= 1)
     specify(int.Q6): \Aa: (a >= d-b) | (a <= d-b)
     specify: (0 >= d-b) | (0 <= d-b)
     ponens(COND6h): \max(0, d-b) <= 1
@@ -228,21 +186,17 @@ theorem C7: \Ab: \Ad: (d <= b) -> (0 >= d-b)
   specify: \Aa: \Ab: \Ac: \Ad: \int_{e=0}^{0}{ \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) } } = 0
 theorem C8: \Aa: \Ab: \Ac: \Ad: \int_{e=0}^0{ \int_{f=0}^{\max(0,\min(1,\min(a+d-c,a+b+e-c)))}{ \max(0,\min(1,a+b+e-c-f))^2/2 - (a+b+e-c-f)\max(0,\min(1,a+b+e-c-f)) + (a+b+e) } } = 0
 
-  condstart: (d <= b) & (e >= 0)
-    theorem COND9a: (d <= b) & (e >= 0)
-    simplify: d <= b
-    theorem COND9b: d <= b
+  condstart COND9a: (d <= b) & (e >= 0)
+    simplify COND9b: d <= b
     simplify(COND9a): e >= 0
     multiply: -e <= 0
     add: \Aa: \Ac: a-c <= a+e-c
-    conjoin(COND9b): \Aa: \Ac: (d <= b) & (a-c <= a+e-c)
-    theorem COND9c: \Aa: \Ac: (d <= b) & (a-c <= a+e-c)
+    conjoin(COND9b) COND9c: \Aa: \Ac: (d <= b) & (a-c <= a+e-c)
     rename(int.Q8): \Aw: \Ax: \Ay: \Az: ((w <= y) & (x <= z)) -> (w+x <= y+z)
     specify: \Ax: \Ay: \Az: ((d <= y) & (x <= z)) -> (d+x <= y+z)
     specify: \Ax: \Az: ((d <= b) & (x <= z)) -> (d+x <= b+z)
     specify: \Aa: \Ac: \Az: ((d <= b) & (a-c <= z)) -> (a+d-c <= b+z)
-    specify: \Aa: \Ac: ((d <= b) & (a-c <= a+e-c)) -> (a+d-c <= a+b+e-c)
-    theorem COND9d: \Aa: \Ac: ((d <= b) & (a-c <= a+e-c)) -> (a+d-c <= a+b+e-c)
+    specify COND9d: \Aa: \Ac: ((d <= b) & (a-c <= a+e-c)) -> (a+d-c <= a+b+e-c)
     ponens(COND9c: COND9d): \Aa: \Ac: a+d-c <= a+b+e-c
   condend: \Aa: \Ab: \Ac: \Ad: \Ae: ((d <= b) & (e >= 0)) -> (a+d-c <= a+b+e-c)
 theorem C9: \Aa: \Ab: \Ac: \Ad: \Ae: ((d <= b) & (e >= 0)) -> (a+d-c <= a+b+e-c)

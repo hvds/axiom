@@ -25,14 +25,7 @@ exported by C<import> of that file, with a prefix of the file basename.
 sub rulename { 'axiom' }
 
 sub derive_args {
-    q{
-        (?:
-            <[args=rulename]>
-            (?{ $MATCH{args}[$_] = $MATCH{args}[$_]{args} for (0) })
-        |
-            <args=(?{ [] })>
-        )
-    };
+    (0, q{});
 }
 
 sub derive {
@@ -45,13 +38,9 @@ sub derive {
 sub validate {
     my($self, $args) = @_;
     $self->working($self->expr);
-    if (@$args) {
-        my $name = $args->[0] // '';
-        $self->name($name);
-        $self->rule("axiom $name");
-    } else {
-        $self->rule('axiom');
-    }
+    my $name = $self->name;
+    $self->export_name if length $name;
+    $self->rule(sprintf 'axiom%s', length($name) ? " $name" : '');
     return 1;
 }
 

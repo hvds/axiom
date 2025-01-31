@@ -49,12 +49,9 @@ expression is independent of a quantified variable, that quantifier
 sub rulename { 'multiply' }
 
 sub derive_args {
-    q{
-        (?: \( <[args=optline]> (?: \s* <.ValueToken> \s* <[args=Expr]> )? \) )?
-        (?{
-            $MATCH{args}[0] = $MATCH{args}[0]{args} // '';
-        })
-    };
+    (2, q{
+        <[args=optline]> (?: \s* <.ValueToken> \s* <[args=Expr]> )?
+    });
 }
 
 sub find_multiplicand {
@@ -104,7 +101,7 @@ sub derive {
     my($fl, $fr) = @{ $from->args };
     # FIXME: we may have introduced new variables
     my $dict = $source->dict_at($loc);
-    my $expr = $value // (($fl->is_const && $fl->rat == 0)
+    my $expr = length($value) ? $value : (($fl->is_const && $fl->rat == 0)
         ? $self->find_multiplicand($fr, $to->args->[1], $dict)
         : $self->find_multiplicand($fl, $to->args->[0], $dict)
     ) or return $self->set_error("can't find multiplicand");
