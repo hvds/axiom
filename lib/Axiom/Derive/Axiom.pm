@@ -17,7 +17,8 @@ Axiom::Derive::Axiom - introduce an axiom
   rule: [ name? ]
 
 Always valid, the resulting expression is accepted as an axiom with
-the given name.
+the given name within the same scope. If at file scope, it is also
+exported by C<import> of that file, with a prefix of the file basename.
 
 =cut
 
@@ -45,7 +46,7 @@ sub validate {
     my($self, $args) = @_;
     $self->working($self->expr);
     if (@$args) {
-        my($name) = @$args;
+        my $name = $args->[0] // '';
         $self->name($name);
         $self->rule("axiom $name");
     } else {

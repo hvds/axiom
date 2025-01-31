@@ -120,7 +120,11 @@ sub working {
 }
 sub name {
     my($self, $new) = @_;
-    $self->{name} = $new if @_ > 1;
+    if (defined $new) {
+        $new =~ s/^\s+//;
+        $new =~ s/\s+$//;
+        $self->{name} = $new if length $new;
+    }
     return $self->{name};
 }
 sub lookup {

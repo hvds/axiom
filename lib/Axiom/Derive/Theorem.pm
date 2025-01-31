@@ -16,7 +16,9 @@ Axiom::Derive::Theorem - name a theorem being derived
   rule: [ name? ]
 
 The final result of this derivation, once validated, can be referred
-to later by the given name.
+to later by the given name within the same scope. If at file scope,
+it is also exported by C<import> of that file, with a prefix of the
+file basename.
 
 =cut
 
@@ -48,7 +50,7 @@ sub include {
 sub validate {
     my($self, $args, $including) = @_;
     if (@$args) {
-        my($name) = @$args;
+        my $name = $args->[0] // '';
         $self->name($name);
         $self->rule("theorem $name");
     } else {
