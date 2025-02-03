@@ -65,6 +65,7 @@ sub is_relation { 0 }
 sub is_quant { 0 }
 sub is_list { $listtype{ shift->type } }
 sub has_newvar { 0 }
+sub check_const { undef }
 
 sub given {
     return ();
