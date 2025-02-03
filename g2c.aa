@@ -13,10 +13,7 @@ condend: \Aa: ((a >= 0) & (a <= 1)) -> ((1-a >= 0) & (1-a <= 1))
 theorem C1: \Aa: ((a >= 0) & (a <= 1)) -> ((1-a >= 0) & (1-a <= 1))
 
 condstart COND2a: (x >= 0) & (y >= 0) & (y <= 1-x)
-  specify(int.Q7): \Ab: \Ac: \Ad: ((x >= c) & (b >= d)) -> (x+b >= c+d)
-  specify: \Ac: \Ad: ((x >= c) & (y >= d)) -> (x+y >= c+d)
-  specify: \Ad: ((x >= 0) & (y >= d)) -> (x+y >= d)
-  specify COND2c: ((x >= 0) & (y >= 0)) -> (x+y >= 0)
+  specify(int.Q7) COND2c: ((x >= 0) & (y >= 0)) -> (x+y >= 0)
   simplify(COND2a): (x >= 0) & (y >= 0)
   ponens(COND2c) COND2b: x+y >= 0
   simplify(COND2a): y <= 1-x
@@ -26,10 +23,7 @@ condend: \Aa: \Ab: ((a >= 0) & (b >= 0) & (b <= 1-a)) -> ((a+b >= 0) & (a+b <= 1
 theorem C2: \Aa: \Ab: ((a >= 0) & (b >= 0) & (b <= 1-a)) -> ((a+b >= 0) & (a+b <= 1))
 
 condstart COND3a: (x <= 1) & (y >= 1-x) & (y <= 1)
-  specify(int.Q8): \Ab: \Ac: \Ad: ((x <= c) & (b <= d)) -> (x+b <= c+d)
-  specify: \Ac: \Ad: ((x <= c) & (y <= d)) -> (x+y <= c+d)
-  specify: \Ad: ((x <= 1) & (y <= d)) -> (x+y <= 1+d)
-  specify COND3c: ((x <= 1) & (y <= 1)) -> (x+y <= 2)
+  specify(int.Q8) COND3c: ((x <= 1) & (y <= 1)) -> (x+y <= 2)
   simplify(COND3a): y >= 1-x
   add COND3b: x+y-1 >= 0
   simplify(COND3a): (x <= 1) & (y <= 1)
@@ -40,10 +34,7 @@ condend: \Aa: \Ab: ((a <= 1) & (b >= 1-a) & (b <= 1)) -> ((a+b-1 >= 0) & (a+b-1 
 theorem C3: \Aa: \Ab: ((a <= 1) & (b >= 1-a) & (b <= 1)) -> ((a+b-1 >= 0) & (a+b-1 <= 1))
 
 condstart COND4a: (y <= 1-x) & (z >= 0) & (z <= x+y)
-  specify(int.Q8): \Ab: \Ac: \Ad: ((x+y <= c) & (b <= d)) -> (x+y+b <= c+d) 
-  specify: \Ac: \Ad: ((x+y <= c) & (-z <= d)) -> (x+y-z <= c+d) 
-  specify: \Ad: ((x+y <= 1) & (-z <= d)) -> (x+y-z <= 1+d) 
-  specify COND4d: ((x+y <= 1) & (-z <= 0)) -> (x+y-z <= 1)
+  specify(int.Q8) COND4d: ((x+y <= 1) & (-z <= 0)) -> (x+y-z <= 1)
   simplify(COND4a): z <= x+y
   multiply: -z >= -x-y
   add COND4b: x+y-z >= 0
@@ -70,10 +61,7 @@ condend: \Aa: \Ab: \Ac: \Ad: (d >= a+b-c) -> (a+b <= c+d)
 theorem C6: \Aa: \Ab: \Ac: \Ad: (d >= a+b-c) -> (a+b <= c+d)
 
 condstart COND7a: (z >= x+y) & (w >= 0)
-  specify(int.Q7): \Ab: \Ac: \Ad: ((z >= c) & (b >= d)) -> (z+b >= c+d)
-  specify: \Ac: \Ad: ((z >= c) & (w >= d)) -> (z+w >= c+d)
-  specify: \Ad: ((z >= x+y) & (w >= d)) -> (z+w >= x+y+d)
-  specify COND7b: ((z >= x+y) & (w >= 0)) -> (z+w >= x+y)
+  specify(int.Q7) COND7b: ((z >= x+y) & (w >= 0)) -> (z+w >= x+y)
   ponens(COND7a: COND7b): z+w >= x+y
   multiply(*value -1): -z-w <= -x-y
   add: x+y <= z+w
@@ -81,10 +69,7 @@ condend: \Aa: \Ab: \Ac: \Ad: ((c >= a+b) & (d >= 0)) -> (a+b <= c+d)
 theorem C7: \Aa: \Ab: \Ac: \Ad: ((c >= a+b) & (d >= 0)) -> (a+b <= c+d)
 
 condstart COND8a: (z <= x+y-1) & (w <= 1)
-  specify(int.Q8): \Ab: \Ac: \Ad: ((z <= c) & (b <= d)) -> (z+b <= c+d)
-  specify: \Ac: \Ad: ((z <= c) & (w <= d)) -> (z+w <= c+d)
-  specify: \Ad: ((z <= x+y-1) & (w <= d)) -> (z+w <= x+y-1+d)
-  specify COND8b: ((z <= x+y-1) & (w <= 1)) -> (z+w <= x+y)
+  specify(int.Q8) COND8b: ((z <= x+y-1) & (w <= 1)) -> (z+w <= x+y)
   ponens(COND8a: COND8b): z+w <= x+y
   multiply(*value -1): -z-w >= -x-y
   add: x+y >= z+w
@@ -92,10 +77,7 @@ condend: \Aa: \Ab: \Ac: \Ad: ((c <= a+b-1) & (d <= 1)) -> (a+b >= c+d)
 theorem C8: \Aa: \Ab: \Ac: \Ad: ((c <= a+b-1) & (d <= 1)) -> (a+b >= c+d)
 
 condstart COND9a: (x >= 0) & (x <= 1) & (y >= 1-x) & (y <= 1) & (z >= x+y-1) & (z <= 1)
-  specify(int.Q7): \Ab: \Ac: \Ad: ((y >= c) & (b >= d)) -> (y+b >= c+d)
-  specify: \Ac: \Ad: ((y >= c) & (-z >= d)) -> (y-z >= c+d)
-  specify: \Ad: ((y >= 1-x) & (-z >= d)) -> (y-z >= 1-x+d)
-  specify COND9d: ((y >= 1-x) & (-z >= -1)) -> (y-z >= -x)
+  specify(int.Q7) COND9d: ((y >= 1-x) & (-z >= -1)) -> (y-z >= -x)
   simplify(COND9a): z <= 1
   multiply COND9b: -z >= -1
   simplify(COND9a): y >= 1-x

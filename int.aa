@@ -8,10 +8,9 @@ axiom Q6: \Aa: \Ab: (a >= b) | (a <= b)
 axiom Q7: \Aa: \Ab: \Ac: \Ad: ((a >= c) & (b >= d)) -> (a+b >= c+d)
 axiom Q8: \Aa: \Ab: \Ac: \Ad: ((a <= c) & (b <= d)) -> (a+b <= c+d)
 # with add/multiply/identity we can derive all other const relations
-  specify(Q1): \Ab: (0 < b) -> (0 <= b)
-  specify Q9i1: (0 < 1) -> (0 <= 1)
 axiom Q9: 0 < 1
-  ponens(Q9i1): 0 <= 1
+  specify(Q1) Q9i1: (0 < 1) -> (0 <= 1)
+  ponens(Q9: Q9i1): 0 <= 1
 theorem Q9a: 0 <= 1
 axiom Q10: \Aa: \Ab: \Ac: ((a <= b) & (b <= c)) -> (a <= c)
 axiom Q11: \Aa: \Ab: \Ac: ((a >= b) & (b >= c)) -> (a >= c)
@@ -31,7 +30,6 @@ axiom M9: \Aa: \Ab: (a <= b) -> (\Ac: \max(a,\min(b,c)) = \min(b,\max(a,c)))
 condstart M10a: (a >= c) & (b >= c)
   condstart M10ba: a <= b
     rename(M1): \Ax: \Ay: (x <= y) -> (\min(x, y) = x)
-    specify: \Ay: (a <= y) -> (\min(a, y) = a)
     specify M10bb: (a <= b) -> (\min(a, b) = a)
     ponens(M10ba: M10bb) M10bc: \min(a, b) = a
     simplify(M10a): a >= c
@@ -39,7 +37,6 @@ condstart M10a: (a >= c) & (b >= c)
   condend M10b: (a <= b) -> (\min(a, b) >= c)
   condstart M10ca: a >= b
     rename(M2): \Ax: \Ay: (x >= y) -> (\min(x, y) = y)
-    specify: \Ay: (a >= y) -> (\min(a, y) = y)
     specify M10cb: (a >= b) -> (\min(a, b) = b)
     ponens(M10ca: M10cb) M10cc: \min(a, b) = b
     simplify(M10a): b >= c
@@ -47,7 +44,6 @@ condstart M10a: (a >= c) & (b >= c)
   condend M10c: (a >= b) -> (\min(a, b) >= c)
   cases(M10b) M10d: ((a >= b) | (a <= b)) -> (\min(a, b) >= c)
   rename(Q6): \Ax: \Ay: (x >= y) | (x <= y)
-  specify: \Ay: (a >= y) | (a <= y)
   specify: (a >= b) | (a <= b)
   ponens(M10d): \min(a, b) >= c
 condend: \Aa: \Ab: \Ac: ((a >= c) & (b >= c)) -> (\min(a, b) >= c)
@@ -69,17 +65,12 @@ axiom I2: \Aa: \Ab: \Ac: \Ad: \int_{e=\min(a, b)}^{c}{d} = \int_{e=\min(a, b)}^{
 # - assume f = a, then \int_{e=a}^{f}{\min(c,d+e)} = 0 = \int_{e=a}^{f}{d+e}
 #
   condstart I3C2a: c <= d
-    rename(Q10): \Ax: \Ay: \Az: ((x <= y) & (y <= z)) -> (x <= z)
-    specify: \Ay: \Az: ((c-d <= y) & (y <= z)) -> (c-d <= z)
-    specify: \Az: ((c-d <= 0) & (0 <= z)) -> (c-d <= z)
-    specify I3C2b: ((c-d <= 0) & (0 <= 1)) -> (c-d <= 1)
-
-    rename(M2): \Ax: \Ay: (x >= y) -> (\min(x, y) = y)
-    specify: \Ay: (1 >= y) -> (\min(1, y) = y)
-    specify I3C2e: (1 >= c-d) -> (\min(1, c-d) = c-d)
-
-    specify(M4): \Ab: (0 >= b) -> (\max(0, b) = 0)
-    specify I3C2f: (0 >= c-d) -> (\max(0, c-d) = 0)
+    specify(Q10) I3C2b: ((c-d <= 0) & (0 <= 1)) -> (c-d <= 1)
+    specify(M2) I3C2e: (1 >= c-d) -> (\min(1, c-d) = c-d)
+    specify(M4) I3C2f: (0 >= c-d) -> (\max(0, c-d) = 0)
+    rename(I1) I3C2j: \Aa: \Ab: \int_{e=a}^{a}{b} = 0
+    specify I3C2i: \int_{e=0}^{0}{ \min(c,d+e) } = 0
+    specify(I3C2j) I3C2k: \int_{e=0}^{0}{ d+e } = 0
 
     add(I3C2a): c-d <= 0
     conjoin(Q9a): (c-d <= 0) & (0 <= 1)
@@ -93,11 +84,6 @@ axiom I2: \Aa: \Ab: \Ac: \Ad: \int_{e=\min(a, b)}^{c}{d} = \int_{e=\min(a, b)}^{
     ponens(I3C2f): \max(0, c-d) = 0
     equate(I3C2g) I3C2h: \max(0, \min(1, c-d)) = 0
 
-    rename(I1): \Ax: \Ay: \int_{e=x}^{x}{y} = 0
-    specify I3C2j: \Ay: \int_{e=0}^{0}{y} = 0
-    specify I3C2i: \int_{e=0}^{0}{ \min(c,d+e) } = 0
-    specify(I3C2j) I3C2k: \int_{e=0}^{0}{ d+e } = 0
-
     identity: \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) }
     equate(I3C2h): \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{0}{ \min(c,d+e) }
     equate(I3C2i): \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = 0
@@ -106,17 +92,10 @@ axiom I2: \Aa: \Ab: \Ac: \Ad: \int_{e=\min(a, b)}^{c}{d} = \int_{e=\min(a, b)}^{
   condend I3a: \Ac: \Ad: (c <= d) -> (\int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ d+e })
   condstart: c >= d
     add I3C1a: c-d >= 0
-    rename(M10): \Ax: \Ay: \Az: ((x >= z) & (y >= z)) -> (\min(x, y) >= z)
-    specify: \Ay: \Az: ((1 >= z) & (y >= z)) -> (\min(1, y) >= z)
-    specify: \Az: ((1 >= z) & (c-d >= z)) -> (\min(1, c-d) >= z)
-    specify I3C1b: ((1 >= 0) & (c-d >= 0)) -> (\min(1, c-d) >= 0)
+    specify(M10) I3C1b: ((1 >= 0) & (c-d >= 0)) -> (\min(1, c-d) >= 0)
+    specify(M3) I3C1e: (0 <= \min(1, c-d)) -> (\max(0, \min(1, c-d)) = \min(1, c-d))
+    specify(Q2) I3C1c: (1 > 0) -> (1 >= 0)
 
-    rename(M3): \Ax: \Ay: (x <= y) -> (\max(x, y) = y)
-    specify: \Ay: (0 <= y) -> (\max(0, y) = y)
-    specify I3C1e: (0 <= \min(1, c-d)) -> (\max(0, \min(1, c-d)) = \min(1, c-d))
-
-    specify(Q2): \Ab: (1 > b) -> (1 >= b)
-    specify I3C1c: (1 > 0) -> (1 >= 0)
     add(Q9): -1 < 0
     multiply: 1 > 0
     ponens(I3C1c): 1 >= 0
@@ -127,15 +106,8 @@ axiom I2: \Aa: \Ab: \Ac: \Ad: \int_{e=\min(a, b)}^{c}{d} = \int_{e=\min(a, b)}^{
     ponens(I3C1e) I3C1f: \max(0, \min(1, c-d)) = \min(1, c-d)
 
     condstart I3C11a: e <= \min(1, c-d)
-      rename(M6): \Ax: \Ay: \min(x, y) <= y
-      specify: \Ay: \min(1, y) <= y
-      specify I3C11b: \min(1, c-d) <= c-d
-
-      rename(Q10): \Ax: \Ay: \Az: (((x <= y) & (y <= z)) -> (x <= z))
-      specify: \Ay: \Az: (((e <= y) & (y <= z)) -> (e <= z))
-      specify: \Az: (((e <= \min(1, c-d)) & (\min(1, c-d) <= z)) -> (e <= z))
-      specify I3C11c: (((e <= \min(1, c-d)) & (\min(1, c-d) <= c-d)) -> (e <= c-d))
-
+      specify(M6) I3C11b: \min(1, c-d) <= c-d
+      specify(Q10) I3C11c: (((e <= \min(1, c-d)) & (\min(1, c-d) <= c-d)) -> (e <= c-d))
       conjoin(I3C11a: I3C11b): (e <= \min(1, c-d)) & (\min(1, c-d) <= c-d)
       ponens(I3C11c): e <= c-d
       add: -c <= -d-e
@@ -152,19 +124,14 @@ axiom I2: \Aa: \Ab: \Ac: \Ad: \int_{e=\min(a, b)}^{c}{d} = \int_{e=\min(a, b)}^{
 theorem I3: \Ac: \Ad: \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ d+e }
 
   condstart I4C1a: c-d <= 1
-    specify(M2): \Ab: (1 >= b) -> (\min(1, b) = b)
-    specify I4C1b: (1 >= c-d) -> (\min(1, c-d) = c-d)
+    specify(M2) I4C1b: (1 >= c-d) -> (\min(1, c-d) = c-d)
     add(I4C1a): -1 <= -c+d
     multiply: 1 >= c-d
     ponens(I4C1b) I4C1f: \min(1, c-d) = c-d
 
     condstart I4C11a: e >= \max(0, c-d)
-      rename(Q11): \Ax: \Ay: \Az: ((x >= y) & (y >= z)) -> (x >= z)
-      specify: \Ay: \Az: ((e >= y) & (y >= z)) -> (e >= z)
-      specify: \Az: ((e >= \max(0, c-d)) & (\max(0, c-d) >= z)) -> (e >= z)
-      specify I4C11b: ((e >= \max(0, c-d)) & (\max(0, c-d) >= c-d)) -> (e >= c-d)
-      specify(M8): \Ab: \max(0, b) >= b
-      specify: \max(0, c-d) >= c-d
+      specify(Q11) I4C11b: ((e >= \max(0, c-d)) & (\max(0, c-d) >= c-d)) -> (e >= c-d)
+      specify(M8): \max(0, c-d) >= c-d
       conjoin(I4C11a): (e >= \max(0, c-d)) & (\max(0, c-d) >= c-d)
       ponens(I4C11b): e >= c-d
       add: -c >= -d-e
@@ -176,19 +143,16 @@ theorem I3: \Ac: \Ad: \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=
     minmax(*with I4C1h): \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c }
   condend I4a: \Ac: \Ad: (c-d <= 1) -> (\int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c })
   condstart I4C2a: c-d >= 1
-    specify(M1): \Ab: (1 <= b) -> (\min(1, b) = 1)
-    specify I4C2b: (1 <= c-d) -> (\min(1, c-d) = 1)
+    specify(M1) I4C2b: (1 <= c-d) -> (\min(1, c-d) = 1)
     add(I4C2a): -1 >= -c+d
     multiply: 1 <= c-d
     ponens(I4C2b) I4C2c: \min(1, c-d) = 1
 
-    specify(M3): \Ab: (0 <= b) -> (\max(0, b) = b)
-    specify I4C2d: (0 <= 1) -> (\max(0, 1) = 1)
+    specify(M3) I4C2d: (0 <= 1) -> (\max(0, 1) = 1)
     ponens(Q9a: I4C2d): \max(0, 1) = 1
     equate(I4C2c) I4C2e: \max(0, \min(1, c-d)) = 1
 
-    rename(I1): \Ax: \Ay: \int_{e=x}^{x}{y} = 0
-    specify I4C2f: \Ay: \int_{e=1}^{1}{y} = 0
+    rename(I1) I4C2f: \Aa: \Ab: \int_{e=a}^{a}{b} = 0
     specify I4C2g: \int_{e=1}^{1}{ \min(c,d+e) } = 0
     specify(I4C2f): \int_{e=1}^{1}{ c } = 0
     equate(I4C2e) I4C2h: \int_{e=\max(0,\min(1,c-d))}^{1}{ c } = 0
@@ -199,7 +163,6 @@ theorem I3: \Ac: \Ad: \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=
     equate(I4C2h): \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c }
   condend I4b: \Ac: \Ad: (c-d >= 1) -> (\int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c })
   cases(I4a) I4c: \Ac: \Ad: ((c-d >= 1) | (c-d <= 1)) -> (\int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c })
-  specify(Q6): \Aa: (a >= 1) | (a <= 1)
-  specify: \Ac: \Ad: (c-d >= 1) | (c-d <= 1)
+  specify(Q6): \Ac: \Ad: (c-d >= 1) | (c-d <= 1)
   ponens(I4c): \Ac: \Ad: \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c }
 theorem I4: \Ac: \Ad: \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c }
