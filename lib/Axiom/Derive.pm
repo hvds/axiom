@@ -369,7 +369,7 @@ sub _all_vars {
 # Currently very simplistic: will succeed only if a subtree of $right
 # exactly maps to each occurrence of a mapped var in $left, or if the LHS
 # is a plus- or mul-list for which all but one of the arguments map to
-# arguments on the RHS; so it will not # for example find the mapping
+# arguments on the RHS; so it will not for example find the mapping
 # C<a := a + 1> to map C<a + b> to C<a + 1 + b>.
 #
 sub _find_mapping {
@@ -398,7 +398,7 @@ sub _find_mapping {
     if (! $left->is_list) {
         return 0 unless @la == @ra;
         for my $i (0 .. $#la) {
-            return 0 unless _find_mapping($la[$i], $ra[$i], $vars, $map);
+            next unless _find_mapping($la[$i], $ra[$i], $vars, $map);
             return 1 unless grep !defined, values %$map;
         }
         return 1;
