@@ -452,6 +452,9 @@ sub _find_mapping {
 #
 sub find_mapping {
     my($self, $left, $right, $vars) = @_;
+    # null case
+    return $left->diff($right, 1) ? undef : {}
+            unless @$vars;
     my %vars = map +($_->name => $_->binding->id), @$vars;
     my %map = map +($_->name => undef), @$vars;
     die "find_mapping: names clash in input vars"
