@@ -67,9 +67,11 @@ sub derive {
     my $starting = $self->line($line);
     my $target = $self->expr;
     $target->resolve($self->dict);
+    my $walk_locn = $starting->diff($target, 1);
+    my $walk_pos = $starting->locate($walk_locn);
 
     my @choice;
-    $starting->walk_locn(sub {
+    $walk_pos->walk_locn(sub {
         my($expr, $loc) = @_;
         my $type = $expr->type;
         if ($type eq 'negate') {
@@ -91,7 +93,7 @@ sub derive {
             ) || ($pow->type eq 'pluslist');
         }
         return;
-    });
+    }, $walk_locn);
 
     for my $loc (@choice) {
         return 1 if $self->validate([ $line, $loc ]);
