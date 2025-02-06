@@ -51,6 +51,10 @@ This covers C<prod>:
 
   a^{b + c} => (a^b)(a^c)
 
+=item C<forall> acting over C<implies>
+
+  \Aa: p -> q => (\Aa: p) -> (\Aa: q)
+
 =back
 
 =cut
@@ -91,6 +95,9 @@ sub derive {
                 && $pow->type eq 'integer'
                 && $pow->rat > 0
             ) || ($pow->type eq 'pluslist');
+        } elsif ($type eq 'forall') {
+            my($var, $state) = @{ $expr->args };
+            push @choice, $loc if $state->type eq 'implies';
         }
         return;
     }, $walk_locn);
@@ -259,6 +266,17 @@ sub validate {
         $repl = Axiom::Expr->new({
             type => 'pluslist',
             args => \@pargs,
+        });
+    } elsif ($type eq 'forall' && $expr->args->[1]->type eq 'implies') {
+        # \Ax: p -> q => (\Ax: p) -> (\Ax: q)
+        my($var, $impl) = @{ $expr->args };
+        my($left, $right) = @{ $impl->args };
+        $repl = Axiom::Expr->new({
+            type => 'implies',
+            args => [ map Axiom::Expr->new({
+                type => 'forall',
+                args => [ $var->copy, $_->copy ],
+            }), ($left, $right) ],
         });
     }
     unless ($repl) {
