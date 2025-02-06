@@ -1271,8 +1271,10 @@ package Axiom::Expr::Name {
     }
     sub bracketed {
         my($self) = @_;
-        return sprintf '%s %s%s', $self->bindtype, $self->name,
-                $self->binding ? "_" . $self->binding->id : "";
+        my $b = $self->binding;
+        return $b
+            ? sprintf('%s %s_%s', $b->type, $self->name, $b->id)
+            : sprintf('%s %s', 'unbound', $self->name);
     }
     sub _diff {
         my($self, $other, $map, $exact) = @_;
