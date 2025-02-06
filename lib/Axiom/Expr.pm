@@ -1020,6 +1020,97 @@ sub subst_vars {
     });
 }
 
+sub _apply_map {
+    my($self, $a) = @_;
+    if ($self->has_newvar) {
+        my $intro = $self->intro_newvar;
+        my $affect = $self->affect_newvar;
+        my $args = $self->args;
+        for (0 .. $#$args) {
+            next if $_ == $intro || $_ == $affect;
+            local $a->{ref} = \$args->[$_];
+            $args->[$_]->_apply_map($a);
+        }
+        my $var = $args->[$intro];
+        my $orig = $var->binding;
+        my $binding = $var->_resolve_new($a->{dict});
+        if ($a->{replacing} == 2) {
+            die sprintf(
+                'binding mismatch at %s %s', $self->type, $self->name
+            ) unless $orig->id == $binding->id;
+        }
+        my $local = $a->{dict}->local_name($var->name, $binding);
+        local $a->{ref} = \$args->[$affect];
+        $args->[$affect]->_apply_map($a);
+    } elsif ($self->type eq 'name') {
+        if ($a->{replacing}) {
+            my $binding = $self->binding;
+            return if $binding && $binding->is_func;
+            $self->_resolve($a->{dict});
+            if ($a->{replacing} == 2) {
+                my $new = $self->binding;
+                die sprintf(
+                    'binding mismatch at %s %s', $self->type, $self->name
+                ) unless $binding->id == $new->id;
+            }
+            return;
+        }
+        # not being introduced, so must be resolved or replaced
+        my $binding = $self->binding;
+        return if $binding->is_func;
+        my $id = $binding->id;
+        if ($a->{map}{$id}) {
+            my($repl, $known) = $a->{known}{$id}
+                ? ($a->{known}{$id}->copy, 2)
+                : ($a->{map}{$id}->copy, 1);
+            {
+                local $a->{replacing} = $known;
+                $repl->_apply_map($a);
+            }
+            if ($known == 1) {
+                $a->{known}{$id} = $repl;
+                die sprintf('multiplicand %s is not a number', $repl->str)
+                        unless $repl->is_number($a->{given});
+            }
+            ${ $a->{ref} } = $repl;
+        } else {
+            $self->_resolve($a->{dict});
+        }
+    } elsif ($self->type eq 'given') {
+        my $args = $self->args;
+        local $a->{ref} = \$args->[0];
+        $args->[0]->_apply_map($a);
+        local @$a{qw{ ref given }} = (\$args->[1], $args->[0]);
+        $args->[1]->_apply_map($a);
+    } elsif (!$self->is_const) {
+        my $args = $self->args;
+        for (0 .. $#$args) {
+            local $a->{ref} = \$args->[$_];
+            $args->[$_]->_apply_map($a);
+        }
+    }
+}
+
+# Walk the expr to do the replacements, resolving as we go.
+# Variables getting introduced should be resolved but not replaced;
+# others should be replaced if their old resolution matches a map id,
+# else get resolved normally. Replacement exprs should be resolved but
+# not recursively replaced, and we each replacement for a given id must
+# resolve the same way as the first. Each replacement must also have
+# a numeric value across its range.
+sub apply_map {
+    my($self, $dict, $map) = @_;
+    $self->_apply_map({
+        ref => \$self,
+        dict => $dict,
+        map => $map,
+        known => {},
+        given => undef,
+        replacing => 0,
+    });
+    return $self;
+}
+
 sub walk_tree {
     my($self, $cb) = @_;
     $cb->($self);
