@@ -28,19 +28,30 @@ sub derive_args {
     (0, q{});
 }
 
+sub late_resolve {
+    my($self, $include) = @_;
+    return +($include && $self->context->in_scope) ? 1 : 0;
+}
+
 sub derive {
     my($self, $args) = @_;
     return $self->validate($args);
 }
 
-*include = \&derive;
+sub include {
+    my($self, $args) = @_;
+    return $self->null if $self->context->in_scope;
+    return $self->validate($args, 1);
+}
 
 sub validate {
-    my($self, $args) = @_;
-    $self->working($self->expr);
+    my($self, $args, $including) = @_;
     my $name = $self->name;
     $self->export_name if length $name;
     $self->rule(sprintf 'axiom%s', length($name) ? " $name" : '');
+    unless ($including) {
+        $self->working($self->expr);
+    }
     return 1;
 }
 
