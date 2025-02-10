@@ -46,6 +46,11 @@ factor: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^2 } = c(b(b + 1)(2b + 1) - a(2a^2 - 3a +
 factor: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^2 } = c(b(b + 1)(2b + 1) - a(a - 1)(2a - 1)) / 6
 theorem Sum_i2: \Aa: \Ab: \Ac: \sum_{i=a}^b{ci^2} = c(b(b + 1)(2b + 1) - a(a - 1)(2a - 1))/6
 
+identity: \Aa: \Ab: (a+b)^2 = (a+b)^2
+unarydistrib Square: \Aa: \Ab: a^2+2ab+b^2 = (a+b)^2
+specify Sq1: \Aa: a^2+2a+1 = (a+1)^2
+specify(Square) Sqm1: \Aa: a^2-2a+1 = (a-1)^2
+
 identity: \Aa: \Ab: \Ac: \sum_{i=a}^b{ci^4} = \sum_{i=a}^b{ci^4}
 iterextend: \Aa: \Ab: \Ac: \sum_{i=a}^b{ci^4} = \sum_{i=a}^{b + 1}{ci^4} - c(b + 1)^4
 iterextend: \Aa: \Ab: \Ac: \sum_{i=a}^b{ci^4} = \sum_{i=a + 1}^{b + 1}{ci^4} - c(b + 1)^4 + ca^4
@@ -70,13 +75,9 @@ distrib: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^4 + 2b^3 + 3b^2 + 2b - a^4 + 
 distrib: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^4 + 2b^3 + b^2 - a^4 + 2a^3 - 3a^2 + 2a + 2a(a - 1)) / 4
 distrib: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^4 + 2b^3 + b^2 - a^4 + 2a^3 - a^2) / 4
 factor: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^{2}(b^2 + 2b + 1) - a^4 + 2a^3 - a^2) / 4
-# factoring (b^2 + 2b + 1) -> (b + 1)^2 TODO
-# factor: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^{2}(b + 1)^2 - a^4 + 2a^3 - a^2) / 4
-axiom: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^{2}(b + 1)^2 - a^4 + 2a^3 - a^2) / 4
+equate(Sq1): \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^{2}(b + 1)^2 - a^4 + 2a^3 - a^2) / 4
 factor: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^{2}(b + 1)^2 - a^{2}(a^2 - 2a + 1)) / 4
-# factoring (a^2 - 2a + 1) -> (a - 1)^2 TODO
-# factor: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^{2}(b + 1)^2 - a^{2}(a - 1)^2) / 4
-axiom: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^{2}(b + 1)^2 - a^{2}(a - 1)^2) / 4
+equate(Sqm1): \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^{2}(b + 1)^2 - a^{2}(a - 1)^2) / 4
 theorem Sum_i3: \Aa: \Ab: \Ac: \sum_{i=a}^b{ ci^3 } = c(b^{2}(b + 1)^2 - a^{2}(a - 1)^2) / 4
 
 identity: \An: 2^{n + 1} - 2^n = 2 . 2^n - 2^n
