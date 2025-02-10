@@ -5,6 +5,7 @@ use strict;
 use warnings;
 
 use Axiom::Expr;
+use Axiom::Box;
 use Scalar::Util qw{ weaken blessed };
 
 =head1 NAME
@@ -106,6 +107,10 @@ sub late_resolve { 0 }
 sub context { shift->{context} }
 sub source { shift->{source} }
 sub expr { shift->{expr} }
+sub tbox {
+    my($self) = @_;
+    return $self->_box($self->expr);
+}
 sub dict { shift->{dict} }
 sub rawexpr { shift->{rawexpr} }
 sub rule {
@@ -146,6 +151,15 @@ sub line {
     return +($index // '') eq ''
         ? $self->working
         : $self->context->expr($index);
+}
+sub box {
+    my($self, $index) = @_;
+    return $self->_box($self->line($index));
+}
+sub _box {
+    my($self, $expr) = @_;
+    $expr->resolve($self->dict);
+    return Axiom::Box->new($expr);
 }
 sub scope {
     my($self, $new) = @_;

@@ -43,12 +43,8 @@ sub derive_args {
 sub derive {
     my($self, $args) = @_;
     my($line) = @$args;
-    my $starting = $self->line($line);
-    my $target = $self->expr;
-    $target->resolve($self->dict);
-
-    my $fo = Axiom::ExprVars->new($starting);
-    my $to = Axiom::ExprVars->new($target);
+    my $fo = $self->box($line);
+    my $to = $self->tbox;
     my $fe = $fo->expr;
     my $te = $to->expr;
     my $fv = $fo->allvar;
@@ -78,13 +74,8 @@ sub derive {
 sub validate {
     my($self, $args) = @_;
     my($line, $map) = @$args;
-    my $starting = $self->line($line);
-    $starting->resolve($self->dict);
-    my $target = $self->expr;
-    $target->resolve($self->dict);
-
-    my $fo = Axiom::ExprVars->new($starting);
-    my $to = Axiom::ExprVars->new($target);
+    my $fo = $self->box($line);
+    my $to = $self->tbox;
 
     # find the binding id of each variable to be replaced
     my $dict = $fo->dict_at;
@@ -104,64 +95,5 @@ sub validate {
 
     return 1;
 }
-
-# TODO: work out whether this is a real class that should have its own home,
-# or a helper class specific to ::Specify that should have a local name here.
-package Axiom::ExprVars {
-    sub new {
-        my($class, $expr) = @_;
-        return bless {
-            orig => $expr,
-        }, $class;
-    }
-    sub orig { shift->{orig} }
-    sub _findtop {
-        my($self) = @_;
-        my $e = $self->orig;
-        my(@loc, @anyvar, @allvar);
-        while ($e->is_quant) {
-            my $t = $e->type;
-            (my($v), $e) = @{ $e->args };
-            push @loc, 2;
-            push @anyvar, [ $t, $v ];
-            push @allvar, $v if $t eq 'forall';
-        }
-        @$self{qw{ expr loc anyvar allvar }} = ($e, \@loc, \@anyvar, \@allvar);
-        return;
-    }
-    for my $attr (qw{ expr loc anyvar allvar }) {
-        my $sub = sub {
-            my($self) = @_;
-            $self->_findtop unless $self->{$attr};
-            return $self->{$attr};
-        };
-        no strict 'refs';
-        *$attr = $sub;
-    }
-    sub dict_at {
-        my($self) = @_;
-        return $self->orig->dict_at($self->loc);
-    }
-    sub diffvar {
-        my($self, $other) = @_;
-        my %known = map +($_->name => $_), @$other;
-        return [ grep !$known{ $_->name }, @{ $self->allvar } ];
-    }
-    sub wrapall {
-        my($self, $expr) = @_;
-        for (reverse @{ $self->anyvar }) {
-            my($type, $var) = @$_;
-            $expr = Axiom::Expr->new({
-                type => $type,
-                args => [ $var->copy, $expr ],
-            });
-        }
-        return $expr;
-    }
-    sub rewrap {
-        my($self, $other) = @_;
-        return $other->wrapall($self->expr->copy);
-    }
-};
 
 1;
