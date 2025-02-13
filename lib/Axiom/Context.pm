@@ -120,11 +120,11 @@ sub add {
     my $import = $self->{importing};
     if ($line =~ /^\s*(?:#.*)?\z/) {
         print $line, "\n" unless $quiet || $import;
-        return;
+        return 1;
     }
     if ($line =~ /^\*/) {
         $self->apply_directive($line, $quiet);
-        return;
+        return 1;
     }
     my $derive = ($import
         ? Axiom::Derive->include($line, $self, $DEBUG)
@@ -148,7 +148,7 @@ sub add {
         my $str = $derive->str;
         print "$str\n" if length $str;
     }
-    return;
+    return 1;
 }
 
 sub print_lines {
