@@ -38,30 +38,30 @@ sub derive {
 sub validate {
     my($self, $args) = @_;
     my($line) = @$args;
-    my $fo = $self->box($line);
+    my $fo = $self->box($line);     # \Ax: P -> (Q = R)
+    my $foi = $fo->unwrap;          # P -> (Q = R)
+    $foi->assert_type('implies');
+    my($fop, $foe) = map $foi->arg($_), (0, 1); # P, Q = R
+    $foe->assert_type('req');
+    my($foq, $for) = map $foe->arg($_), (0, 1); # Q, R
+
     my $to = $self->tbox;
-    my $fe = $fo->expr;
-    return $self->set_error(sprintf(
-        'Expect implies, not %s', $fe->type
-    )) unless $fe->type eq 'implies';
-    my($fp, $fqr) = @{ $fe->args };
-    return $self->set_error(sprintf(
-        'Expect implication of req, not %s', $fqr->type
-    )) unless $fqr->type eq 'req';
-    my($fq, $fr) = @{ $fqr->args };
+    my $toe = $to->unwrap;
+    $toe->assert_type('req');
+    my($topq, $topr) = map $toe->arg($_), (0, 1);
 
     my $left = Axiom::Expr->new({
         type => 'given',
-        args => [ $fp->copy, $fq->copy ],
+        args => [ $fop->expr->copy, $foq->expr->copy ],
     });
+    my $right = $for->expr->copy;
     # FIXME: unsafe to assume that $tr->type eq 'given' means it is this one
-    my $right = $fr->copy;
     $right = Axiom::Expr->new({
         type => 'given',
-        args => [ $fp->copy, $right ],
-    }) if $to->expr->type eq 'given';
-    my $result = $to->wrapall(Axiom::Expr->new({
-        type => $fqr->type,
+        args => [ $fop->copy, $right ],
+    }) if $topr->expr->type eq 'given';
+    my $result = $toe->wrapall(Axiom::Expr->new({
+        type => 'req',
         args => [ $left, $right ],
     }));
     $self->validate_diff($result) or return;

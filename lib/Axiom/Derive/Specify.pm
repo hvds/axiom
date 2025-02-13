@@ -43,55 +43,23 @@ sub derive_args {
 sub derive {
     my($self, $args) = @_;
     my($line) = @$args;
-    my $fo = $self->box($line);
-    my $to = $self->tbox;
-    my $fe = $fo->expr;
-    my $te = $to->expr;
-    my $fv = $fo->allvar;
-    my $map = $self->find_mapping($fe, $te, $fv);
-
-    # if we didn't find it, maybe one side has been simplified to the point
-    # we no longer recognise it
-    if (!$map && !$fe->is_atom && $fe->type eq $te->type) {
-        my $fa = $fe->args;
-        my $ta = $te->args;
-        if (@$fa == @$ta) {
-            for (0 .. $#$fa) {
-                $map = $self->find_mapping($fa->[$_], $ta->[$_], $fv);
-                last if $map;
-            }
-        }
-    }
-    return $self->set_error("don't know how to derive this specify")
-            unless $map;
-
-    my %vmap = (args => [
-        map +{ args => [ $_->copy, $map->{$_->name} ] }, @$fv,
-    ]);
-    return $self->validate([ $line, \%vmap ]);
+    my $foe = $self->box($line)->unwrap;
+    my $toe = $self->tbox->unwrap;
+    my $map = $foe->find_mapping($toe) or return;
+    return $self->validate([ $line, $map ]);
 }
 
 sub validate {
     my($self, $args) = @_;
     my($line, $map) = @$args;
-    my $fo = $self->box($line);
-    my $to = $self->tbox;
-
-    # find the binding id of each variable to be replaced
-    my $dict = $fo->dict_at;
-    my %vmap = map {
-        my($var, $expr) = @{ $_->{args} };
-        $var->resolve($dict);
-        my $id = $var->binding->id;
-        +($id => $expr);
-    } @{ $map->{args} // [] };
+    my $foe = $self->box($line)->unwrap;
+    my $toe = $self->tbox->unwrap;
 
     # Replace the quantifier wrappings with those of the target
-    my $expr = $fo->rewrap($to);
-    $expr->apply_map($self->dict->clone, \%vmap);
+    my $expr = $toe->rewrap_map($foe, $map)->expr;
     $self->validate_diff($expr) or return;
     $self->rule(sprintf 'specify(%s%s)',
-            $self->_linename($line), $self->_varmap($map));
+            $self->_linename($line), $self->_varmap2($map));
 
     return 1;
 }

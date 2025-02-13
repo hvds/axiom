@@ -159,7 +159,7 @@ sub box {
 sub _box {
     my($self, $expr) = @_;
     $expr->resolve($self->dict);
-    return Axiom::Box->new($expr);
+    return Axiom::Box->new($self, $expr);
 }
 sub scope {
     my($self, $new) = @_;
