@@ -319,6 +319,14 @@ sub _varmap {
     } @{ $map->{args} };
 }
 
+sub _varmap2 {
+    my($self, $map) = @_;
+    return '{ }' unless defined $map && keys %$map;
+    return sprintf '{ %s }', join ', ', map {
+        sprintf '%s := %s', $_, $map->{$_}->rawexpr;
+    } sort keys %$map;
+}
+
 sub validate_diff {
     my($self, $result, $exact) = @_;
     my $expr = $self->expr;
