@@ -51,30 +51,38 @@ theorem C4: \Aa: \Ab: \Ac: ((b <= 1-a) & (c >= 0) & (c <= a+b)) -> ((a+b-c >= 0)
 condstart: w <= x+y-z
   multiply: -w >= -x-y+z
   add: x+y >= z+w
-condend: \Aa: \Ab: \Ac: \Ad: (d <= a+b-c) -> (a+b >= c+d)
-theorem C5: \Aa: \Ab: \Ac: \Ad: (d <= a+b-c) -> (a+b >= c+d)
+  ponens(int.M2): \min(x+y,z+w) = z+w
+condend: \Aa: \Ab: \Ac: \Ad: (d <= a+b-c) -> (\min(a+b,c+d) = c+d)
+given: \Aa: \Ab: \Ac: \Ad: \given_{d <= a+b-c}{\min(a+b,c+d)} = c+d
+theorem C5: \Aa: \Ab: \Ac: \Ad: \given_{d <= a+b-c}{\min(a+b,c+d)} = c+d
 
 condstart: w >= x+y-z
   multiply: -w <= -x-y+z
   add: x+y <= z+w
-condend: \Aa: \Ab: \Ac: \Ad: (d >= a+b-c) -> (a+b <= c+d)
-theorem C6: \Aa: \Ab: \Ac: \Ad: (d >= a+b-c) -> (a+b <= c+d)
+  ponens(int.M1): \min(x+y,z+w) = x+y
+condend: \Aa: \Ab: \Ac: \Ad: (d >= a+b-c) -> (\min(a+b,c+d) = a+b)
+given: \Aa: \Ab: \Ac: \Ad: \given_{d >= a+b-c}{\min(a+b,c+d)} = a+b
+theorem C6: \Aa: \Ab: \Ac: \Ad: \given_{d >= a+b-c}{\min(a+b,c+d)} = a+b
 
 condstart COND7a: (z >= x+y) & (w >= 0)
   specify(int.Q7) COND7b: ((z >= x+y) & (w >= 0)) -> (z+w >= x+y)
   ponens(COND7a: COND7b): z+w >= x+y
   multiply(*value -1): -z-w <= -x-y
   add: x+y <= z+w
-condend: \Aa: \Ab: \Ac: \Ad: ((c >= a+b) & (d >= 0)) -> (a+b <= c+d)
-theorem C7: \Aa: \Ab: \Ac: \Ad: ((c >= a+b) & (d >= 0)) -> (a+b <= c+d)
+  ponens(int.M1): \min(x+y,z+w) = x+y
+condend: \Aa: \Ab: \Ac: \Ad: ((c >= a+b) & (d >= 0)) -> (\min(a+b,c+d) = a+b)
+given: \Aa: \Ab: \Ac: \Ad: \given_{(c >= a+b) & (d >= 0)}{\min(a+b,c+d)} = a+b
+theorem C7: \Aa: \Ab: \Ac: \Ad: \given_{(c >= a+b) & (d >= 0)}{\min(a+b,c+d)} = a+b
 
 condstart COND8a: (z <= x+y-1) & (w <= 1)
   specify(int.Q8) COND8b: ((z <= x+y-1) & (w <= 1)) -> (z+w <= x+y)
   ponens(COND8a: COND8b): z+w <= x+y
   multiply(*value -1): -z-w >= -x-y
   add: x+y >= z+w
-condend: \Aa: \Ab: \Ac: \Ad: ((c <= a+b-1) & (d <= 1)) -> (a+b >= c+d)
-theorem C8: \Aa: \Ab: \Ac: \Ad: ((c <= a+b-1) & (d <= 1)) -> (a+b >= c+d)
+  ponens(int.M2): \min(x+y,z+w) = z+w
+condend: \Aa: \Ab: \Ac: \Ad: ((c <= a+b-1) & (d <= 1)) -> (\min(a+b,c+d) = c+d)
+given: \Aa: \Ab: \Ac: \Ad: \given_{(c <= a+b-1) & (d <= 1)}{\min(a+b,c+d)} = c+d
+theorem C8: \Aa: \Ab: \Ac: \Ad: \given_{(c <= a+b-1) & (d <= 1)}{\min(a+b,c+d)} = c+d
 
 condstart COND9a: (x >= 0) & (x <= 1) & (y >= 1-x) & (y <= 1) & (z >= x+y-1) & (z <= 1)
   specify(int.Q7) COND9d: ((y >= 1-x) & (-z >= -1)) -> (y-z >= -x)
@@ -96,13 +104,19 @@ itersplit(*with C1): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^1{\int_{
 itersplit(*with C2): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b}^1{\int_{d=0}^1{\min(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
 itersplit(*with C3): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b}^1{\int_{d=0}^1{\min(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
 itersplit(*with C4): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{\min(a + b, c + d)}+\int_{d=a+b-c}^1{\min(a + b, c + d)}}+\int_{c=a+b}^1{\int_{d=0}^1{\min(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
-minmax(*with C5): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{\min(a + b, c + d)}}+\int_{c=a+b}^1{\int_{d=0}^1{\min(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
-minmax(*with C6): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{\min(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
-minmax(*with C7): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
-minmax(*with C8): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
+give: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{\given_{d <= a+b-c}{\min(a + b, c + d)}}+\int_{d=a+b-c}^1{\min(a + b, c + d)}}+\int_{c=a+b}^1{\int_{d=0}^1{\min(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
+equate(C5): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{\min(a + b, c + d)}}+\int_{c=a+b}^1{\int_{d=0}^1{\min(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
+give: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{\given_{d >= a+b-c}{\min(a + b, c + d)}}}+\int_{c=a+b}^1{\int_{d=0}^1{\min(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
+equate(C6): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{\min(a + b, c + d)}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
+give: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{\given_{(c >= a+b) & (d >= 0)}{\min(a+b,c+d)}}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
+equate(C7): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\min(a + b, c + d)}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
+give: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{\given_{(c <= a+b-1) & (d <= 1)}{\min(a+b,c+d)}}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
+equate(C8): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^1{\min(a + b, c + d)}}}}
 itersplit(*with C9): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{\min(a + b, c + d)}+\int_{d=a+b-c}^1{\min(a + b, c + d)}}}}
-minmax(*with C5): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{\min(a + b, c + d)}}}}
-minmax(*with C6): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
+            give: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{\given_{d <= a+b-c}{\min(a + b, c + d)}}+\int_{d=a+b-c}^1{\min(a + b, c + d)}}}}
+equate(C5): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{\min(a + b, c + d)}}}}
+give: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{\given_{d >= a+b-c}{\min(a + b, c + d)}}}}}
+equate(C6): E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
 integrate: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{\inteval_{d=0}^{a+b-c}{cd + d^2/2}+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
 inteval: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{ac + bc - c^2 + (a + b - c)^2/2+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
 unarydistrib: E(2, 3) = \int_{a=0}^1{\int_{b=0}^{1-a}{\int_{c=0}^{a+b}{(a^2 + b^2 - c^2 + 2ab)/2+\int_{d=a+b-c}^1{a + b}}+\int_{c=a+b}^1{\int_{d=0}^1{a + b}}}+\int_{b=1-a}^1{\int_{c=0}^{a+b-1}{\int_{d=0}^1{c + d}}+\int_{c=a+b-1}^1{\int_{d=0}^{a+b-c}{c + d}+\int_{d=a+b-c}^1{a + b}}}}
