@@ -324,6 +324,84 @@ sub test {
     return undef;
 }
 
+# Divide the expression e by the best rational constant c it can find,
+# returning arrayref [c, e].
+# TODO: decide whether we should factor constants out of plusish iterators:
+# if we do, we both need A::D::UD->_make_right to split list elements before
+# asking for child disposal, and to teach _assign about the possibility.
+sub split_prod {
+    my($self) = @_;
+    my $const = Math::BigRat->new(1);
+    my $e = $self->copy;
+    my $done = 0;
+    until ($done || ($e->is_const && $e->rat == 1)) {
+        my $t = $e->type;
+        my $cb = {
+            integer => sub {
+                $const *= $e->rat;
+                $e = Axiom::Expr->new_const(1);
+                $done = 1;
+            },
+            rational => sub {
+                $const *= $e->rat;
+                $e = Axiom::Expr->new_const(1);
+                $done = 1;
+            },
+            negate => sub {
+                $const *= -1;
+                $e = $e->args->[0];
+            },
+            mullist => sub {
+                my $a = $e->args;
+                my $a0 = shift @$a;
+                (my($c2), $a0) = @{ $a0->split_prod };
+                $const *= $c2;
+                unshift @$a, $a0 unless $a0->is_const && $a0->rat == 1;
+                $e = Axiom::Expr->new({
+                    type => 'mullist',
+                    args => $a,
+                });
+                $done = 1;
+            },
+        }->{$t} or last;
+        $cb->();
+    }
+    return [ $const, $e ];
+}
+
+# Return [c, e] such that the input expression is e^c, where both are
+# expressions.
+sub split_pow {
+    my($self) = @_;
+    my $p = Axiom::Expr->new_const(1);
+    my $e = $self->copy;
+    my $done = 0;
+    until ($done) {
+        my $t = $e->type;
+        my $cb = {
+            integer => sub {
+                $done = 1;
+            },
+            rational => sub {
+                $done = 1;
+            },
+            pow => sub {
+                ($e, my($pow)) = @{ $e->args };
+                $p = Axiom::Expr->new({
+                    type => 'mullist',
+                    args => [ $p, $pow->copy ],
+                })->clean;
+            },
+            recip => sub {
+                $p = $p->negate;
+                $e = $e->args->[0];
+            },
+        }->{$t} or last;
+        $cb->();
+    }
+    return [ $p, $e ];
+}
+
 {
     # TODO: [mullist a [recip b]] => 'a/b' rather than 'a.(1/b)'
     # .. and try to unify it with a cleaner [pluslist a [negate b]]
@@ -806,18 +884,49 @@ sub _clean {
                         $vali ** $powi
                     ) if $vali || $powi;
                 }
+
+                my($c, $e) = @{ $val->split_prod };
+                if ($c != 1) {
+                    $c = $c ** $powi;
+                    $e = Axiom::Expr->new({
+                        type => 'pow',
+                        args => [ $e->copy, $pow->copy ],
+                    });
+                    return $c == 1 ? $e : Axiom::Expr->new({
+                        type => 'mullist',
+                        args => [ Axiom::Expr->new_const($c), $e ],
+                    });
+                }
             }
             if ($val->type eq 'integer') {
+                # 0^x = 0 when x <> 0
                 my $vali = $val->rat;
                 return Axiom::Expr->new({
                     type => 'integer',
                     args => [ '0' ],
                 }) if $vali == 0 && $pow->test_nonzero($given);
+
+                # 1^x -> 1
+                return $val
+                        if $val->args->[0] eq '1';
             }
 
-            # 1^x -> 1
-            return $val
-                    if $val->type eq 'integer' && $val->args->[0] eq '1';
+            if ($val->type eq 'pow') {
+                # (x^a)^b = x^{ab}
+                return Axiom::Expr->new({
+                    type => 'pow',
+                    args => [
+                        $val->args->[0]->copy,
+                        Axiom::Expr->new({
+                            type => 'mullist',
+                            args => [
+                                $val->args->[1]->copy,
+                                $pow->copy,
+                            ],
+                        }),
+                    ],
+                });
+            }
 
             # pow(a, -b) -> 1 / pow(a, b)
             return Axiom::Expr->new({
