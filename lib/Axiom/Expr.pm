@@ -46,6 +46,15 @@ sub new_const {
     return Axiom::Expr::Const->new_rat(Math::BigRat->new($const));
 }
 
+sub _debrack {
+    my($class, $brack) = @_;
+    my($type, @args) = @$brack;
+    return $class->new({
+        type => $type,
+        args => [ map ref($_) ? $class->_debrack($_) : $_, @args ],
+    });
+}
+
 sub local_dict {
     my($class, $localdict) = @_;
     return Axiom::Expr::LocalDict->new($localdict);

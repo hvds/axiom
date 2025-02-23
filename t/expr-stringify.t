@@ -44,7 +44,7 @@ for (
     
 ) {
     my($expect, $brack) = @$_;
-    my $e = _make_brack($brack);
+    my $e = Axiom::Expr->_debrack($brack);
     my %match = map +($_ => 1), ref($expect) ? @$expect : $expect;
     my $legend = sprintf 'expr %s', ref($expect) ? $expect->[-1] : $expect;
     ok($match{ $e->str =~ s{ +}{}gr }, $legend);
@@ -52,31 +52,18 @@ for (
 
 {
     # don't cache bracketing
-    my $e1 = _make_brack([pluslist => [name => 'a'], [name => 'b'] ]);
+    my $e1 = Axiom::Expr->_debrack([pluslist => [name => 'a'], [name => 'b'] ]);
     is('a+b', ($e1->str =~ s{ +}{}gr), 'e1 a+b');
     my $e2 = Axiom::Expr->new({
         type => 'mullist',
-        args => [ $e1, _make_brack([name => 'c']) ],
+        args => [ $e1, Axiom::Expr->_debrack([name => 'c']) ],
     });
     is('(a+b).c', ($e2->str =~ s{ +}{}gr), 'e2 (a+b).c');
     my $e3 = Axiom::Expr->new({
         type => 'req',
-        args => [ $e1, _make_brack([name => 'c']) ],
+        args => [ $e1, Axiom::Expr->_debrack([name => 'c']) ],
     });
     is('a+b=c', ($e3->str =~ s{ +}{}gr), 'e3 a+b=c');
 }
 
 done_testing();
-
-sub _make_brack {
-    my($b) = @_;
-    my($type, @args) = @$b;
-    return Axiom::Expr->new({
-        type => $type,
-        args => [ map {
-            ref($_) ? _make_brack($_) : $_
-        } @args ],
-    });
-}
-
-1;
