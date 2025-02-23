@@ -34,13 +34,62 @@ sub unwrap {
     }, ref($self);
 }
 
+sub type {
+    my($self) = @_;
+    return $self->{type} //= $self->expr->type;
+}
+
 sub assert_type {
     my($self, $type) = @_;
-    my $t = $self->expr->type;
+    my $t = $self->type;
     return 1 if $type eq $t;
     return $self->derive->set_error(sprintf(
         '%s needs %s, not %s', $self->derive->rulename, $type, $t
     ));
+}
+
+sub diff {
+    my($self, $other, @args) = @_;
+    return $self->expr->diff($other->expr, @args);
+}
+
+#
+# Finds differences between a pluslist L and another expression R.
+#
+# Returns two arrayrefs, the first comprises a list of argument indexes
+# C<a_i> in the list L that could not be matched to a subexpression of R;
+# the second comprises a list of C<[c_i, e_i]> arrayrefs representing
+# fragments of R that were not matched, in which C<c_i> is a rational
+# and C<e_i> is an L<Axiom::Expr>.
+#
+# We will have C<< L - sum{L_{a_i}} = R - sum{c_i e_i} >>;
+#
+sub plusdiff {
+    my($self, $other) = @_;
+    $self->assert_type('pluslist') or die;
+    my $args = $self->expr->args;
+    my $fa = [ map {
+        my $pair = $args->[$_]->split_prod;
+        [ @$pair, $_ ];
+    } 0 .. $#$args ];
+    my $ta = [ map $_->split_prod, $other->type eq 'pluslist'
+            ? @{ $other->expr->args } : $other->expr ];
+    my $i = 0;
+  DIFFI:
+    while ($i < @$fa) {
+        my($fc, $fe, $fi) = @{ $fa->[$i] };
+        for (@$ta) {
+            my($tc, $te) = @$_;
+            next if $fe->diff($te, 1);
+            $_->[0] -= $fc;
+            splice @$fa, $i, 1;
+            next DIFFI;
+        }
+        ++$i;
+    }
+    my $left = [ map $_->[2], @$fa ];
+    my $right = [ grep $_->[0], @$ta ];
+    return +($left, $right);
 }
 
 sub arg {
@@ -56,6 +105,16 @@ sub arg {
         expr => $a->[$i],
         arg => $i,
         loc => [ @{ $self->loc }, $i + 1 ],
+    };
+}
+
+sub locate {
+    my($self, $subloc) = @_;
+    return bless {
+        derive => $self->derive,
+        parent => $self,
+        expr => $self->expr->locate($subloc),
+        loc => [ @{ $self->loc }, @$subloc ],
     };
 }
 
@@ -80,6 +139,20 @@ sub walk_up {
         $this = $this->parent;
     }
     return;
+}
+
+sub origexpr {
+    my($self) = @_;
+    return $self->{origexpr} //= do {
+        my $e;
+        $self->walk_up(sub { $e = $_[0]->expr });
+        $e;
+    };
+}
+
+sub ancestry {
+    my($self) = @_;
+    return $self->origexpr->ancestry($self->loc);
 }
 
 sub allvars {
