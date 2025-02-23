@@ -21,7 +21,8 @@ Factors the given I<expr> out of the subexpression at I<location>.
 Eg given C< x = 2/y + 3/y(y+1) + 1 >, C< factor(2, 1/y) > will construct
 C< x = (1 / y)(2 + 3/(y + 1) + y) >.
 
-TODO: we currently support only factoring from type C<pluslist> or C<sum>.
+TODO: we currently support only factoring from type C<pluslist> or
+an additive iterator (C<sum>, C<integral>, C<inteval>).
 TODO: we currently only derive a single term to factor.
 
 =cut
@@ -95,7 +96,7 @@ sub derive {
             }
             next;
         }
-        if ($e->type eq 'sum') {
+        if ($e->is_iter && $e->combiner eq 'pluslist') {
             my($v, $se) = @$a[0, 3];
           retry_sum:
             if ($se->is_independent($v)) {
@@ -188,11 +189,11 @@ sub validate {
                 ],
             });
         }
-    } elsif ($targ->type eq 'sum') {
+    } elsif ($targ->is_iter && $targ->combiner eq 'pluslist') {
         $repl = Axiom::Expr->new({
             type => 'mullist',
             args => [ $expr, Axiom::Expr->new({
-                type => 'sum',
+                type => $targ->type,
                 args => [
                     map($_->copy, @{ $targ->args }[0 .. 2]),
                     _div($targ->args->[3], $expr),
