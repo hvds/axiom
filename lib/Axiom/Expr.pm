@@ -200,7 +200,7 @@ sub recip {
         return $self->args->[0]->copy;
     }
     if ($self->is_const) {
-        return Axiom::Expr::Const->new_rat(1 / $self->rat);
+        return Axiom::Expr->new_const(1 / $self->rat);
     }
     if ($type eq 'pow') {
         my $other = $self->copy;
@@ -510,7 +510,7 @@ sub _clean {
                 }
                 if (@found) {
                     splice @$args, $_, 1 for reverse @found;
-                    my $mult = Axiom::Expr::Const->new_rat($am);
+                    my $mult = Axiom::Expr->new_const($am);
                     my $repl = defined($a) ? do {
                         my $mulargs = $a->type eq 'mullist' ? $a->args : [ $a ];
                         Axiom::Expr->new({
@@ -630,7 +630,7 @@ sub _clean {
                 $prod = -$prod if @neg & 1;
                 my $repl = ($prod == 1)
                     ? undef
-                    : Axiom::Expr::Const->new_rat($prod);
+                    : Axiom::Expr->new_const($prod);
                 # x(a, c1, b, c2) -> x(a, eval(c1 . c2), b)
                 splice(@$args, $_, 1) for reverse @const;
                 splice(@$args, $const[0], 0, $repl) if $repl;
@@ -705,8 +705,8 @@ sub _clean {
                     push @found, $bi;
                     $an *= $bn;
                     if ($ape || $bpe) {
-                        $ape //= Axiom::Expr::Const->new_rat($ap);
-                        $bpe //= Axiom::Expr::Const->new_rat($bp);
+                        $ape //= Axiom::Expr->new_const($ap);
+                        $bpe //= Axiom::Expr->new_const($bp);
                         $ape = Axiom::Expr->new({
                             type => 'pluslist',
                             args => [ $ape->copy, $bpe->copy ],
@@ -717,7 +717,7 @@ sub _clean {
                 }
                 if (@found) {
                     splice @$args, $_, 1 for reverse @found;
-                    $ape //= Axiom::Expr::Const->new_rat($ap);
+                    $ape //= Axiom::Expr->new_const($ap);
                     my $repl = Axiom::Expr->new({
                         type => 'pow',
                         args => [ $a->copy, $ape->copy ],
@@ -752,7 +752,7 @@ sub _clean {
             }
 
             # 1/(p/q) -> q/p
-            return Axiom::Expr::Const->new_rat(1 / $arg->rat) if $arg->is_const;
+            return Axiom::Expr->new_const(1 / $arg->rat) if $arg->is_const;
 
             # 1/(a.b) -> 1/a . 1/b
             return Axiom::Expr->new({
@@ -793,7 +793,7 @@ sub _clean {
                 # c1^c2 -> eval(c1^c2)
                 if ($val->is_const) {
                     my $vali = $val->rat;
-                    return Axiom::Expr::Const->new_rat(
+                    return Axiom::Expr->new_const(
                         $vali ** $powi
                     ) if $vali || $powi;
                 }
@@ -829,7 +829,7 @@ sub _clean {
                     return Axiom::Expr->new({
                         type => 'mullist',
                         args => [
-                            Axiom::Expr::Const->new_rat($val->rat ** $pv),
+                            Axiom::Expr->new_const($val->rat ** $pv),
                             Axiom::Expr->new({
                                 type => 'pow',
                                 args => [
@@ -1288,7 +1288,7 @@ package Axiom::Expr::Const {
     }
     sub recip {
         my($self) = @_;
-        return Axiom::Expr::Const->new_rat(1 / $self->rat);
+        return Axiom::Expr->new_const(1 / $self->rat);
     }
     sub copy_with {
         my($self, $with) = @_;
