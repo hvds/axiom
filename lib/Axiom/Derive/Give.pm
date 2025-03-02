@@ -12,8 +12,8 @@ Axiom::Derive::Give - apply a \given clause
 
 =head1 USAGE
 
-  derive: give ( line? )
-  rule: [ line, loc ]
+  derive: give ( line? [ *with line ]? )
+  rule: [ line, loc, with? ]
 
 Given a location in a prior theorem with one or more constraints provided
 by outer iterators or given clauses, add a given clause to a selected
@@ -24,7 +24,10 @@ expression duplicating one or more of those constraints.
 sub rulename { 'give' }
 
 sub derive_args {
-    (2, q{ <[args=optline]> (?: \s* <[args=line]> )? });
+    (3, q{
+        <[args=optline]> (?: \s* <[args=line]> )?
+        \s* (?: <.WithToken> \s* <[args=line]> )?
+    });
 }
 
 sub derive {
@@ -65,8 +68,9 @@ sub validate {
 
     my $result = $source->substitute($loc, $repl);
     $self->validate_diff($result) or return;
-    $self->rule(sprintf 'give(%s%s)',
-            $self->_linename($line), join('.', @$loc));
+    $self->rule(sprintf 'give(%s%s%s)',
+            $self->_linename($line), join('.', @$loc),
+            $with ? ", $with" : '');
 
     return 1;
 }
