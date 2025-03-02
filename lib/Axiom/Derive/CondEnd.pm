@@ -65,7 +65,11 @@ sub derive {
         }), split /, /, $1 ];
     };
     $_->resolve($dict) for @$vars;
-    my $map = $self->find_mapping($base, $te->args->[0], $vars);
+    my $map = $self->find_mapping($base, $te->args->[0], $vars)
+            or return $self->set_error(sprintf(
+                "Can't derive target %s from source %s",
+                $te->args->[0]->str, $base->str
+            ));
     my $list = [];
     for my $fromvar (keys %$map) {
         my $to = $map->{$fromvar};
