@@ -1,0 +1,126 @@
+*import int
+*var A
+
+#
+# Phase 1: resolve \min(a+d,c+f) by splitting integrals until we can show
+# either f <= a+d-c or f >= a+d-c.
+#
+
+  condstart Sd1a: (a <= 1) & (c >= 0) & (c <= a)
+    simplify: a <= 1
+    multiply Sd1b: -a >= -1
+    simplify(Sd1a): c >= 0
+    conjoin(Sd1b): (-a >= -1) & (c >= 0)
+    ponens(int.Q7): -a+c >= -1
+    add Sd1c: 1-a+c >= 0
+    simplify(Sd1a): c <= a
+    add: 1-a+c <= 1
+    conjoin(Sd1c): (1-a+c >= 0) & (1-a+c <= 1)
+  condend: \Aa: \Ac: ((a <= 1) & (c >= 0) & (c <= a)) -> ((1-a+c >= 0) & (1-a+c <= 1))
+theorem Sd1: \Aa: \Ac: ((a <= 1) & (c >= 0) & (c <= a)) -> ((1-a+c >= 0) & (1-a+c <= 1))
+
+  condstart Sd2a: (a >= 0) & (c >= a) & (c <= 1)
+    simplify: c >= a
+    add Sd2b: c-a >= 0
+    simplify(Sd2a): a >= 0
+    multiply Sd2c: -a <= 0
+    simplify(Sd2a): c <= 1
+    conjoin(Sd2c): (-a <= 0) & (c <= 1)
+    ponens(int.Q8): c-a <= 1
+    conjoin(Sd2b): (c-a >= 0) & (c-a <= 1)
+  condend: \Aa: \Ac: ((a >= 0) & (c >= a) & (c <= 1)) -> ((c-a >= 0) & (c-a <= 1))
+theorem Sd2: \Aa: \Ac: ((a >= 0) & (c >= a) & (c <= 1)) -> ((c-a >= 0) & (c-a <= 1))
+
+  condstart Sf1a: (c <= a) & (d >= 0) & (d <= 1-a+c)
+    simplify: c <= a
+    multiply Sf1b: -c >= -a
+    simplify(Sf1a): d >= 0
+    conjoin(Sf1b): (-c >= -a) & (d >= 0)
+    ponens(int.Q7): d-c >= -a
+    add Sf1c: a+d-c >= 0
+    simplify(Sf1a): d <= 1-a+c
+    add: a+d-c <= 1
+    conjoin(Sf1c): (a+d-c >= 0) & (a+d-c <= 1)
+  condend: \Aa: \Ac: \Ad: ((c <= a) & (d >= 0) & (d <= 1-a+c)) -> ((a+d-c >= 0) & (a+d-c <= 1))
+theorem Sf1: \Aa: \Ac: \Ad: ((c <= a) & (d >= 0) & (d <= 1-a+c)) -> ((a+d-c >= 0) & (a+d-c <= 1))
+
+  condstart Sf2a: (c >= a) & (d >= c-a) & (d <= 1)
+    simplify: d >= c-a
+    add Sf2b: a+d-c >= 0
+    simplify(Sf2a): c >= a
+    multiply Sf2c: -c <= -a
+    simplify(Sf2a): d <= 1
+    conjoin(Sf2c): (-c <= -a) & (d <= 1)
+    ponens(int.Q8): d-c <= 1-a
+    add: a+d-c <= 1
+    conjoin(Sf2b): (a+d-c >= 0) & (a+d-c <= 1)
+  condend: \Aa: \Ac: \Ad: ((c >= a) & (d >= c-a) & (d <= 1)) -> ((a+d-c >= 0) & (a+d-c <= 1))
+theorem Sf2: \Aa: \Ac: \Ad: ((c >= a) & (d >= c-a) & (d <= 1)) -> ((a+d-c >= 0) & (a+d-c <= 1))
+
+  condstart: f <= a+d-c
+    multiply: -f >= -a-d+c
+    add: a+d >= c+f
+    ponens(int.M2): \min(a+d,c+f) = c+f
+  condend Min1p: \Aa: \Ac: \Ad: \Af: (f <= a+d-c) -> (\min(a+d,c+f) = c+f)
+  given: \Aa: \Ac: \Ad: \Af: \given_{f <= a+d-c}{\min(a+d,c+f)} = c+f
+theorem Min1: \Aa: \Ac: \Ad: \Af: \given_{f <= a+d-c}{\min(a+d,c+f)} = c+f
+
+  condstart: f >= a+d-c
+    multiply: -f <= -a-d+c
+    add: a+d <= c+f
+    ponens(int.M1): \min(a+d,c+f) = a+d
+  condend Min2p: \Aa: \Ac: \Ad: \Af: (f >= a+d-c) -> (\min(a+d,c+f) = a+d)
+  given: \Aa: \Ac: \Ad: \Af: \given_{f >= a+d-c}{\min(a+d,c+f)} = a+d
+theorem Min2: \Aa: \Ac: \Ad: \Af: \given_{f >= a+d-c}{\min(a+d,c+f)} = a+d
+
+  condstart Min3a: (d >= 1-a+c) & (f <= 1)
+    simplify: d >= 1-a+c
+    multiply Min3b: -d <= -1+a-c
+    simplify(Min3a): f <= 1
+    conjoin(Min3b): (-d <= -1+a-c) & (f <= 1)
+    ponens(int.Q8): f-d <= a-c
+    add: f <= a+d-c
+    ponens(Min1p): \min(a+d,c+f) = c+f
+  condend: \Aa: \Ac: \Ad: \Af: ((d >= 1-a+c) & (f <= 1)) -> (\min(a+d,c+f) = c+f)
+  given: \Aa: \Ac: \Ad: \Af: \given_{(d >= 1-a+c) & (f <= 1)}{\min(a+d,c+f)} = c+f
+theorem Min3: \Aa: \Ac: \Ad: \Af: \given_{(d >= 1-a+c) & (f <= 1)}{\min(a+d,c+f)} = c+f
+
+  condstart Min4a: (d <= c-a) & (f >= 0)
+    simplify: d <= c-a
+    multiply Min4b: -d >= a-c
+    simplify(Min4a): f >= 0
+    conjoin(Min4b): (-d >= a-c) & (f >= 0)
+    ponens(int.Q7): f-d >= a-c
+    add: f >= a+d-c
+    ponens(Min2p): \min(a+d,c+f) = a+d
+  condend: \Aa: \Ac: \Ad: \Af: ((d <= c-a) & (f >= 0)) -> (\min(a+d,c+f) = a+d)
+  given: \Aa: \Ac: \Ad: \Af: \given_{(d <= c-a) & (f >= 0)}{\min(a+d,c+f)} = a+d
+theorem Min4: \Aa: \Ac: \Ad: \Af: \given_{(d <= c-a) & (f >= 0)}{\min(a+d,c+f)} = a+d
+
+  specify(int.M13): \Aa: \Ab: \Ad: \Ae: \Ag: \min(a+b+e,a+d+g) = a+\min(b+e,d+g)
+theorem Min5: \Aa: \Ab: \Ad: \Ae: \Ag: \min(a+b+e,a+d+g) = a+\min(b+e,d+g)
+
+condstart: A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  itersplit: A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  itersplit(*with Sd1): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  itersplit(*with Sf1): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  give: A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,\given_{f <= a+d-c}{\min(a+d,c+f)}+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  equate(Min1): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  give: A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,\given_{f >= a+d-c}{\min(a+d,c+f)}+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  equate(Min2): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  give: A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\given_{(d >= 1-a+c) & (f <= 1)}{\min(a+d,c+f)}+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  equate(Min3): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  itersplit(*with Sd2): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  give: A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\given_{(d <= c-a) & (f >= 0)}{\min(a+d,c+f)}+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  equate(Min4): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  itersplit(*with Sf2): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  give: A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,\given_{f <= a+d-c}{\min(a+d,c+f)}+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  equate(Min1): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }
+  give: A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,\given_{f >= a+d-c}{\min(a+d,c+f)}+g) } } } } } } }
+  equate(Min2): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } } } }
+  equate(Min5): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } } } }
+  equate(Min5): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ \min(a+b+e,a+d+g) } } } } } } }
+  equate(Min5): A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } } } }
+condend: (A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }) -> (A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } } } })
+theorem CP1: (A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^1{ \int_{d=0}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,\min(a+d,c+f)+g) } } } } } } }) -> (A = \int_{a=0}^1{ \int_{b=0}^1{ \int_{c=0}^a{ \int_{d=0}^{1-a+c}{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } + \int_{d=1-a+c}^1{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } } } } + \int_{c=a}^1{ \int_{d=0}^{c-a}{ \int_{e=0}^1{ \int_{f=0}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } + \int_{d=c-a}^1{ \int_{e=0}^1{ \int_{f=0}^{a+d-c}{ \int_{g=0}^1{ \min(a+b+e,c+f+g) } } + \int_{f=a+d-c}^1{ \int_{g=0}^1{ a+\min(b+e,d+g) } } } } } } })
+

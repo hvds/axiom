@@ -28,76 +28,105 @@ axiom M7: \Aa: \Ab: \max(a, b) >= a
 axiom M8: \Aa: \Ab: \max(a, b) >= b
 axiom M9: \Aa: \Ab: (a <= b) -> (\Ac: \max(a,\min(b,c)) = \min(b,\max(a,c)))
 condstart M10a: (a >= c) & (b >= c)
-  condstart M10ba: a <= b
-    rename(M1): \Ax: \Ay: (x <= y) -> (\min(x, y) = x)
-    specify M10bb: (a <= b) -> (\min(a, b) = a)
-    ponens(M10ba: M10bb) M10bc: \min(a, b) = a
+  condstart: a <= b
+    ponens(M1) M10ba: \min(a, b) = a
     simplify(M10a): a >= c
-    equate(M10bc): \min(a, b) >= c
+    equate(M10ba): \min(a, b) >= c
   condend M10b: (a <= b) -> (\min(a, b) >= c)
-  condstart M10ca: a >= b
-    rename(M2): \Ax: \Ay: (x >= y) -> (\min(x, y) = y)
-    specify M10cb: (a >= b) -> (\min(a, b) = b)
-    ponens(M10ca: M10cb) M10cc: \min(a, b) = b
+  condstart: a >= b
+    ponens(M2) M10ca: \min(a, b) = b
     simplify(M10a): b >= c
-    equate(M10cc): \min(a, b) >= c
-  condend M10c: (a >= b) -> (\min(a, b) >= c)
-  cases(M10b) M10d: ((a >= b) | (a <= b)) -> (\min(a, b) >= c)
-  rename(Q6): \Ax: \Ay: (x >= y) | (x <= y)
-  specify: (a >= b) | (a <= b)
-  ponens(M10d): \min(a, b) >= c
+    equate(M10ca): \min(a, b) >= c
+  condend: (a >= b) -> (\min(a, b) >= c)
+  cases(M10b) M10c: ((a >= b) | (a <= b)) -> (\min(a, b) >= c)
+  specify(Q6): (a >= b) | (a <= b)
+  ponens(M10c): \min(a, b) >= c
 condend: \Aa: \Ab: \Ac: ((a >= c) & (b >= c)) -> (\min(a, b) >= c)
 theorem M10: \Aa: \Ab: \Ac: ((a >= c) & (b >= c)) -> (\min(a, b) >= c)
-
-  condstart M11C1a: x <= 0
+condstart M11a: (a <= c) & (b <= c)
+  condstart: a <= b
+    ponens(M3) M11ba: \max(a, b) = b
+    simplify(M11a): b <= c
+    equate(M11ba): \max(a, b) <= c
+  condend M11b: (a <= b) -> (\max(a, b) <= c)
+  condstart: a >= b
+    ponens(M4) M11ca: \max(a, b) = a
+    simplify(M11a): a <= c
+    equate(M11ca): \max(a, b) <= c
+  condend: (a >= b) -> (\max(a, b) <= c)
+  cases(M11b) M11c: ((a >= b) | (a <= b)) -> (\max(a, b) <= c)
+  specify(Q6): (a >= b) | (a <= b)
+  ponens(M11c): \max(a, b) <= c
+condend: \Aa: \Ab: \Ac: ((a <= c) & (b <= c)) -> (\max(a, b) <= c)
+theorem M11: \Aa: \Ab: \Ac: ((a <= c) & (b <= c)) -> (\max(a, b) <= c)
+  condstart M12C1a: x <= 0
     conjoin(Q9a): (x <= 0) & (0 <= 1)
     ponens(Q10): x <= 1
     multiply: -x >= -1
     add: 1 >= x
-    ponens(M2) M11C1b: \min(1, x) = x
-    equate(M11C1a: M11C1b): \min(1, x) <= 0
+    ponens(M2) M12C1b: \min(1, x) = x
+    equate(M12C1a: M12C1b): \min(1, x) <= 0
     multiply: -\min(1, x) >= 0
     add: 0 >= \min(1, x)
-    ponens(M4) M11C1c: \max(0, \min(1, x)) = 0
-    multiply(M11C1a:): -x >= 0
+    ponens(M4) M12C1c: \max(0, \min(1, x)) = 0
+    multiply(M12C1a:): -x >= 0
     add: 0 >= x
-    ponens(M4) M11C1d: \max(0, x) = 0
+    ponens(M4) M12C1d: \max(0, x) = 0
     add(Q9a): -1 <= 0
     multiply: 1 >= 0
     ponens(M2): \min(1, 0) = 0
-    equate(M11C1d): \min(1, \max(0, x)) = 0
-    equate(M11C1c): \max(0, \min(1, x)) = \min(1, \max(0, x))
-  condend M11C1: \Ax: (x <= 0) -> (\max(0, \min(1, x)) = \min(1, \max(0, x)))
-  condstart M11C2a: x >= 0
+    equate(M12C1d): \min(1, \max(0, x)) = 0
+    equate(M12C1c): \max(0, \min(1, x)) = \min(1, \max(0, x))
+  condend M12C1: \Ax: (x <= 0) -> (\max(0, \min(1, x)) = \min(1, \max(0, x)))
+  condstart M12C2a: x >= 0
     multiply: -x <= 0
     add: 0 <= x
-    ponens(M3) M11C2b: \max(0, x) = x
+    ponens(M3) M12C2b: \max(0, x) = x
     condstart: x <= 1
       multiply: -x >= -1
       add: 1 >= x
-      ponens(M2) M11C3a: \min(1, x) = x
-      equate(M11C2b: M11C3a) M11C3b: \max(0, \min(1, x)) = x
-      equate(M11C3a: M11C2b): \min(1, \max(0, x)) = x
-      equate(M11C3b): \max(0, \min(1, x)) = \min(1, \max(0, x))
-    condend M11C3: (x <= 1) -> (\max(0, \min(1, x)) = \min(1, \max(0, x)))
+      ponens(M2) M12C3a: \min(1, x) = x
+      equate(M12C2b: M12C3a) M12C3b: \max(0, \min(1, x)) = x
+      equate(M12C3a: M12C2b): \min(1, \max(0, x)) = x
+      equate(M12C3b): \max(0, \min(1, x)) = \min(1, \max(0, x))
+    condend M12C3: (x <= 1) -> (\max(0, \min(1, x)) = \min(1, \max(0, x)))
     condstart: x >= 1
       multiply: -x <= -1
       add: 1 <= x
-      ponens(M1) M11C4a: \min(1, x) = 1
+      ponens(M1) M12C4a: \min(1, x) = 1
       ponens(Q9a: M3): \max(0, 1) = 1
-      equate(M11C4a) M11C4b: \max(0, \min(1, x)) = 1
-      equate(M11C4a: M11C2b):  \min(1, \max(0, x)) = 1
-      equate(M11C4b): \max(0, \min(1, x)) = \min(1, \max(0, x))
+      equate(M12C4a) M12C4b: \max(0, \min(1, x)) = 1
+      equate(M12C4a: M12C2b):  \min(1, \max(0, x)) = 1
+      equate(M12C4b): \max(0, \min(1, x)) = \min(1, \max(0, x))
     condend: (x >= 1) -> (\max(0, \min(1, x)) = \min(1, \max(0, x)))
-    cases(M11C3) M11C2c: ((x >= 1) | (x <= 1)) -> (\max(0, \min(1, x)) = \min(1, \max(0, x)))
+    cases(M12C3) M12C2c: ((x >= 1) | (x <= 1)) -> (\max(0, \min(1, x)) = \min(1, \max(0, x)))
     specify(Q6): (x >= 1) | (x <= 1)
-    ponens(M11C2c): \max(0, \min(1, x)) = \min(1, \max(0, x))
+    ponens(M12C2c): \max(0, \min(1, x)) = \min(1, \max(0, x))
   condend: \Ax: (x >= 0) -> (\max(0, \min(1, x)) = \min(1, \max(0, x)))
-  cases(M11C1): \Ax: ((x >= 0) | (x <= 0)) -> (\max(0, \min(1, x)) = \min(1, \max(0, x)))
-  unarydistrib M11C2: (\Ax: (x >= 0) | (x <= 0)) -> (\Ax: \max(0, \min(1, x)) = \min(1, \max(0, x)))
+  cases(M12C1): \Ax: ((x >= 0) | (x <= 0)) -> (\max(0, \min(1, x)) = \min(1, \max(0, x)))
+  unarydistrib M12C2: (\Ax: (x >= 0) | (x <= 0)) -> (\Ax: \max(0, \min(1, x)) = \min(1, \max(0, x)))
   specify(Q6): \Ax: (x >= 0) | (x <= 0)
-  ponens(M11C2): \Ax: \max(0, \min(1, x)) = \min(1, \max(0, x))
-theorem M11: \Ax: \max(0, \min(1, x)) = \min(1, \max(0, x))
+  ponens(M12C2): \Ax: \max(0, \min(1, x)) = \min(1, \max(0, x))
+theorem M12: \Ax: \max(0, \min(1, x)) = \min(1, \max(0, x))
+
+  condstart M13a: a+b <= a+c
+    ponens(M1) M13b: \min(a+b,a+c) = a+b
+    add(M13a): b <= c
+    ponens(M1): \min(b,c) = b
+    add: a+\min(b,c) = a+b
+    equate(M13b): \min(a+b,a+c) = a+\min(b,c)
+  condend M13c: \Aa: \Ab: \Ac: (a+b <= a+c) -> (\min(a+b,a+c) = a+\min(b,c))
+  condstart M13d: a+b >= a+c
+    ponens(M2) M13e: \min(a+b,a+c) = a+c
+    add(M13d): b >= c
+    ponens(M2): \min(b,c) = c
+    add: a+\min(b,c) = a+c
+    equate(M13e): \min(a+b,a+c) = a+\min(b,c)
+  condend: \Aa: \Ab: \Ac: (a+b >= a+c) -> (\min(a+b,a+c) = a+\min(b,c))
+  cases(M13c) M13f: \Aa: \Ab: \Ac: ((a+b >= a+c) | (a+b <= a+c)) -> (\min(a+b,a+c) = a+\min(b,c))
+  specify(Q6): \Aa: \Ab: \Ac: (a+b >= a+c) | (a+b <= a+c)
+  ponens(M13f): \Aa: \Ab: \Ac: \min(a+b,a+c) = a+\min(b,c)
+theorem M13: \Aa: \Ab: \Ac: \min(a+b,a+c) = a+\min(b,c)
 
 # integrals
 axiom I1: \Aa: \Ab: \int_{c=a}^{a}{b} = 0
@@ -108,117 +137,3 @@ axiom I1: \Aa: \Ab: \int_{c=a}^{a}{b} = 0
 # the other one being an empty range.
 #
 axiom I2: \Aa: \Ab: \Ac: \Ad: \int_{e=\min(a, b)}^{c}{d} = \int_{e=\min(a, b)}^{\min(a, b)+\max(0,a-b)}{d} + \int_{e=\min(a, b)}^{\min(a, b)+\max(0,b-a)}{d} + \int_{e=\max(a, b)}^{c}{d}
-
-# Applying min/max over a clamped range
-# - let f = \max(a,\min(b,c-d)), so (f = a) | (f = \min(b,c-d))
-# - assume f = \min(b,c-d), then e <= c-d, so \min(c,d+e) = d+e
-# - assume f = a, then \int_{e=a}^{f}{\min(c,d+e)} = 0 = \int_{e=a}^{f}{d+e}
-#
-  condstart I3C2a: c <= d
-    specify(Q10) I3C2b: ((c-d <= 0) & (0 <= 1)) -> (c-d <= 1)
-    specify(M2) I3C2e: (1 >= c-d) -> (\min(1, c-d) = c-d)
-    specify(M4) I3C2f: (0 >= c-d) -> (\max(0, c-d) = 0)
-    rename(I1) I3C2j: \Aa: \Ab: \int_{e=a}^{a}{b} = 0
-    specify I3C2i: \int_{e=0}^{0}{ \min(c,d+e) } = 0
-    specify(I3C2j) I3C2k: \int_{e=0}^{0}{ d+e } = 0
-
-    add(I3C2a): c-d <= 0
-    conjoin(Q9a): (c-d <= 0) & (0 <= 1)
-    ponens(I3C2b): c-d <= 1
-    add: -1 <= -c+d
-    multiply: 1 >= c-d
-    ponens(I3C2e) I3C2g: \min(1, c-d) = c-d
-
-    add(I3C2a): 0 <= d-c
-    multiply(*value -1): 0 >= c-d
-    ponens(I3C2f): \max(0, c-d) = 0
-    equate(I3C2g) I3C2h: \max(0, \min(1, c-d)) = 0
-
-    identity: \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) }
-    equate(I3C2h): \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{0}{ \min(c,d+e) }
-    equate(I3C2i): \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = 0
-    equate(I3C2k): \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{0}{ d+e }
-    equate(I3C2h): \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ d+e }
-  condend I3a: \Ac: \Ad: (c <= d) -> (\int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ d+e })
-  condstart: c >= d
-    add I3C1a: c-d >= 0
-    specify(M10) I3C1b: ((1 >= 0) & (c-d >= 0)) -> (\min(1, c-d) >= 0)
-    specify(M3) I3C1e: (0 <= \min(1, c-d)) -> (\max(0, \min(1, c-d)) = \min(1, c-d))
-    specify(Q2) I3C1c: (1 > 0) -> (1 >= 0)
-
-    add(Q9): -1 < 0
-    multiply: 1 > 0
-    ponens(I3C1c): 1 >= 0
-    conjoin(I3C1a): (1 >= 0) & (c-d >= 0)
-    ponens(I3C1b): \min(1, c-d) >= 0
-    add: 0 >= -\min(1, c-d)
-    multiply: 0 <= \min(1, c-d)
-    ponens(I3C1e) I3C1f: \max(0, \min(1, c-d)) = \min(1, c-d)
-
-    condstart I3C11a: e <= \min(1, c-d)
-      specify(M6) I3C11b: \min(1, c-d) <= c-d
-      specify(Q10) I3C11c: (((e <= \min(1, c-d)) & (\min(1, c-d) <= c-d)) -> (e <= c-d))
-      conjoin(I3C11a: I3C11b): (e <= \min(1, c-d)) & (\min(1, c-d) <= c-d)
-      ponens(I3C11c): e <= c-d
-      add: -c <= -d-e
-      multiply: c >= d+e
-      ponens(M2): \min(c,d+e) = d+e
-    condend: \Ae: (e <= \min(1, c-d)) -> (\min(c,d+e) = d+e)
-    equate(I3C1f): \Ae: (e <= \max(0, \min(1, c-d))) -> (\min(c,d+e) = d+e)
-    given I3C1h: \Ae: \given_{e <= \max(0, \min(1, c-d))}{\min(c,d+e)} = d+e
-
-    identity: \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) }
-    give: \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ \given_{e <= \max(0, \min(1, c-d))}{\min(c,d+e)} }
-    equate(I3C1h): \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ d+e }
-  condend I3b: \Ac: \Ad: (c >= d) -> (\int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ d+e })
-  cases(I3a) I3c: \Ac: \Ad: ((c >= d) | (c <= d)) -> (\int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ d+e })
-  rename(Q6): \Ac: \Ad: (c >= d) | (c <= d)
-  ponens(I3c): \Ac: \Ad: \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ d+e }
-theorem I3: \Ac: \Ad: \int_{e=0}^{\max(0,\min(1,c-d))}{ \min(c,d+e) } = \int_{e=0}^{\max(0,\min(1,c-d))}{ d+e }
-
-  condstart I4C1a: c-d <= 1
-    specify(M2) I4C1b: (1 >= c-d) -> (\min(1, c-d) = c-d)
-    add(I4C1a): -1 <= -c+d
-    multiply: 1 >= c-d
-    ponens(I4C1b) I4C1f: \min(1, c-d) = c-d
-
-    condstart I4C11a: e >= \max(0, c-d)
-      specify(Q11) I4C11b: ((e >= \max(0, c-d)) & (\max(0, c-d) >= c-d)) -> (e >= c-d)
-      specify(M8): \max(0, c-d) >= c-d
-      conjoin(I4C11a): (e >= \max(0, c-d)) & (\max(0, c-d) >= c-d)
-      ponens(I4C11b): e >= c-d
-      add: -c >= -d-e
-      multiply: c <= d+e
-      ponens(M1): \min(c,d+e) = c
-    condend: \Ae: (e >= \max(0, c-d)) -> (\min(c,d+e) = c)
-    equate(I4C1f): \Ae: (e >= \max(0, \min(1, c-d))) -> (\min(c,d+e) = c)
-    given I4C1h: \Ae: \given_{e >= \max(0, \min(1, c-d))}{\min(c,d+e)} = c
-
-    identity: \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) }
-    give: \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ \given_{e >= \max(0, \min(1, c-d))}{ \min(c,d+e) } }
-    equate(I4C1h): \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c }
-  condend I4a: \Ac: \Ad: (c-d <= 1) -> (\int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c })
-  condstart I4C2a: c-d >= 1
-    specify(M1) I4C2b: (1 <= c-d) -> (\min(1, c-d) = 1)
-    add(I4C2a): -1 >= -c+d
-    multiply: 1 <= c-d
-    ponens(I4C2b) I4C2c: \min(1, c-d) = 1
-
-    specify(M3) I4C2d: (0 <= 1) -> (\max(0, 1) = 1)
-    ponens(Q9a: I4C2d): \max(0, 1) = 1
-    equate(I4C2c) I4C2e: \max(0, \min(1, c-d)) = 1
-
-    rename(I1) I4C2f: \Aa: \Ab: \int_{e=a}^{a}{b} = 0
-    specify I4C2g: \int_{e=1}^{1}{ \min(c,d+e) } = 0
-    specify(I4C2f): \int_{e=1}^{1}{ c } = 0
-    equate(I4C2e) I4C2h: \int_{e=\max(0,\min(1,c-d))}^{1}{ c } = 0
-
-    identity: \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) }
-    equate(I4C2e): \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=1}^{1}{ \min(c,d+e) }
-    equate(I4C2g): \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = 0
-    equate(I4C2h): \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c }
-  condend I4b: \Ac: \Ad: (c-d >= 1) -> (\int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c })
-  cases(I4a) I4c: \Ac: \Ad: ((c-d >= 1) | (c-d <= 1)) -> (\int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c })
-  specify(Q6): \Ac: \Ad: (c-d >= 1) | (c-d <= 1)
-  ponens(I4c): \Ac: \Ad: \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c }
-theorem I4: \Ac: \Ad: \int_{e=\max(0,\min(1,c-d))}^{1}{ \min(c,d+e) } = \int_{e=\max(0,\min(1,c-d))}^{1}{ c }
