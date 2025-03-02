@@ -45,6 +45,10 @@ test($_, 1, 1) for ([
     q{*var a}, q{axiom: a+a^3-(a^2+a^3+a^4) = 0},
     q{unarydistrib: a-a^2-a^4 = 0}
 ], [
+    q{negate in mullist},
+    q{*var a}, q{axiom: -(a+1)(a+2) = 0},
+    q{unarydistrib: (a+1)(-a-2) = 0}
+], [
     q{forall simple},
     q{axiom: \Ax: (x = 1) -> (2x = 2)},
     q{unarydistrib: (\Ax: x = 1) -> (\Ax: 2x = 2)},

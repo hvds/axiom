@@ -197,6 +197,19 @@ sub validate {
             type => 'pluslist',
             args => [ map $_->negate, @$replargs ],
         });
+    } elsif ($type eq 'negatemul') {
+        my $fe2 = $fe->arg(0);
+        $fe2->assert_type('mullist');
+        my $replargs = [ map $_->copy, @{ $fe2->expr->args } ];
+        return $self->set_error(sprintf(
+            'Invalid argument "%s" for negatemul over %s',
+            $assign // 'undef', $fe->expr->str
+        )) unless defined($assign) && $assign >= 0 && $assign <= $#$replargs;
+        $replargs->[$assign] = $replargs->[$assign]->negate;
+        $repl = Axiom::Expr->new({
+            type => 'mullist',
+            args => $replargs,
+        });
     } elsif ($fe->expr->is_iter && $fe->expr->combiner eq 'pluslist') {
         my($var, $start, $end, $expr) = @{ $fe->expr->args };
         $fe->arg(3)->assert_type('pluslist');
@@ -303,6 +316,27 @@ sub _try_expr {
         my $assign = _find_assignment($self, $ft, $left, $right)
                 or return;
         return $self->validate([ $line, $fe->loc, $ft, $assign ]);
+    }
+
+    if ($ft eq 'negate' && $fex->args->[0]->type eq 'mullist'
+        && !$split && $rem->[0][1]->type eq 'mullist'
+    ) {
+        $ft = 'negatemul';  # commit to this
+        my $loc2 = $fe->loc;
+        my $fa = $fex->args->[0]->args;
+        my $ra = [ _newc($rem->[0][0]), @{ $rem->[0][1]->args } ];
+        for my $fi (0 .. $#$fa) {
+            my $fae = $fa->[$fi];
+            my $ri = List::Util::first(sub {
+                ! $fae->diff($ra->[$_], 1)
+            }, 0 .. $#$ra);
+            return $self->validate([ $line, $fe->loc, $ft, $fi ])
+                    unless defined $ri;
+            splice @$ra, $ri, 1;
+        }
+        return $self->set_error(sprintf(
+            "Don't know how to derive this %s", $ft
+        ));
     }
 
     if ($fex->is_iter && $fex->combiner eq 'pluslist'
