@@ -558,11 +558,11 @@ sub check_range {
     my $dict = $base->dict_at($loc);
     $_->resolve($dict) for @$rassert;
 
-    if ($wreq) {
+    if ($wassert) {
         return $self->set_error(sprintf(
             'Cannot prove %s with %s since %s is not satisfied by [%s]',
             $targ->str, $with, $wreq->str, join ' & ', map $_->str, @$rassert
-        )) unless $self->check_satisfy($wreq, $rassert);
+        )) if $wreq && ! $self->check_satisfy($wreq, $rassert);
         push @$rassert, @$wassert;
     }
 
